@@ -7,8 +7,10 @@ mod sync;
 use args::Args;
 use bollard::Docker;
 use getopts::Occur;
+
 use std::env;
-use std::process::exit;
+use std::fs::create_dir_all;
+use std::process::{exit, Command};
 
 #[tokio::main]
 async fn main() {
