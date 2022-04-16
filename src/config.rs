@@ -1,15 +1,15 @@
-use bollard::Docker;
-use std::fmt;
+use serde::{Deserialize, Serialize};
+use std::fmt::Debug;
 
+#[allow(dead_code)]
 pub const PROGRAM_NAME: &'static str = "zeus";
 pub const PROGRAM_DESC: &'static str = "Containerized AUR helper";
 
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Config {
-    // Docker instance
-    pub docker: Docker,
-
     pub verbose: bool,
     pub force: bool,
+    pub upgrade: bool,
 
     // Package builder image context
     pub builder_archive: String,
@@ -22,18 +22,6 @@ pub struct Config {
     pub packages: Vec<String>,
     // Package build directory in host
     pub build_dir: String,
-}
-
-impl fmt::Debug for Config {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Config")
-            .field("verbose", &self.verbose)
-            .field("force", &self.force)
-            .field("builder_archive", &self.builder_archive)
-            .field("builder_dockerfile", &self.builder_dockerfile)
-            .field("builder_image", &self.builder_image)
-            .field("packages", &self.packages)
-            .field("build_dir", &self.build_dir)
-            .finish()
-    }
+    // makepkg build args
+    pub build_args: Vec<String>,
 }

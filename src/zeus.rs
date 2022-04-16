@@ -1,6 +1,8 @@
 mod config;
 mod log;
-mod operation;
+
+mod build;
+mod sync;
 
 use args::Args;
 use bollard::Docker;
@@ -16,6 +18,7 @@ async fn main() {
     args.flag("S", "sync", "Sync packages");
     args.flag("B", "build-builder", "Build the builder image");
 
+    args.flag("u", "upgrade", "Upgrade packages before build");
     args.option(
         "p",
         "packages",
@@ -35,7 +38,16 @@ async fn main() {
         "Colorize the output",
         "<when>",
         Occur::Optional,
-        Some("auto".to_owned()),
+        None,
+    );
+
+    args.option(
+        "",
+        "buildargs",
+        "Extra arguments for makepkg",
+        "args",
+        Occur::Optional,
+        None,
     );
 
     args.option(
@@ -44,7 +56,7 @@ async fn main() {
         "Package build directory",
         "<path>",
         Occur::Optional,
-        Some("/var/cache/aur".to_owned()),
+        None,
     );
 
     args.option(
@@ -53,7 +65,7 @@ async fn main() {
         "Builder image name",
         "<name:tag>",
         Occur::Optional,
-        Some("zeus-builder:latest".to_owned()),
+        None,
     );
 
     args.option(
@@ -62,7 +74,7 @@ async fn main() {
         "Builder image build archive",
         "<path>",
         Occur::Optional,
-        Some("builder.tar.gz".to_owned()),
+        None,
     );
 
     args.option(
@@ -71,7 +83,7 @@ async fn main() {
         "Builder image dockerfile",
         "<path>",
         Occur::Optional,
-        Some("Dockerfile".to_owned()),
+        None,
     );
 
     if _args.len() == 1 {
@@ -94,7 +106,10 @@ async fn main() {
 
     let mut logger = log::Logger::new(
         log::Stream::Stdout,
-        match &(args.value_of::<String>("color").unwrap())[..] {
+        match &(args
+            .value_of::<String>("color")
+            .unwrap_or("auto".to_owned()))[..]
+        {
             "always" => log::ColorChoice::Always,
             "never" => log::ColorChoice::Never,
             _ => log::ColorChoice::Auto,
@@ -102,10 +117,7 @@ async fn main() {
     );
 
     let docker = match Docker::connect_with_local_defaults() {
-        Ok(v) => {
-            logger.v(log::Level::Success, "docker", "Successfully connected");
-            v
-        }
+        Ok(v) => v,
         Err(e) => {
             logger.v(
                 log::Level::Error,
@@ -117,29 +129,43 @@ async fn main() {
     };
 
     let cfg = config::Config {
-        docker: docker,
+        verbose: args.value_of("verbose").unwrap_or(false),
+        force: args.value_of("force").unwrap_or(false),
+        upgrade: args.value_of("upgrade").unwrap_or(false),
 
-        verbose: args.value_of::<bool>("verbose").unwrap(),
-        force: args.value_of::<bool>("force").unwrap(),
-
-        builder_archive: args.value_of("imagearchive").unwrap(),
-        builder_dockerfile: args.value_of("dockerfile").unwrap(),
-        builder_image: args.value_of("image").unwrap(),
+        builder_archive: args
+            .value_of("imagearchive")
+            .unwrap_or("builder.tar.gz".to_owned()),
+        builder_dockerfile: args
+            .value_of("dockerfile")
+            .unwrap_or("Dockerfile".to_owned()),
+        builder_image: args
+            .value_of("image")
+            .unwrap_or("zeus-builder:latest".to_owned()),
 
         packages: args.values_of("packages").unwrap_or(vec![]),
-        build_dir: args.value_of("builddir").unwrap(),
+        build_dir: args
+            .value_of("builddir")
+            .unwrap_or("/var/cache/aur".to_owned()),
+        build_args: args
+            .value_of::<String>("buildargs")
+            .unwrap_or("".to_owned())
+            .split(" ")
+            .map(|e| e.to_owned())
+            .collect(),
     };
 
+    // TODO: Implement a locking mechanism to ensure only one instance is active at any time
+
     if args.value_of::<bool>("sync").unwrap() {
-        //operation::sync(logger, cfg)
+        sync::sync(logger, docker, cfg).await;
     } else if args.value_of::<bool>("build-builder").unwrap() {
-        operation::build::build(logger, cfg).await;
+        build::build(logger, docker, cfg).await;
     } else {
         logger.v(
             log::Level::Error,
             config::PROGRAM_NAME,
             "No operation specified! See --help",
         );
-        exit(1);
     }
 }

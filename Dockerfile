@@ -5,12 +5,15 @@ RUN pacman -Syyu \
 	--needed \
 	sudo base base-devel gcc make cmake git
 
-RUN useradd -m builder
+RUN useradd -r -m builder
 RUN echo "builder ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
 
 VOLUME [ "/build" ]
 
-COPY ./builder.sh /usr/local/bin/builder.sh
+COPY --chown=root:root builder /usr/local/bin
+COPY --chown=root:root package_builder.sh /usr/local/bin
 
-USER builder
-ENTRYPOINT /usr/local/bin/builder.sh
+RUN chmod +x /usr/local/bin/*
+
+WORKDIR /build
+ENTRYPOINT ["/usr/local/bin/builder"]

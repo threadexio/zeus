@@ -2,19 +2,22 @@ use crate::config;
 use crate::log::{self, Level};
 
 use bollard::image::{BuildImageOptions, ListImagesOptions};
+use bollard::Docker;
+
 use futures::StreamExt;
+
 use std::fs::File;
 use std::io::Read;
 use std::process::exit;
 
-pub async fn build(mut logger: log::Logger, cfg: config::Config) {
+pub async fn build(mut logger: log::Logger, docker: Docker, cfg: config::Config) {
     if !cfg.force {
         let opts = ListImagesOptions::<String> {
             all: true,
             ..Default::default()
         };
 
-        match cfg.docker.list_images(Some(opts)).await {
+        match docker.list_images(Some(opts)).await {
             Err(e) => {
                 logger.v(
                     Level::Error,
@@ -40,6 +43,8 @@ pub async fn build(mut logger: log::Logger, cfg: config::Config) {
         dockerfile: cfg.builder_dockerfile,
         t: cfg.builder_image,
         nocache: cfg.force,
+        pull: cfg.force,
+        rm: true,
         ..Default::default()
     };
 
@@ -70,7 +75,7 @@ pub async fn build(mut logger: log::Logger, cfg: config::Config) {
 
     logger.v(Level::Info, "docker", "Starting builder...\n");
 
-    let mut stream = cfg.docker.build_image(opts, None, Some(contents.into()));
+    let mut stream = docker.build_image(opts, None, Some(contents.into()));
     while let Some(r) = stream.next().await {
         match r {
             Err(e) => {

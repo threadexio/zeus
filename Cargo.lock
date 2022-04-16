@@ -1006,6 +1006,8 @@ dependencies = [
  "bollard",
  "futures",
  "getopts",
+ "serde",
+ "serde_json",
  "termcolor",
  "tokio",
 ]
