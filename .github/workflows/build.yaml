@@ -24,7 +24,6 @@ jobs:
               with:
                   name: release ubuntu-latest
                   path: |
+                      builder.tar.gz
                       target/release/zeus*
                       !target/release/zeus.d
-                      target/release/builder*
-                      !target/release/builder.d

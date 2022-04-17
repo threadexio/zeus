@@ -24,8 +24,3 @@ clean:
 docker_image: build
 	tar -acvf builder.tar.gz Dockerfile package_builder.sh -C target/$(BUILD_TYPE) builder
 	./target/$(BUILD_TYPE)/zeus -vB --force
-
-.PHONY:
-install:
-	install -Dm755 ./target/$(BUILD_TYPE)/zeus $(DESTDIR)/usr/bin/zeus
-	install -Dm644 ./builder.tar.gz $(DESTDIR)/usr/share/zeus/builder.tar.gz
