@@ -24,5 +24,5 @@ clean:
 	-cargo clean $(CARGO_ARGS) --
 
 .PHONY:
-docker_image: build
-	./target/$(BUILD_TYPE)/zeus -vB --force
+package: build
+	tar -acvf zeus-bin.tar.gz builder.tar.gz -C target/$(BUILD_TYPE) zeus

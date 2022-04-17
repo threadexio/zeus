@@ -16,11 +16,17 @@ jobs:
                   default: true
 
             - run: |
-                make BUILD_TYPE=release build
+                case "${GITHUB_REF}" in ref/tags*)
+                    export VERSION="${GITHUB_REF#refs/tags/}"
+                esac
+
+                make BUILD_TYPE=release package
 
             - uses: actions/upload-artifact@v3
               with:
-                  name: release
-                  path: |
-                      builder.tar.gz
-                      target/release/zeus
+                  path: zeus-bin.tar.gz
+
+            - uses: softprops/action-gh-release@v1
+              if: startsWith(github.ref, 'refs/tags/')
+              with:
+                files: zeus-bin.tar.gz
