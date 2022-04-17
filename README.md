@@ -23,13 +23,15 @@ there are 2 packages already in the AUR for this
 
 then run once to build the builder image
 
-do this if you also want to change/upgrade the builder
-
 ```bash
-zeus -B --force --imagearchive /usr/share/zeus/builder.tar.gz
+zeus -B --force
 ```
 
-for Highly Advanced Users™, you can use use custom images by creating a new tarball with all the required files and supply the tarball path with `--imagearchive`
+also do this if you also want to change/upgrade the builder
+
+the `--force` means do not use the cache
+
+for Highly Advanced Users™, you can use use custom images by creating a new tarball with all the required files and supply the tarball path with `--archive`
 
 note that if your user is not in the `docker` group you will have to use sudo
 
