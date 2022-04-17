@@ -12,6 +12,12 @@ use std::process::Command;
 fn main() {
     let mut logger = log::Logger::new(log::Stream::Stdout, log::ColorChoice::Auto);
 
+    logger.v(
+        Level::Info,
+        "builder",
+        format!("Version: {}", config::PROGRAM_VERSION),
+    );
+
     let socket_path = format!("/build/{}.sock", config::PROGRAM_NAME);
     let mut stream = match UnixStream::connect(&socket_path) {
         Ok(v) => v,

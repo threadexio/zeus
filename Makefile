@@ -1,8 +1,10 @@
 BUILD_TYPE ?= debug
-
-VERSION	?= $(shell git rev-parse --short HEAD)
-
 CARGO_ARGS ?=
+
+VERSION	?= $(shell git describe --tags --always)
+
+PREFIX ?= /usr/local
+DESTDIR ?=
 
 ifeq ($(BUILD_TYPE),release)
 	CARGO_ARGS += --release
@@ -12,17 +14,32 @@ endif
 all: build
 
 .PHONY:
-build:
-	VERSION="$(VERSION)" cargo build $(CARGO_ARGS) --
-	tar -acvf builder.tar.gz Dockerfile package_builder.sh -C target/$(BUILD_TYPE) builder
+FORCE: ; 
 
 .PHONY:
-clean:
-	-rm builder.tar.gz
-	-docker rm zeus-builder
-	-docker rmi zeus-builder
+.ONESHELL:
+build: FORCE
+	export VERSION="$(VERSION)"
+	cargo build $(CARGO_ARGS) --
+
+	tar -acvf builder.tar.gz \
+		-C $$PWD/builder/               . \
+		-C $$PWD/target/$(BUILD_TYPE)/  builder
+
+.PHONY:
+clean: FORCE
 	-cargo clean $(CARGO_ARGS) --
 
 .PHONY:
-package: build
-	tar -acvf zeus-bin.tar.gz builder.tar.gz target/$(BUILD_TYPE)/zeus
+package: build FORCE
+	tar -acvf zeus-bin.tar.gz \
+		-C $$PWD/target/$(BUILD_TYPE)/  zeus \
+		-C $$PWD/                       builder.tar.gz
+
+.PHONY:
+install: build
+	install -Dm0755 -t "$(DESTDIR)/$(PREFIX)/bin" target/$(BUILD_TYPE)/zeus
+	install -Dm0644 -t "$(DESTDIR)/$(PREFIX)/share/zeus" builder.tar.gz
+
+	mkdir -p "$(DESTDIR)/var/cache/aur"
+	chmod 0777 "$(DESTDIR)/var/cache/aur"

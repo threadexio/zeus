@@ -2,4 +2,4 @@
 
 /.vscode
 
-builder.tar.gz
+*.tar.gz
