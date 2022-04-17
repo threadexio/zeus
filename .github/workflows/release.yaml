@@ -19,7 +19,7 @@ jobs:
           default: true
 
       - run: |
-          make BUILD_TYPE=release build
+          make BUILD_TYPE=release package
 
       - uses: softprops/action-gh-release@v1
         with:
