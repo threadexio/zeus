@@ -21,7 +21,9 @@ there are 2 packages already in the AUR for this
 -   zeus
 -   zeus-bin
 
-to upgrade the builder just do
+then run once to build the builder image
+
+do this if you also want to change/upgrade the builder
 
 ```bash
 zeus -B --force --imagearchive /usr/share/zeus/builder.tar.gz

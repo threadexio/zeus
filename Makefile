@@ -12,6 +12,7 @@ all: build
 .PHONY:
 build:
 	cargo build $(CARGO_ARGS) --
+	tar -acvf builder.tar.gz Dockerfile package_builder.sh -C target/$(BUILD_TYPE) builder
 
 .PHONY:
 clean:
@@ -22,5 +23,4 @@ clean:
 
 .PHONY:
 docker_image: build
-	tar -acvf builder.tar.gz Dockerfile package_builder.sh -C target/$(BUILD_TYPE) builder
 	./target/$(BUILD_TYPE)/zeus -vB --force

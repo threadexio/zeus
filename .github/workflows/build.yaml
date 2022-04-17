@@ -11,14 +11,12 @@ jobs:
 
             - uses: actions-rs/toolchain@v1
               with:
-                  profile: default
+                  profile: minimal
                   toolchain: stable
                   default: true
 
-            - uses: actions-rs/cargo@v1
-              with:
-                  command: build
-                  args: --release
+            - run: |
+                make BUILD_TYPE=release build
 
             - uses: actions/upload-artifact@v3
               with:
