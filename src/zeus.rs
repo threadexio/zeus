@@ -1,24 +1,30 @@
 mod config;
+mod error;
 mod log;
 
 mod build;
 mod sync;
+mod version;
+
+use error::ZeusError;
 
 use args::Args;
 use bollard::Docker;
 use getopts::Occur;
 
 use std::env;
-use std::fs::create_dir_all;
-use std::process::{exit, Command};
+use std::process::exit;
 
 #[tokio::main]
 async fn main() {
     let _args: Vec<String> = env::args().collect();
     let mut args = Args::new(config::PROGRAM_NAME, config::PROGRAM_DESC);
 
+    let defaults = config::Config::default();
+
     args.flag("S", "sync", "Sync packages");
     args.flag("B", "build-builder", "Build the builder image");
+    args.flag("V", "version", "");
 
     args.flag("u", "upgrade", "Upgrade packages before build");
     args.option(
@@ -40,25 +46,25 @@ async fn main() {
         "Colorize the output",
         "<when>",
         Occur::Optional,
-        None,
+        Some("auto".to_owned()),
     );
 
     args.option(
         "",
-        "buildargs",
-        "Extra arguments for makepkg",
-        "args",
-        Occur::Optional,
-        None,
-    );
-
-    args.option(
-        "",
-        "builddir",
-        "Package build directory",
+        "archive",
+        "Builder image archive (only with -B)",
         "<path>",
         Occur::Optional,
-        None,
+        Some(defaults.builder.archive),
+    );
+
+    args.option(
+        "",
+        "dockerfile",
+        "Builder image dockerfile (only with -B)",
+        "<path>",
+        Occur::Optional,
+        Some(defaults.builder.dockerfile),
     );
 
     args.option(
@@ -67,23 +73,32 @@ async fn main() {
         "Builder image name",
         "<name:tag>",
         Occur::Optional,
-        None,
+        Some(defaults.builder.image),
     );
 
     args.option(
         "",
-        "imagearchive",
-        "Builder image build archive",
+        "name",
+        "Builder container name",
+        "<name>",
+        Occur::Optional,
+        Some(defaults.builder.name),
+    );
+
+    args.option(
+        "",
+        "builddir",
+        "Package build directory",
         "<path>",
         Occur::Optional,
-        None,
+        Some(defaults.build_dir),
     );
 
     args.option(
         "",
-        "dockerfile",
-        "Builder image dockerfile",
-        "<path>",
+        "buildargs",
+        "Extra arguments for makepkg",
+        "<args>",
         Occur::Optional,
         None,
     );
@@ -103,20 +118,19 @@ async fn main() {
 
     if args.value_of::<bool>("help").unwrap() {
         eprintln!("{}", args.full_usage());
-        exit(1);
+        exit(0);
     }
 
     let mut logger = log::Logger::new(
         log::Stream::Stdout,
-        match &(args
-            .value_of::<String>("color")
-            .unwrap_or("auto".to_owned()))[..]
-        {
+        match &(args.value_of::<String>("color").unwrap())[..] {
             "always" => log::ColorChoice::Always,
             "never" => log::ColorChoice::Never,
             _ => log::ColorChoice::Auto,
         },
     );
+
+    logger.verbose = args.value_of("verbose").unwrap_or(false);
 
     let docker = match Docker::connect_with_local_defaults() {
         Ok(v) => v,
@@ -131,24 +145,19 @@ async fn main() {
     };
 
     let cfg = config::Config {
-        verbose: args.value_of("verbose").unwrap_or(false),
+        packages: args.values_of("packages").unwrap_or(vec![]),
+
         force: args.value_of("force").unwrap_or(false),
         upgrade: args.value_of("upgrade").unwrap_or(false),
 
-        builder_archive: args
-            .value_of("imagearchive")
-            .unwrap_or("builder.tar.gz".to_owned()),
-        builder_dockerfile: args
-            .value_of("dockerfile")
-            .unwrap_or("Dockerfile".to_owned()),
-        builder_image: args
-            .value_of("image")
-            .unwrap_or("zeus-builder:latest".to_owned()),
+        builder: config::Builder {
+            archive: args.value_of("archive").unwrap(),
+            dockerfile: args.value_of("dockerfile").unwrap(),
+            image: args.value_of("image").unwrap(),
+            name: args.value_of("name").unwrap(),
+        },
 
-        packages: args.values_of("packages").unwrap_or(vec![]),
-        build_dir: args
-            .value_of("builddir")
-            .unwrap_or("/var/cache/aur".to_owned()),
+        build_dir: args.value_of("builddir").unwrap(),
         build_args: args
             .value_of::<String>("buildargs")
             .unwrap_or("".to_owned())
@@ -159,15 +168,27 @@ async fn main() {
 
     // TODO: Implement a locking mechanism to ensure only one instance is active at any time
 
+    let result: Result<(), ZeusError>;
     if args.value_of::<bool>("sync").unwrap() {
-        sync::sync(logger, docker, cfg).await;
+        result = sync::sync(&mut logger, docker, cfg).await;
     } else if args.value_of::<bool>("build-builder").unwrap() {
-        build::build(logger, docker, cfg).await;
+        result = build::build(&mut logger, docker, cfg).await;
+    } else if args.value_of::<bool>("version").unwrap() {
+        result = version::version(docker).await;
     } else {
         logger.v(
             log::Level::Error,
             config::PROGRAM_NAME,
             "No operation specified! See --help",
         );
+        return;
+    }
+
+    match result {
+        Ok(_) => {}
+        Err(e) => {
+            logger.v(log::Level::Error, e.facility, e.data);
+            exit(1);
+        }
     }
 }

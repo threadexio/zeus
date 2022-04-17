@@ -20,8 +20,7 @@ jobs:
 
             - uses: actions/upload-artifact@v3
               with:
-                  name: release ubuntu-latest
+                  name: release
                   path: |
                       builder.tar.gz
-                      target/release/zeus*
-                      !target/release/zeus.d
+                      target/release/zeus

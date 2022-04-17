@@ -1,6 +1,7 @@
 use std::{io::Read, os::unix::net::UnixStream};
 
 mod config;
+mod error;
 mod log;
 
 use log::Level;

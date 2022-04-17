@@ -17,6 +17,7 @@ pub enum Level {
     Success,
     Info,
     Verbose,
+    Debug,
 }
 
 pub struct Logger {
@@ -31,6 +32,14 @@ pub struct Logger {
     pub success_prefix: &'static str,
     pub info_prefix: &'static str,
     pub verbose_prefix: &'static str,
+
+    pub verbose: bool,
+
+    #[cfg(debug_assertions)]
+    pub debug_color: Color,
+
+    #[cfg(debug_assertions)]
+    pub debug_prefix: &'static str,
 
     out: StandardStream,
 }
@@ -66,6 +75,7 @@ impl Logger {
         let color: Color;
         let prefix;
 
+        #[allow(unreachable_code)]
         match level {
             Level::Error => {
                 color = self.error_color;
@@ -84,8 +94,24 @@ impl Logger {
                 prefix = self.info_prefix;
             }
             Level::Verbose => {
+                // skip all verbose messages if we are not running in verbose mode
+                if !self.verbose {
+                    return;
+                }
+
                 color = self.verbose_color;
                 prefix = self.verbose_prefix;
+            }
+            Level::Debug => {
+                // skip all debug messages if we are not running in a debug build
+                #[cfg(not(debug_assertions))]
+                return;
+
+                #[cfg(debug_assertions)]
+                {
+                    color = self.debug_color;
+                    prefix = self.debug_prefix;
+                }
             }
         }
 
@@ -105,13 +131,21 @@ impl Default for Logger {
             warn_color: Color::Yellow,
             success_color: Color::Green,
             info_color: Color::Blue,
-            verbose_color: Color::White,
+            verbose_color: Color::Cyan,
 
             error_prefix: " ✗ ",
             warn_prefix: " ⚠ ",
             success_prefix: " ✔ ",
             info_prefix: " → ",
             verbose_prefix: " + ",
+
+            verbose: false,
+
+            #[cfg(debug_assertions)]
+            debug_prefix: " D ",
+
+            #[cfg(debug_assertions)]
+            debug_color: Color::White,
 
             out: StandardStream::stdout(ColorChoice::Auto),
         }

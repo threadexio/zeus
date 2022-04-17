@@ -1,5 +1,7 @@
 BUILD_TYPE ?= debug
 
+VERSION	?= $(shell git rev-parse --short HEAD)
+
 CARGO_ARGS ?=
 
 ifeq ($(BUILD_TYPE),release)
@@ -11,7 +13,7 @@ all: build
 
 .PHONY:
 build:
-	cargo build $(CARGO_ARGS) --
+	VERSION="$(VERSION)" cargo build $(CARGO_ARGS) --
 	tar -acvf builder.tar.gz Dockerfile package_builder.sh -C target/$(BUILD_TYPE) builder
 
 .PHONY:

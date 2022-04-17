@@ -1,4 +1,5 @@
 use crate::config;
+use crate::error::ZeusError;
 use crate::log::{self, Level};
 
 use bollard::Docker;
@@ -17,39 +18,35 @@ use futures::StreamExt;
 use std::io::prelude::*;
 use std::os::unix::net::UnixListener;
 use std::path::Path;
-use std::process::exit;
 
-pub async fn sync(mut logger: log::Logger, docker: Docker, cfg: config::Config) {
-    let container_name = "zeus-builder".to_owned();
+pub async fn sync(
+    logger: &mut log::Logger,
+    docker: Docker,
+    cfg: config::Config,
+) -> Result<(), ZeusError> {
     let socket_path = format!("{}/zeus.sock", &cfg.build_dir);
 
     if !Path::new(&cfg.build_dir).exists() {
-        logger.v(
-            Level::Error,
-            "zeus",
+        return Err(ZeusError::new(
+            "filesystem",
             format!("Package build directory does not exist: {}", &cfg.build_dir),
-        );
-        return;
+        ));
     }
 
-    if cfg.verbose {
-        logger.v(
-            Level::Verbose,
-            "zeus",
-            format!("Opening socket for builder: {}", socket_path),
-        );
-    }
+    logger.v(
+        Level::Verbose,
+        "unix",
+        format!("Opening socket for builder: {}", socket_path),
+    );
 
     let _ = std::fs::remove_file(&socket_path);
     let listener = match UnixListener::bind(&socket_path) {
         Ok(v) => v,
         Err(e) => {
-            logger.v(
-                Level::Error,
-                "zeus",
+            return Err(ZeusError::new(
+                "unix",
                 format!("Cannot listen on socket: {}", e),
-            );
-            return;
+            ));
         }
     };
 
@@ -59,23 +56,20 @@ pub async fn sync(mut logger: log::Logger, docker: Docker, cfg: config::Config) 
     };
 
     let mut should_create = true;
-    if cfg.verbose {
-        logger.v(Level::Verbose, "docker", "Querying containers...");
-    }
+
+    logger.v(Level::Verbose, "docker", "Querying containers...");
 
     match docker.list_containers(Some(opts)).await {
         Err(e) => {
-            logger.v(
-                Level::Error,
+            return Err(ZeusError::new(
                 "docker",
-                format!("Cannot list containers: {}", e),
-            );
-            return;
+                format!("Cannot query containers: {}", e),
+            ));
         }
         Ok(v) => {
             for container in v {
                 if let Some(names) = &container.names {
-                    if names.contains(&format!("/{}", &container_name)) {
+                    if names.contains(&format!("/{}", &cfg.builder.name)) {
                         should_create = false;
                         break;
                     }
@@ -86,11 +80,11 @@ pub async fn sync(mut logger: log::Logger, docker: Docker, cfg: config::Config) 
 
     if should_create {
         let opts = CreateContainerOptions {
-            name: &container_name,
+            name: &cfg.builder.name,
         };
 
         let config = Config {
-            image: Some(cfg.builder_image.clone()),
+            image: Some(cfg.builder.image.clone()),
 
             tty: Some(true),
 
@@ -111,127 +105,105 @@ pub async fn sync(mut logger: log::Logger, docker: Docker, cfg: config::Config) 
             ..Default::default()
         };
 
-        if cfg.verbose {
-            logger.v(Level::Verbose, "zeus", "Creating builder...");
-        }
+        logger.v(Level::Verbose, "docker", "Creating builder...");
 
         match docker.create_container(Some(opts), config).await {
             Ok(_) => {}
             Err(e) => {
-                if cfg.verbose {
-                    logger.v(
-                        Level::Verbose,
-                        "docker",
-                        format!("Error creating builder: {}", e),
-                    );
-                }
+                return Err(ZeusError::new(
+                    "docker",
+                    format!("Error creating builder: {}", e),
+                ));
             }
         }
     } else {
-        if cfg.verbose {
-            logger.v(
-                Level::Verbose,
-                "docker",
-                "Builder already exists! Not creating a new one...",
-            );
-        }
+        logger.v(
+            Level::Verbose,
+            "docker",
+            "Builder already exists! Not creating a new one...",
+        );
     }
 
-    if cfg.verbose {
-        logger.v(Level::Verbose, "zeus", "Starting builder...");
-    }
+    logger.v(Level::Verbose, "zeus", "Starting builder...");
 
     let opts = StartContainerOptions::<String> {
         ..Default::default()
     };
 
-    match docker.start_container(&container_name, Some(opts)).await {
+    match docker.start_container(&cfg.builder.name, Some(opts)).await {
         Ok(_) => {}
         Err(e) => {
-            logger.v(
-                Level::Error,
+            return Err(ZeusError::new(
                 "docker",
                 format!("Error starting builder: {}", e),
-            );
-            return;
+            ));
         }
     }
 
-    if cfg.verbose {
-        logger.v(Level::Verbose, "zeus", "Waiting for builder...");
-    }
+    logger.v(Level::Verbose, "zeus", "Waiting for builder...");
 
     let mut stream = match listener.accept() {
         Ok(v) => v.0,
         Err(e) => {
-            logger.v(
-                Level::Error,
-                "zeus",
+            return Err(ZeusError::new(
+                "unix",
                 format!("Cannot open communication stream with builder: {}", e),
-            );
-            return;
+            ));
         }
     };
 
     let data = match serde_json::to_string(&cfg) {
         Ok(v) => v,
         Err(e) => {
-            logger.v(
-                Level::Error,
+            return Err(ZeusError::new(
                 "zeus",
                 format!("Cannot serialize builder data: {}", e),
-            );
-            return;
+            ));
         }
     };
 
     match write!(&mut stream, "{}", data) {
         Ok(_) => {}
         Err(e) => {
-            logger.v(
-                Level::Error,
+            return Err(ZeusError::new(
                 "zeus",
                 format!("Cannot send package information to builder: {}", e),
-            );
-            return;
+            ));
         }
     }
 
-    if cfg.verbose {
-        logger.v(Level::Verbose, "zeus", "Attaching to builder...");
-    }
+    logger.v(Level::Verbose, "zeus", "Attaching to builder...");
 
     let opts = AttachContainerOptions::<String> {
         stdin: Some(true),
         stdout: Some(true),
         stderr: Some(true),
         stream: Some(true),
+        logs: Some(true),
         ..Default::default()
     };
 
-    match docker.attach_container(&container_name, Some(opts)).await {
+    match docker.attach_container(&cfg.builder.name, Some(opts)).await {
         Ok(mut v) => {
             while let Some(res) = v.output.next().await {
                 match res {
                     Ok(v) => print!("{}", v),
                     Err(e) => {
-                        logger.v(
-                            Level::Error,
+                        return Err(ZeusError::new(
                             "docker",
                             format!("Error displaying builder logs: {}", e),
-                        );
-                        exit(1);
+                        ));
                     }
                 }
             }
         }
         Err(e) => {
-            logger.v(
-                Level::Error,
+            return Err(ZeusError::new(
                 "zeus",
                 format!("Cannot attach to builder: {}", e),
-            );
-            exit(1);
+            ));
         }
     }
+
+    Ok(())
 }
