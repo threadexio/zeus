@@ -25,4 +25,4 @@ clean:
 
 .PHONY:
 package: build
-	tar -acvf zeus-bin.tar.gz builder.tar.gz zeus
+	tar -acvf zeus-bin.tar.gz builder.tar.gz target/$(BUILD_TYPE)/zeus
