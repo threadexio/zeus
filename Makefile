@@ -1,7 +1,7 @@
 BUILD_TYPE ?= debug
 CARGO_ARGS ?=
 
-VERSION	?= $(shell git describe --tags)
+VERSION	?= $(shell git describe --tags --always)
 
 PREFIX ?= /usr/local
 DESTDIR ?=
