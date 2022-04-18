@@ -1,9 +1,9 @@
-FROM archlinux
+FROM archlinux/archlinux:base-devel
 
 RUN pacman -Syyu \
 	--noconfirm \
 	--needed \
-	sudo base base-devel gcc make cmake git
+	sudo gcc make cmake git
 
 RUN useradd -r -m builder
 RUN echo "builder ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
