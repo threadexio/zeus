@@ -28,6 +28,7 @@ build: FORCE
 
 .PHONY:
 clean: FORCE
+	-rm builder.tar.gz
 	-cargo clean $(CARGO_ARGS) --
 
 .PHONY:

@@ -15,9 +15,22 @@ use bollard::models::{
 
 use futures::StreamExt;
 
+use std::fs::remove_file;
 use std::io::prelude::*;
 use std::os::unix::net::UnixListener;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+struct Listener {
+    listener: UnixListener,
+    path: PathBuf,
+}
+
+impl Drop for Listener {
+    // unlink unix socket
+    fn drop(&mut self) {
+        let _ = remove_file(self.path.as_path());
+    }
+}
 
 pub async fn sync(
     logger: &mut log::Logger,
@@ -39,15 +52,18 @@ pub async fn sync(
         format!("Opening socket for builder: {}", socket_path),
     );
 
-    let _ = std::fs::remove_file(&socket_path);
-    let listener = match UnixListener::bind(&socket_path) {
-        Ok(v) => v,
-        Err(e) => {
-            return Err(ZeusError::new(
-                "unix",
-                format!("Cannot listen on socket: {}", e),
-            ));
-        }
+    let _ = remove_file(&socket_path);
+    let listener = Listener {
+        path: Path::new(&socket_path).to_owned(),
+        listener: match UnixListener::bind(&socket_path) {
+            Ok(v) => v,
+            Err(e) => {
+                return Err(ZeusError::new(
+                    "unix",
+                    format!("Cannot listen on socket: {}", e),
+                ));
+            }
+        },
     };
 
     let opts = ListContainersOptions::<String> {
@@ -142,7 +158,7 @@ pub async fn sync(
 
     logger.v(Level::Verbose, "zeus", "Waiting for builder...");
 
-    let mut stream = match listener.accept() {
+    let mut stream = match listener.listener.accept() {
         Ok(v) => v.0,
         Err(e) => {
             return Err(ZeusError::new(
