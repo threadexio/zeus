@@ -6,7 +6,9 @@ VERSION	?= $(shell git describe --tags --always)
 PREFIX ?= /usr/local
 DESTDIR ?=
 
-ifeq ($(BUILD_TYPE),release)
+ifeq ($(BUILD_TYPE),debug)
+	CARGO_ARGS +=
+else ifeq ($(BUILD_TYPE),release)
 	CARGO_ARGS += --release
 endif
 
@@ -44,3 +46,26 @@ install: build
 
 	mkdir -p "$(DESTDIR)/var/cache/aur"
 	chmod 0777 "$(DESTDIR)/var/cache/aur"
+
+.PHONY:
+assets: FORCE
+	scour \
+		-i assets/logo.inkscape.svg \
+		-o assets/logo.optimized.svg \
+		--enable-id-stripping \
+		--strip-xml-space \
+		--no-line-breaks \
+		--enable-comment-stripping \
+		--shorten-ids \
+		--remove-descriptive-elements \
+		--create-groups 
+
+	inkscape -C -w $(WIDTH) -h $(HEIGHT) \
+		-o assets/logo.$(WIDTH)x$(HEIGHT).png \
+		--export-type=png \
+		assets/logo.inkscape.svg
+
+.PHONY:
+assets_clean: FORCE
+	-rm assets/logo.optimized.svg
+	-rm assets/*.png

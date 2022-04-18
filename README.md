@@ -1,58 +1,131 @@
-# zeus
+[repo]: https://github.com/threadexio/zeus
+[commits]: https://github.com/threadexio/zeus/commits
+[releases]: https://github.com/threadexio/zeus/releases
+[latest-release]: https://github.com/threadexio/zeus/releases/latest
+[issues]: https://github.com/threadexio/zeus/issues
+[actions]: https://github.com/threadexio/zeus/actions
+[build]: https://github.com/threadexio/zeus/actions/workflows/build.yaml
+[license]: https://github.com/threadexio/zeus/blob/master/LICENSE
+[pkg-aur]: https://aur.archlinux.org/packages/zeus
+[pkg-bin-aur]: https://aur.archlinux.org/packages/zeus-bin
+[help]: https://github.com/threadexio/zeus/pulls
 
-docker containers, huh?
+<!---->
 
-they are pretty neat, so i thought why not use them in package building... because what could possibly go wrong...
+[pkg-bin-aur]: https://aur.archlinux.org/packages/zeus-bin
+[build-badge]: https://img.shields.io/github/workflow/status/threadexio/zeus/Build?style=for-the-badge
+[release-badge]: https://img.shields.io/github/v/release/threadexio/zeus?style=for-the-badge&display_name=release
+[release-commit-badge]: https://img.shields.io/github/commits-since/threadexio/zeus/latest?style=for-the-badge
+[license-badge]: https://img.shields.io/github/license/threadexio/zeus?style=for-the-badge
+[issues-badge]: https://img.shields.io/github/issues-raw/threadexio/zeus?style=for-the-badge
+[pkg-aur-badge]: https://img.shields.io/aur/version/zeus?style=for-the-badge&label=AUR
+[pkg-bin-aur-badge]: https://img.shields.io/aur/version/zeus-bin?style=for-the-badge&label=AUR
+[help-badge]: https://img.shields.io/badge/HELP-WANTED-green?style=for-the-badge&logo=github
 
-# dear god, why?
+<div align="center">
 
-sometimes it's good to keep the system clean from those pesky dev dependencies and have somewhat better security
+<img src="assets/logo.optimized.svg" width=250/>
 
-# it has problems
+<h1>
+	<b>zeus</b>
+</h1>
 
-i know.
+[Releases][releases] &nbsp; | &nbsp; [CI][actions] &nbsp; | &nbsp; [Issues][issues] &nbsp; | &nbsp; [Installing](#installing) &nbsp; | &nbsp; [Building](#building)
 
-feel free to open an issue/pull request
+[![release-badge]][releases]
+[![issues-badge]][issues]
+[![build-badge]][build]
+[![license-badge]][license]
+[![release-commit-badge]][commits]
+[![help-badge]][help]
 
-# installing
+</div>
 
-there are 2 packages already in the AUR for this
+---
 
--   zeus
--   zeus-bin
+<br>
 
-then run once to build the builder image
+**Zeus**. An simple AUR helper which utilizes docker containers allowing developers and users alike to benefit from it's reproducible, clean and flexible builds.
 
-```bash
-zeus -B --force
+## Table of contents
+
+-   [Local install](#installing-locally)
+
+## Installing
+
+Currently there are 2 packages in the AUR.
+
+-   `zeus` - Which builds from the [latest release][latest-release]
+-   `zeus-bin` - Which unpacks prebuilt binaries from the [latest release][latest-release].
+
+|  Package   |               Version               |
+| :--------: | :---------------------------------: |
+|   `zeus`   |     [![pkg-aur-badge]][pkg-aur]     |
+| `zeus-bin` | [![pkg-bin-aur-badge]][pkg-bin-aur] |
+
+**NOTE:** The binaries for `zeus-bin` are built in [Github Actions][build]
+
+After installing one of the 2 packages, there is one final step towards getting up and running.
+
+Building the actual builder container
+
+```shell
+$ zeus -B --force
 ```
 
-also do this if you also want to change/upgrade the builder
+> If your user does _**not**_ have access to the docker socket, you will have to run the previous command as root and subsequently every time you want to use the program.
 
-the `--force` means do not use the cache
+## Building
 
-for Highly Advanced Users™, you can use use custom images by creating a new tarball with all the required files and supply the tarball path with `--archive`
+After cloning the repository, use the `build` target in the `Makefile` to build everything.
 
-note that if your user is not in the `docker` group you will have to use sudo
-
-then you can just build packages with
-
-```bash
-zeus -S -p package1,package2 -p package3
+```shell
+$ make build
 ```
 
-or upgrade existing ones with
+> By default the `build` target builds the debug version, if you wish to build the release version set `BUILD_TYPE=release`.
 
-```bash
-zeus -Su -p package1,package2 -p package3
+```shell
+$ export BUILD_TYPE=release
+$ make build
 ```
 
-the built packages can be found in `/var/cache/aur`
+Testing local changes can be done in 2 ways:
 
-# building
+- [Table of contents](#table-of-contents)
+- [Installing](#installing)
+- [Building](#building)
+	- [Not installing locally](#not-installing-locally)
+	- [Installing locally](#installing-locally)
 
-the `docker_image` makefile recipe will build all the dependencies and the docker image for the package builder
+---
 
-```bash
-sudo make BUILD_TYPE=release build docker_image
+### Not installing locally
+
+This method involves no extra steps.
+
+Running the built binary is as simple as:
+
+```shell
+$ ./target/$BUILD_TYPE/zeus
+```
+
+> Remember to specify the builder image archive with `--archive ./builder.tar.gz`
+
+### Installing locally
+
+Installing locally for easier testing is possible with the `install` target.
+
+```shell
+# make install
+```
+
+> Note the `#`, this means the command must be ran as root to work properly
+
+> `DESTDIR` and `PREFIX` can be used to alter the installation.
+
+After all this you should be able to just run `zeus` directly in the terminal.
+
+```shell
+$ zeus
 ```
