@@ -15,7 +15,9 @@ use bollard::models::{
 
 use futures::StreamExt;
 
-use std::fs::remove_file;
+use std::fs::{self, remove_file};
+use std::os::unix::fs::PermissionsExt;
+
 use std::io::prelude::*;
 use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
@@ -56,7 +58,10 @@ pub async fn sync(
     let listener = Listener {
         path: Path::new(&socket_path).to_owned(),
         listener: match UnixListener::bind(&socket_path) {
-            Ok(v) => v,
+            Ok(v) => {
+                let _ = fs::set_permissions(&socket_path, fs::Permissions::from_mode(0o666));
+                v
+            }
             Err(e) => {
                 return Err(ZeusError::new(
                     "unix",
@@ -105,6 +110,10 @@ pub async fn sync(
             tty: Some(true),
 
             host_config: Some(HostConfig {
+                privileged: Some(false),
+                cap_drop: Some(vec!["all".to_owned()]),
+                cap_add: Some(vec!["CAP_SETUID".to_owned(), "CAP_SETGID".to_owned()]), // needed for sudo
+                //security_opt: Some(vec!["no-new-privileges:true".to_owned()]), // conflicts with sudo
                 mounts: Some(vec![Mount {
                     typ: Some(MountTypeEnum::BIND),
                     source: Some(cfg.build_dir.clone()),

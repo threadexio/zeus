@@ -3,10 +3,10 @@ FROM archlinux/archlinux:base-devel
 RUN pacman -Syyu \
 	--noconfirm \
 	--needed \
-	sudo gcc make cmake git
+	gcc make cmake git
 
 RUN useradd -r -m builder
-RUN echo "builder ALL=(ALL:ALL) NOPASSWD: ALL" > /etc/sudoers.d/builder
+RUN echo "builder ALL=(ALL:ALL) NOPASSWD: /usr/bin/pacman" > /etc/sudoers.d/builder
 
 VOLUME [ "/build" ]
 

@@ -49,7 +49,7 @@ pub async fn build(
         dockerfile: cfg.builder.dockerfile,
         t: cfg.builder.image,
         nocache: cfg.force,
-        pull: cfg.force,
+        pull: true,
         rm: true,
         ..Default::default()
     };
