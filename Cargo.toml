@@ -25,3 +25,4 @@ futures = "0.3.21"
 bollard = "0.12.0"
 serde = "1.0.117"
 serde_json = "1.0.59"
+fs4 = { version = "0.5.4", features = ["sync"] }

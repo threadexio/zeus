@@ -2,18 +2,52 @@ mod config;
 mod error;
 mod log;
 
-mod build;
-mod sync;
-mod version;
+mod ops;
+
+mod util;
 
 use error::ZeusError;
+use util::Lockfile;
 
 use args::Args;
 use bollard::Docker;
 use getopts::Occur;
 
 use std::env;
+use std::path::Path;
 use std::process::exit;
+
+fn version() {
+    let defaults = config::Config::default();
+
+    println!(
+        "
+     _oo     {program_name} {version}
+  >-(_  \\   
+    / _/     Copyright lololol (C) 2022 1337 threadexio
+   / /       
+  / (        This program may be freely distributed under
+ (   `-.     the terms of the GNU General Public License v3.0.
+  `--.._)    
+             {homepage}
+             
+             Defaults:
+               --archive    {archive}
+               --dockerfile {dockerfile}
+               --image      {image}
+               --name       {name}
+               --builddir   {builddir}
+",
+        program_name = config::PROGRAM_NAME,
+        version = config::PROGRAM_VERSION,
+        homepage = env!("CARGO_PKG_HOMEPAGE"),
+        archive = &defaults.builder.archive,
+        dockerfile = &defaults.builder.dockerfile,
+        image = &defaults.builder.image,
+        name = &defaults.builder.name,
+        builddir = &defaults.build_dir,
+    );
+}
 
 #[tokio::main]
 async fn main() {
@@ -24,7 +58,6 @@ async fn main() {
 
     args.flag("S", "sync", "Sync packages");
     args.flag("B", "build-builder", "Build the builder image");
-    args.flag("V", "version", "");
 
     args.flag("u", "upgrade", "Upgrade packages before build");
     args.option(
@@ -39,6 +72,7 @@ async fn main() {
     args.flag("h", "help", "This help menu");
     args.flag("v", "verbose", "Be verbose");
     args.flag("", "force", "Ignore all warnings");
+    args.flag("V", "version", "");
 
     args.option(
         "",
@@ -121,6 +155,11 @@ async fn main() {
         exit(0);
     }
 
+    if args.value_of::<bool>("version").unwrap() {
+        version();
+        exit(0);
+    }
+
     let mut logger = log::Logger::new(
         log::Stream::Stdout,
         match &(args.value_of::<String>("color").unwrap())[..] {
@@ -168,38 +207,66 @@ async fn main() {
             .collect(),
     };
 
-    // TODO: Implement a locking mechanism to ensure only one instance is active at any time
+    let sync: bool = args.value_of::<bool>("sync").unwrap();
+    let build: bool = args.value_of::<bool>("build-builder").unwrap();
 
-    let result: Result<(), ZeusError>;
-    if args.value_of::<bool>("sync").unwrap() {
-        if cfg.packages == defaults.packages {
-            logger.v(
-                log::Level::Error,
-                config::PROGRAM_NAME,
-                "No packages specified! Use -p!",
-            );
-            exit(1);
+    if sync || build {
+        if sync {
+            if cfg.packages == defaults.packages {
+                logger.v(
+                    log::Level::Error,
+                    config::PROGRAM_NAME,
+                    "No packages specified! Use -p!",
+                );
+                exit(1);
+            }
         }
 
-        result = sync::sync(&mut logger, docker, cfg).await;
-    } else if args.value_of::<bool>("build-builder").unwrap() {
-        result = build::build(&mut logger, docker, cfg).await;
-    } else if args.value_of::<bool>("version").unwrap() {
-        result = version::version(docker).await;
+        let lockfile = match Lockfile::new(Path::new(&format!("{}/zeus.lock", &cfg.build_dir))) {
+            Ok(v) => v,
+            Err(e) => {
+                logger.v(
+                    log::Level::Error,
+                    config::PROGRAM_NAME,
+                    format!("Cannot obtain lock: {}", e),
+                );
+                exit(1);
+            }
+        };
+
+        match lockfile.lock() {
+            Ok(_) => {}
+            Err(e) => {
+                logger.v(
+                    log::Level::Error,
+                    "filesystem",
+                    format!("Cannot obtain lock: {}", e),
+                );
+                exit(1);
+            }
+        }
+
+        let mut result: Result<(), ZeusError> = Ok(());
+        if sync {
+            result = ops::sync(&mut logger, docker, cfg).await;
+        } else if build {
+            result = ops::build(&mut logger, docker, cfg).await;
+        }
+
+        let _ = lockfile.unlock();
+
+        match result {
+            Ok(_) => exit(0),
+            Err(e) => {
+                logger.v(log::Level::Error, e.facility, e.data);
+                exit(1);
+            }
+        }
     } else {
         logger.v(
             log::Level::Error,
             config::PROGRAM_NAME,
             "No operation specified! See --help",
         );
-        return;
-    }
-
-    match result {
-        Ok(_) => {}
-        Err(e) => {
-            logger.v(log::Level::Error, e.facility, e.data);
-            exit(1);
-        }
     }
 }

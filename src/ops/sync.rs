@@ -1,6 +1,7 @@
 use crate::config;
 use crate::error::ZeusError;
 use crate::log::{self, Level};
+use crate::util::LocalListener;
 
 use bollard::Docker;
 
@@ -15,24 +16,8 @@ use bollard::models::{
 
 use futures::StreamExt;
 
-use std::fs::{self, remove_file};
-use std::os::unix::fs::PermissionsExt;
-
 use std::io::prelude::*;
-use std::os::unix::net::UnixListener;
-use std::path::{Path, PathBuf};
-
-struct Listener {
-    listener: UnixListener,
-    path: PathBuf,
-}
-
-impl Drop for Listener {
-    // unlink unix socket
-    fn drop(&mut self) {
-        let _ = remove_file(self.path.as_path());
-    }
-}
+use std::path::Path;
 
 pub async fn sync(
     logger: &mut log::Logger,
@@ -41,34 +26,20 @@ pub async fn sync(
 ) -> Result<(), ZeusError> {
     let socket_path = format!("{}/zeus.sock", &cfg.build_dir);
 
-    if !Path::new(&cfg.build_dir).exists() {
-        return Err(ZeusError::new(
-            "filesystem",
-            format!("Package build directory does not exist: {}", &cfg.build_dir),
-        ));
-    }
-
     logger.v(
         Level::Verbose,
         "unix",
         format!("Opening socket for builder: {}", socket_path),
     );
 
-    let _ = remove_file(&socket_path);
-    let listener = Listener {
-        path: Path::new(&socket_path).to_owned(),
-        listener: match UnixListener::bind(&socket_path) {
-            Ok(v) => {
-                let _ = fs::set_permissions(&socket_path, fs::Permissions::from_mode(0o666));
-                v
-            }
-            Err(e) => {
-                return Err(ZeusError::new(
-                    "unix",
-                    format!("Cannot listen on socket: {}", e),
-                ));
-            }
-        },
+    let listener = match LocalListener::new(Path::new(&socket_path), Some(0o666)) {
+        Ok(v) => v,
+        Err(e) => {
+            return Err(ZeusError::new(
+                "unix",
+                format!("Cannot listen on socket: {}", e),
+            ));
+        }
     };
 
     let opts = ListContainersOptions::<String> {

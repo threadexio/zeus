@@ -148,6 +148,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "fs4"
+version = "0.5.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cef5c93884e5cef757f63446122c2f420713c3e03f85540d09485b9415983b4a"
+dependencies = [
+ "libc",
+ "winapi",
+]
+
+[[package]]
 name = "futures"
 version = "0.3.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1004,6 +1014,7 @@ version = "0.1.0"
 dependencies = [
  "args",
  "bollard",
+ "fs4",
  "futures",
  "getopts",
  "serde",
