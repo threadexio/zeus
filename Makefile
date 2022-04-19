@@ -51,6 +51,11 @@ install:
 	chmod 0777 "$(DESTDIR)/var/cache/aur"
 
 .PHONY:
+uninstall:
+	-rm $(DESTDIR)/$(PREFIX)/bin/zeus
+	-rm -ri $(DESTDIR)/$(PREFIX)/share/zeus
+
+.PHONY:
 assets: FORCE
 	scour \
 		-i assets/logo.inkscape.svg \
