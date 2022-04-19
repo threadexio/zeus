@@ -49,7 +49,11 @@
 
 ## Table of contents
 
--   [Local install](#installing-locally)
+- [Table of contents](#table-of-contents)
+- [Installing](#installing)
+- [Building](#building)
+	- [Not installing locally](#not-installing-locally)
+	- [Installing locally](#installing-locally)
 
 ## Installing
 
@@ -91,12 +95,6 @@ $ make build
 ```
 
 Testing local changes can be done in 2 ways:
-
-- [Table of contents](#table-of-contents)
-- [Installing](#installing)
-- [Building](#building)
-	- [Not installing locally](#not-installing-locally)
-	- [Installing locally](#installing-locally)
 
 ---
 
