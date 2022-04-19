@@ -18,7 +18,7 @@ jobs:
           default: true
 
       - run: |
-          make BUILD_TYPE=release package
+          make BUILD_TYPE=release PREFIX="/usr" package
 
       - uses: actions/upload-artifact@v3
         with:
