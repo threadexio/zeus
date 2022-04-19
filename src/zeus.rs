@@ -7,8 +7,8 @@ mod ops;
 mod util;
 
 use error::ZeusError;
+use log::Level;
 use util::Lockfile;
-use Level;
 
 use args::Args;
 use bollard::Docker;
