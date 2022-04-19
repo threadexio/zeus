@@ -21,6 +21,9 @@ FORCE: ;
 .PHONY:
 .ONESHELL:
 build: FORCE
+
+	export DEFAULT_ARCHIVE="$(PREFIX)/share/zeus/builder.tar.gz"
+
 	export VERSION="$(VERSION)"
 	cargo build $(CARGO_ARGS) --
 
