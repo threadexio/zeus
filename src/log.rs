@@ -116,7 +116,7 @@ impl Logger {
         }
 
         self.set_color_fg(color);
-        write!(&mut self.out, "{} {}: ", prefix, facility).unwrap();
+        write!(&mut self.out, "\r{} {}: ", prefix, facility).unwrap();
 
         self.reset_color_fg();
         writeln!(&mut self.out, "{}", data).unwrap();

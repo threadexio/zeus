@@ -6,8 +6,8 @@ use crate::util::LocalListener;
 use bollard::Docker;
 
 use bollard::container::{
-    AttachContainerOptions, Config, CreateContainerOptions, ListContainersOptions,
-    StartContainerOptions,
+    AttachContainerOptions, Config, CreateContainerOptions, KillContainerOptions,
+    ListContainersOptions, StartContainerOptions,
 };
 
 use bollard::models::{
@@ -16,8 +16,11 @@ use bollard::models::{
 
 use futures::StreamExt;
 
+use ctrlc;
+
 use std::io::prelude::*;
 use std::path::Path;
+use std::sync::mpsc::channel;
 
 pub async fn sync(
     logger: &mut log::Logger,
@@ -187,9 +190,48 @@ pub async fn sync(
         ..Default::default()
     };
 
+    let (tx, rx) = channel();
+    match ctrlc::set_handler(move || tx.send(()).expect("Cannot send signal")) {
+        Ok(_) => {}
+        Err(e) => {
+            return Err(ZeusError::new(
+                "system",
+                format!("Cannot set signal handler: {}", e),
+            ));
+        }
+    }
+
     match docker.attach_container(&cfg.builder.name, Some(opts)).await {
         Ok(mut v) => {
             while let Some(res) = v.output.next().await {
+                // This means the signal handler above triggered
+                if rx.try_recv().is_ok() {
+                    logger.v(
+                        Level::Info,
+                        config::PROGRAM_NAME,
+                        "Interrupt detected. Exiting...",
+                    );
+
+                    match docker
+                        .kill_container(
+                            &cfg.builder.name,
+                            Some(KillContainerOptions { signal: "SIGKILL" }),
+                        )
+                        .await
+                    {
+                        Ok(_) => {
+                            logger.v(Level::Success, "docker", "Killed builder");
+                            break;
+                        }
+                        Err(e) => {
+                            return Err(ZeusError::new(
+                                "docker",
+                                format!("Cannot kill builder: {}", e),
+                            ));
+                        }
+                    }
+                }
+
                 match res {
                     Ok(v) => print!("{}", v),
                     Err(e) => {
