@@ -8,7 +8,7 @@ use fs4::FileExt;
 
 pub struct Lockfile {
     file: fs::File,
-    blocking: bool,
+    pub blocking: bool,
 }
 
 impl Lockfile {
@@ -17,10 +17,6 @@ impl Lockfile {
             file: fs::File::create(path)?,
             blocking: true,
         })
-    }
-
-    pub fn set_blocking(&mut self, mode: bool) {
-        self.blocking = mode;
     }
 
     pub fn lock(&self) -> Result<(), Error> {

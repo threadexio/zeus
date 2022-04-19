@@ -183,7 +183,7 @@ pub async fn sync(
         stdout: Some(true),
         stderr: Some(true),
         stream: Some(true),
-        logs: Some(true),
+        //logs: Some(true), // this displays all output logs from container creation, thats bad
         ..Default::default()
     };
 
