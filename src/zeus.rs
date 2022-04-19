@@ -145,10 +145,12 @@ async fn main() {
     };
 
     let cfg = config::Config {
-        packages: args.values_of("packages").unwrap_or(vec![]),
+        packages: args
+            .values_of("packages")
+            .unwrap_or(defaults.packages.clone()),
 
-        force: args.value_of("force").unwrap_or(false),
-        upgrade: args.value_of("upgrade").unwrap_or(false),
+        force: args.value_of("force").unwrap_or(defaults.force),
+        upgrade: args.value_of("upgrade").unwrap_or(defaults.upgrade),
 
         builder: config::Builder {
             archive: args.value_of("archive").unwrap(),
@@ -170,6 +172,15 @@ async fn main() {
 
     let result: Result<(), ZeusError>;
     if args.value_of::<bool>("sync").unwrap() {
+        if cfg.packages == defaults.packages {
+            logger.v(
+                log::Level::Error,
+                config::PROGRAM_NAME,
+                "No packages specified! Use -p!",
+            );
+            exit(1);
+        }
+
         result = sync::sync(&mut logger, docker, cfg).await;
     } else if args.value_of::<bool>("build-builder").unwrap() {
         result = build::build(&mut logger, docker, cfg).await;

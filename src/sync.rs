@@ -149,7 +149,7 @@ pub async fn sync(
         );
     }
 
-    logger.v(Level::Verbose, "zeus", "Starting builder...");
+    logger.v(Level::Verbose, config::PROGRAM_NAME, "Starting builder...");
 
     let opts = StartContainerOptions::<String> {
         ..Default::default()
@@ -165,7 +165,11 @@ pub async fn sync(
         }
     }
 
-    logger.v(Level::Verbose, "zeus", "Waiting for builder...");
+    logger.v(
+        Level::Verbose,
+        config::PROGRAM_NAME,
+        "Waiting for builder...",
+    );
 
     let mut stream = match listener.listener.accept() {
         Ok(v) => v.0,
@@ -181,7 +185,7 @@ pub async fn sync(
         Ok(v) => v,
         Err(e) => {
             return Err(ZeusError::new(
-                "zeus",
+                config::PROGRAM_NAME,
                 format!("Cannot serialize builder data: {}", e),
             ));
         }
@@ -191,13 +195,17 @@ pub async fn sync(
         Ok(_) => {}
         Err(e) => {
             return Err(ZeusError::new(
-                "zeus",
+                config::PROGRAM_NAME,
                 format!("Cannot send package information to builder: {}", e),
             ));
         }
     }
 
-    logger.v(Level::Verbose, "zeus", "Attaching to builder...");
+    logger.v(
+        Level::Verbose,
+        config::PROGRAM_NAME,
+        "Attaching to builder...",
+    );
 
     let opts = AttachContainerOptions::<String> {
         stdin: Some(true),
@@ -224,7 +232,7 @@ pub async fn sync(
         }
         Err(e) => {
             return Err(ZeusError::new(
-                "zeus",
+                config::PROGRAM_NAME,
                 format!("Cannot attach to builder: {}", e),
             ));
         }

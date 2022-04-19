@@ -8,10 +8,10 @@ pub const PROGRAM_NAME: &'static str = "zeus";
 pub const PROGRAM_DESC: &'static str = "Containerized AUR helper";
 
 #[cfg(debug_assertions)]
-pub const PROGRAM_VERSION: &'static str = concat!(env!("VERSION"), "-", "dbg");
+pub const PROGRAM_VERSION: &'static str = concat!(env!("CARGO_PKG_VERSION"), "-", "dbg");
 
 #[cfg(not(debug_assertions))]
-pub const PROGRAM_VERSION: &'static str = concat!(env!("VERSION"), "-", "rls");
+pub const PROGRAM_VERSION: &'static str = concat!(env!("CARGO_PKG_VERSION"), "-", "rls");
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Builder {

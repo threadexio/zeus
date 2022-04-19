@@ -43,7 +43,7 @@ package: build FORCE
 		-C $$PWD/                       builder.tar.gz
 
 .PHONY:
-install: build
+install:
 	install -Dm0755 -t "$(DESTDIR)/$(PREFIX)/bin" target/$(BUILD_TYPE)/zeus
 	install -Dm0644 -t "$(DESTDIR)/$(PREFIX)/share/zeus" builder.tar.gz
 

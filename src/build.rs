@@ -18,7 +18,7 @@ pub async fn build(
 ) -> Result<(), ZeusError> {
     logger.v(
         Level::Verbose,
-        "zeus",
+        config::PROGRAM_NAME,
         format!("Builder image archive: {}", &cfg.builder.archive),
     );
 
