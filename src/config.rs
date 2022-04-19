@@ -5,13 +5,13 @@ use std::fmt::Debug;
 pub const PROGRAM_NAME: &'static str = "zeus";
 
 #[allow(dead_code)]
-pub const PROGRAM_DESC: &'static str = "Containerized AUR helper";
+pub const PROGRAM_DESC: &'static str = env!("CARGO_PKG_DESCRIPTION");
 
 #[cfg(debug_assertions)]
-pub const PROGRAM_VERSION: &'static str = concat!(env!("CARGO_PKG_VERSION"), "-", "dbg");
+pub const PROGRAM_VERSION: &'static str = concat!(env!("VERSION"), "-", "dbg");
 
 #[cfg(not(debug_assertions))]
-pub const PROGRAM_VERSION: &'static str = concat!(env!("CARGO_PKG_VERSION"), "-", "rls");
+pub const PROGRAM_VERSION: &'static str = concat!(env!("VERSION"), "-", "rls");
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Builder {

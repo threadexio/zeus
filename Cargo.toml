@@ -2,6 +2,11 @@
 name = "zeus"
 version = "0.1.0"
 edition = "2021"
+description = "Containerized AUR helper"
+readme = "README.md"
+homepage = "https://github.com/threadexio/zeus"
+repository = "https://github.com/threadexio/zeus"
+license = "GPL-3.0-or-later"
 
 [[bin]]
 name = "zeus"

@@ -8,29 +8,31 @@ pub async fn version(docker: Docker) -> Result<(), ZeusError> {
 
     println!(
         "
-     _oo     {} {}  -  docker client v{}
+     _oo     {program_name} {version}  -  docker client v{docker_version}
   >-(_  \\   
     / _/     Copyright lololol (C) 2022 1337 threadexio
    / /       
   / (        This program may be freely distributed under
  (   `-.     the terms of the GNU General Public License v3.0.
   `--.._)    
+             {homepage}
              
              Defaults:
-               --archive    {}
-               --dockerfile {}
-               --image      {}
-               --name       {}
-               --builddir   {}
+               --archive    {archive}
+               --dockerfile {dockerfile}
+               --image      {image}
+               --name       {name}
+               --builddir   {builddir}
 ",
-        config::PROGRAM_NAME,
-        config::PROGRAM_VERSION,
-        docker.client_version().to_string(),
-        &defaults.builder.archive,
-        &defaults.builder.dockerfile,
-        &defaults.builder.image,
-        &defaults.builder.name,
-        &defaults.build_dir,
+        program_name = config::PROGRAM_NAME,
+        version = config::PROGRAM_VERSION,
+        docker_version = docker.client_version().to_string(),
+        homepage = env!("CARGO_PKG_HOMEPAGE"),
+        archive = &defaults.builder.archive,
+        dockerfile = &defaults.builder.dockerfile,
+        image = &defaults.builder.image,
+        name = &defaults.builder.name,
+        builddir = &defaults.build_dir,
     );
 
     Ok(())
