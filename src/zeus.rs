@@ -8,6 +8,7 @@ mod util;
 
 use error::ZeusError;
 use util::Lockfile;
+use Level;
 
 use args::Args;
 use bollard::Docker;
@@ -171,11 +172,14 @@ async fn main() {
 
     logger.verbose = args.value_of("verbose").unwrap_or(false);
 
+    #[cfg(debug_assertions)]
+    logger.v(Level::Debug, "docker", "Connecting...");
+
     let docker = match Docker::connect_with_local_defaults() {
         Ok(v) => v,
         Err(e) => {
             logger.v(
-                log::Level::Error,
+                Level::Error,
                 "docker",
                 format!("Unable to connect to daemon: {}", e),
             );
@@ -214,7 +218,7 @@ async fn main() {
         if sync {
             if cfg.packages == defaults.packages {
                 logger.v(
-                    log::Level::Error,
+                    Level::Error,
                     config::PROGRAM_NAME,
                     "No packages specified! Use -p!",
                 );
@@ -222,23 +226,29 @@ async fn main() {
             }
         }
 
+        #[cfg(debug_assertions)]
+        logger.v(Level::Debug, "filesystem", "Creating lockfile...");
+
         let lockfile = match Lockfile::new(Path::new(&format!("{}/zeus.lock", &cfg.build_dir))) {
             Ok(v) => v,
             Err(e) => {
                 logger.v(
-                    log::Level::Error,
-                    config::PROGRAM_NAME,
+                    Level::Error,
+                    "filesystem",
                     format!("Cannot obtain lock: {}", e),
                 );
                 exit(1);
             }
         };
 
+        #[cfg(debug_assertions)]
+        logger.v(Level::Debug, "filesystem", "Obtaining lock...");
+
         match lockfile.lock() {
             Ok(_) => {}
             Err(e) => {
                 logger.v(
-                    log::Level::Error,
+                    Level::Error,
                     "filesystem",
                     format!("Cannot obtain lock: {}", e),
                 );
@@ -248,23 +258,32 @@ async fn main() {
 
         let mut result: Result<(), ZeusError> = Ok(());
         if sync {
+            #[cfg(debug_assertions)]
+            logger.v(Level::Debug, config::PROGRAM_NAME, "Operation: sync");
+
             result = ops::sync(&mut logger, docker, cfg).await;
         } else if build {
+            #[cfg(debug_assertions)]
+            logger.v(Level::Debug, config::PROGRAM_NAME, "Operation: build");
+
             result = ops::build(&mut logger, docker, cfg).await;
         }
+
+        #[cfg(debug_assertions)]
+        logger.v(Level::Debug, "filesystem", "Unlocking lockfile...");
 
         let _ = lockfile.unlock();
 
         match result {
             Ok(_) => exit(0),
             Err(e) => {
-                logger.v(log::Level::Error, e.facility, e.data);
+                logger.v(Level::Error, e.facility, e.data);
                 exit(1);
             }
         }
     } else {
         logger.v(
-            log::Level::Error,
+            Level::Error,
             config::PROGRAM_NAME,
             "No operation specified! See --help",
         );

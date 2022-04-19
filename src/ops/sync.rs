@@ -73,6 +73,13 @@ pub async fn sync(
         }
     }
 
+    #[cfg(debug_assertions)]
+    logger.v(
+        Level::Debug,
+        config::PROGRAM_NAME,
+        format!("should_create = {:?}", should_create),
+    );
+
     if should_create {
         let opts = CreateContainerOptions {
             name: &cfg.builder.name,
