@@ -40,7 +40,8 @@ clean: FORCE
 package: build FORCE
 	tar -acvf zeus-bin.tar.gz \
 		-C $$PWD/target/$(BUILD_TYPE)/  zeus \
-		-C $$PWD/                       builder.tar.gz
+		-C $$PWD/                       builder.tar.gz \
+		extra/zeus
 
 .PHONY:
 install:
@@ -50,8 +51,6 @@ install:
 	mkdir -p "$(DESTDIR)/var/cache/aur"
 	chmod 0777 "$(DESTDIR)/var/cache/aur"
 
-.PHONY:
-apparmor:
 	install -Dm644 -t "$(DESTDIR)/etc/apparmor.d" extra/zeus
 
 .PHONY:
@@ -64,7 +63,7 @@ apparmor_test:
 uninstall:
 	-rm $(DESTDIR)/$(PREFIX)/bin/zeus
 	-rm -ri $(DESTDIR)/$(PREFIX)/share/zeus
-	-rm -ri $(DESTDIR)/etc/apparmor.d/zeus
+	-rm -i $(DESTDIR)/etc/apparmor.d/zeus
 
 .PHONY:
 assets: FORCE

@@ -24,8 +24,6 @@ jobs:
         with:
           name: zeus-bin
           path: |
-            builder.tar.gz
-            target/release/zeus
             zeus-bin.tar.gz
 
       - uses: softprops/action-gh-release@v1
