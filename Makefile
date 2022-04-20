@@ -51,9 +51,20 @@ install:
 	chmod 0777 "$(DESTDIR)/var/cache/aur"
 
 .PHONY:
+apparmor:
+	install -Dm644 -t "$(DESTDIR)/etc/apparmor.d" extra/zeus
+
+.PHONY:
+apparmor_test:
+	-apparmor_parser -R /etc/apparmor.d/zeus
+	-cp extra/zeus /etc/apparmor.d/zeus
+	-aa-enforce /etc/apparmor.d/zeus
+
+.PHONY:
 uninstall:
 	-rm $(DESTDIR)/$(PREFIX)/bin/zeus
 	-rm -ri $(DESTDIR)/$(PREFIX)/share/zeus
+	-rm -ri $(DESTDIR)/etc/apparmor.d/zeus
 
 .PHONY:
 assets: FORCE

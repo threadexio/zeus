@@ -1,0 +1,27 @@
+# vim:syntax=apparmor
+# AppArmor policy for zeus
+# Auther: threadexio
+# Copyright lololol (C) 1337 threadexio
+
+#include <tunables/global>
+
+profile zeus "/{usr,usr/local}/bin/zeus" {
+  #include <abstractions/base>
+
+  # I do not like this but it is needed for some reason for the lock file.
+  # It really shouldn't be much of a problem if the rest of the profile is written using `owner` when needed
+  capability dac_override,
+
+  /proc/self/cgroup r,
+  /proc/@{pid}/cgroup r,
+
+  # Docker socket, duh?
+  /{run,var/run}/docker.sock rw,
+
+  # Read-only data
+  /{usr,usr/local}/share/zeus/** r,
+
+  # Runtime socket & locking
+  /var/cache/aur/* rwk,
+}
+
