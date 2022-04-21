@@ -21,7 +21,8 @@ profile zeus "/{usr,usr/local}/bin/zeus" {
   # Read-only data
   /{usr,usr/local}/share/zeus/** r,
 
-  /var/cache/aur r,
+  # List installed packages
+  /var/cache/aur/ r,
 
   # Runtime socket & locking
   /var/cache/aur/* rwk,
