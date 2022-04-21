@@ -15,6 +15,7 @@ use bollard::Docker;
 use getopts::Occur;
 
 use std::env;
+use std::fs::read_dir;
 use std::path::Path;
 use std::process::exit;
 
@@ -187,7 +188,7 @@ async fn main() {
         }
     };
 
-    let cfg = config::Config {
+    let mut cfg = config::Config {
         packages: args
             .values_of("packages")
             .unwrap_or(defaults.packages.clone()),
@@ -217,12 +218,69 @@ async fn main() {
     if sync || build {
         if sync {
             if cfg.packages == defaults.packages {
-                logger.v(
-                    Level::Error,
-                    config::PROGRAM_NAME,
-                    "No packages specified! Use -p!",
-                );
-                exit(1);
+                if cfg.upgrade {
+                    logger.v(
+                        Level::Verbose,
+                        config::PROGRAM_NAME,
+                        "No packages specified! Upgrading all...",
+                    );
+
+                    logger.v(
+                        Level::Verbose,
+                        "filesystem",
+                        format!("Listing {}", &cfg.build_dir),
+                    );
+                    let dir = match read_dir(&cfg.build_dir) {
+                        Ok(v) => v,
+                        Err(e) => {
+                            logger.v(
+                                Level::Error,
+                                "filesystem",
+                                format!("Cannot list directory: {}", e),
+                            );
+                            exit(1);
+                        }
+                    };
+
+                    for r in dir {
+                        let entry = match r {
+                            Ok(v) => v,
+                            Err(_) => continue,
+                        };
+
+                        if !entry.path().is_dir() {
+                            continue;
+                        }
+
+                        match entry.file_name().into_string() {
+                            Ok(v) => {
+                                #[cfg(debug_assertions)]
+                                logger.v(
+                                    Level::Debug,
+                                    "filesystem",
+                                    format!("Found package: {:?}", &v),
+                                );
+
+                                cfg.packages.push(v);
+                            }
+                            Err(_e) => {
+                                #[cfg(debug_assertions)]
+                                logger.v(
+                                    Level::Debug,
+                                    "filesystem",
+                                    format!("Found invalid package: {:?}", _e),
+                                );
+                            }
+                        }
+                    }
+                } else {
+                    logger.v(
+                        Level::Error,
+                        config::PROGRAM_NAME,
+                        "No packages specified! Use -p!",
+                    );
+                    exit(1);
+                }
             }
         }
 
