@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
+use const_format::formatcp;
+use default_env::default_env;
+
 #[allow(dead_code)]
 pub const PROGRAM_NAME: &'static str = "zeus";
 
@@ -8,10 +11,13 @@ pub const PROGRAM_NAME: &'static str = "zeus";
 pub const PROGRAM_DESC: &'static str = env!("CARGO_PKG_DESCRIPTION");
 
 #[cfg(debug_assertions)]
-pub const PROGRAM_VERSION: &'static str = concat!(env!("VERSION"), "-", "dbg");
+const BUILD_TYPE: &'static str = "dbg";
 
 #[cfg(not(debug_assertions))]
-pub const PROGRAM_VERSION: &'static str = concat!(env!("VERSION"), "-", "rls");
+const BUILD_TYPE: &'static str = "rls";
+
+pub const PROGRAM_VERSION: &'static str =
+    formatcp!("{}-{BUILD_TYPE}", default_env!("VERSION", "unknown"));
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Builder {
