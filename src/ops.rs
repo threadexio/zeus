@@ -1,7 +1,7 @@
 mod build;
-mod sync;
 mod misc;
+mod sync;
 
 pub use build::build;
-pub use sync::sync;
 pub use misc::misc;
+pub use sync::sync;

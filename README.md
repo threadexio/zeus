@@ -45,15 +45,66 @@
 
 <br>
 
-**Zeus**. An simple AUR helper which utilizes docker containers allowing developers and users alike to benefit from it's reproducible, clean and flexible builds.
+**Zeus**. A simple AUR helper which utilizes docker containers allowing developers and users alike to benefit from it's reproducible, clean and flexible builds.
+
+<br>
 
 ## Table of contents
 
 - [Table of contents](#table-of-contents)
+- [Usage](#usage)
+	- [Installing a package](#installing-a-package)
+	- [Upgrading a package](#upgrading-a-package)
+	- [Removing a package](#removing-a-package)
+	- [Getting shell completions](#getting-shell-completions)
 - [Installing](#installing)
 - [Building](#building)
 	- [Not installing locally](#not-installing-locally)
 	- [Installing locally](#installing-locally)
+
+<br>
+
+## Usage
+
+This will explain everything.
+
+```shell
+$ zeus --help
+```
+
+The structure for the command arguments mimics `pacman`.
+
+Some examples:
+
+### Installing a package
+
+```shell
+$ zeus -S package_name
+```
+
+### Upgrading a package
+
+```shell
+$ zeus -Su package_name
+```
+
+### Removing a package
+
+```shell
+# pacman -R package_name
+```
+
+> Note the `#`, this means the command must be ran as `root` to work properly
+
+### Getting shell completions
+
+```shell
+$ zeus misc --shell your_shell
+```
+
+For a list of supported shells, see `zeus misc --help`.
+
+<br>
 
 ## Installing
 
@@ -67,17 +118,19 @@ Currently there are 2 packages in the AUR.
 |   `zeus`   |     [![pkg-aur-badge]][pkg-aur]     |
 | `zeus-bin` | [![pkg-bin-aur-badge]][pkg-bin-aur] |
 
-**NOTE:** The binaries for `zeus-bin` are built in [Github Actions][build]
+> **NOTE:** The binaries for `zeus-bin` are built in [Github Actions][build]
 
 After installing one of the 2 packages, there is one final step towards getting up and running.
 
-Building the actual builder container
+Building the actual builder container.
 
 ```shell
-$ zeus -B --force
+$ zeus -B
 ```
 
 > If your user does _**not**_ have access to the docker socket, you will have to run the previous command as root and subsequently every time you want to use the program.
+
+<br>
 
 ## Building
 
@@ -94,9 +147,9 @@ $ export BUILD_TYPE=release
 $ make build
 ```
 
-Testing local changes can be done in 2 ways:
+Testing local changes can be done in 2 ways.
 
----
+<br>
 
 ### Not installing locally
 
@@ -110,6 +163,8 @@ $ ./target/$BUILD_TYPE/zeus
 
 > Remember to specify the builder image archive with `--archive ./builder.tar.gz`
 
+<br>
+
 ### Installing locally
 
 Installing locally for easier testing is possible with the `install` target.
@@ -117,8 +172,6 @@ Installing locally for easier testing is possible with the `install` target.
 ```shell
 # make install
 ```
-
-> Note the `#`, this means the command must be ran as root to work properly
 
 > `DESTDIR` and `PREFIX` can be used to alter the installation.
 

@@ -81,9 +81,7 @@ pub async fn sync(
 	);
 
 	if should_create {
-		let opts = CreateContainerOptions {
-			name: &cfg.name,
-		};
+		let opts = CreateContainerOptions { name: &cfg.name };
 
 		let config = Config {
 			image: Some(cfg.image.clone()),
@@ -220,10 +218,7 @@ pub async fn sync(
 					);
 
 					match docker
-						.kill_container(
-							&cfg.name,
-							Some(KillContainerOptions { signal: "SIGKILL" }),
-						)
+						.kill_container(&cfg.name, Some(KillContainerOptions { signal: "SIGKILL" }))
 						.await
 					{
 						Ok(_) => {

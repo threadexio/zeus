@@ -63,15 +63,15 @@ async fn main() {
 	logger.v(Level::Debug, "filesystem", "Creating lockfile...");
 
 	let lockfile = match Lockfile::new(Path::new(&format!("{}/zeus.lock", &cfg.builddir))) {
-			Ok(v) => v,
-			Err(e) => {
-				logger.v(
-					Level::Error,
-					"filesystem",
-					format!("Cannot create lock: {}", e),
-				);
-				exit(1);
-			}
+		Ok(v) => v,
+		Err(e) => {
+			logger.v(
+				Level::Error,
+				"filesystem",
+				format!("Cannot create lock: {}", e),
+			);
+			exit(1);
+		}
 	};
 
 	let res = match args.subcommand() {
@@ -189,9 +189,7 @@ async fn main() {
 
 			ops::build(&mut logger, docker, cfg).await
 		}
-		Some(("misc", misc_args)) => {
-			ops::misc(misc_args)
-		}
+		Some(("misc", misc_args)) => ops::misc(misc_args),
 		_ => {
 			#[cfg(debug_assertions)]
 			logger.v(

@@ -26,7 +26,7 @@ pub struct AppConfig {
 	pub upgrade: bool,
 	pub buildargs: Vec<String>,
 	pub builddir: String,
-	pub packages :Vec<String>,
+	pub packages: Vec<String>,
 
 	pub archive: String,
 	pub dockerfile: String,
