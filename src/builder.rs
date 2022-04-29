@@ -12,11 +12,6 @@ use std::process::Command;
 fn main() {
 	let mut logger = log::Logger::new(log::Stream::Stdout, log::ColorChoice::Auto);
 
-	let mut i = String::from("");
-	println!("Waiting for input...");
-	std::io::stdin().read_line(&mut i).unwrap();
-	println!("You entered: {}", &i);
-
 	logger.v(
 		Level::Info,
 		"builder",
@@ -53,7 +48,7 @@ fn main() {
 	}
 
 	// the &data[..data_len] is needed because serde_json doesn't stop parsing on a null byte
-	let cfg: config::Config = match serde_json::from_slice(&data[..data_len]) {
+	let cfg: config::AppConfig = match serde_json::from_slice(&data[..data_len]) {
 		Ok(v) => v,
 		Err(e) => {
 			logger.v(
@@ -78,7 +73,7 @@ fn main() {
 			command.arg("Build");
 		}
 
-		command.args(&cfg.build_args);
+		command.args(&cfg.buildargs);
 
 		let mut child = match command.spawn() {
 			Ok(v) => v,

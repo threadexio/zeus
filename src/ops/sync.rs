@@ -25,9 +25,9 @@ use std::sync::mpsc::channel;
 pub async fn sync(
 	logger: &mut log::Logger,
 	docker: Docker,
-	cfg: config::Config,
+	cfg: config::AppConfig,
 ) -> Result<(), ZeusError> {
-	let socket_path = format!("{}/zeus.sock", &cfg.build_dir);
+	let socket_path = format!("{}/zeus.sock", &cfg.builddir);
 
 	logger.v(
 		Level::Verbose,
@@ -64,7 +64,7 @@ pub async fn sync(
 		Ok(v) => {
 			for container in v {
 				if let Some(names) = &container.names {
-					if names.contains(&format!("/{}", &cfg.builder.name)) {
+					if names.contains(&format!("/{}", &cfg.name)) {
 						should_create = false;
 						break;
 					}
@@ -82,11 +82,11 @@ pub async fn sync(
 
 	if should_create {
 		let opts = CreateContainerOptions {
-			name: &cfg.builder.name,
+			name: &cfg.name,
 		};
 
 		let config = Config {
-			image: Some(cfg.builder.image.clone()),
+			image: Some(cfg.image.clone()),
 
 			tty: Some(true),
 
@@ -97,7 +97,7 @@ pub async fn sync(
 				//security_opt: Some(vec!["no-new-privileges:true".to_owned()]), // conflicts with sudo
 				mounts: Some(vec![Mount {
 					typ: Some(MountTypeEnum::BIND),
-					source: Some(cfg.build_dir.clone()),
+					source: Some(cfg.builddir.clone()),
 					target: Some("/build".to_owned()),
 					read_only: Some(false),
 					bind_options: Some(MountBindOptions {
@@ -136,7 +136,7 @@ pub async fn sync(
 		..Default::default()
 	};
 
-	match docker.start_container(&cfg.builder.name, Some(opts)).await {
+	match docker.start_container(&cfg.name, Some(opts)).await {
 		Ok(_) => {}
 		Err(e) => {
 			return Err(ZeusError::new(
@@ -208,7 +208,7 @@ pub async fn sync(
 		}
 	}
 
-	match docker.attach_container(&cfg.builder.name, Some(opts)).await {
+	match docker.attach_container(&cfg.name, Some(opts)).await {
 		Ok(mut v) => {
 			while let Some(res) = v.output.next().await {
 				// This means the signal handler above triggered
@@ -221,7 +221,7 @@ pub async fn sync(
 
 					match docker
 						.kill_container(
-							&cfg.builder.name,
+							&cfg.name,
 							Some(KillContainerOptions { signal: "SIGKILL" }),
 						)
 						.await

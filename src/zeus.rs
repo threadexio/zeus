@@ -1,181 +1,52 @@
+mod cli;
 mod config;
 mod error;
 mod log;
+mod util;
 
 mod ops;
 
-mod util;
-
-use error::ZeusError;
 use log::Level;
 use util::Lockfile;
 
-use args::Args;
 use bollard::Docker;
-use getopts::Occur;
 
-use std::env;
+use std::env::remove_var;
 use std::fs::read_dir;
 use std::path::Path;
+
 use std::process::exit;
-
-fn version() {
-	let defaults = config::Config::default();
-
-	println!(
-		r#"
-     _oo     {program_name} {version}
-  >-(_  \   
-    / _/     Copyright lololol (C) 2022 1337 threadexio
-   / /       
-  / (        This program may be freely distributed under
- (   `-.     the terms of the GNU General Public License v3.0.
-  `--.._)    
-             {homepage}
-             
-             Defaults:
-               --archive    {archive}
-               --dockerfile {dockerfile}
-               --image      {image}
-               --name       {name}
-               --builddir   {builddir}
-"#,
-		program_name = config::PROGRAM_NAME,
-		version = config::PROGRAM_VERSION,
-		homepage = env!("CARGO_PKG_HOMEPAGE"),
-		archive = &defaults.builder.archive,
-		dockerfile = &defaults.builder.dockerfile,
-		image = &defaults.builder.image,
-		name = &defaults.builder.name,
-		builddir = &defaults.build_dir,
-	);
-}
 
 #[tokio::main]
 async fn main() {
-	let _args: Vec<String> = env::args().collect();
-	let mut args = Args::new(config::PROGRAM_NAME, config::PROGRAM_DESC);
-
-	let defaults = config::Config::default();
-
-	args.flag("S", "sync", "Sync packages");
-	args.flag("B", "build-builder", "Build the builder image");
-
-	args.flag("u", "upgrade", "Upgrade packages before build");
-	args.option(
-		"p",
-		"packages",
-		"Packages to perform operations on",
-		"<name,name,...>",
-		Occur::Multi,
-		None,
-	);
-
-	args.flag("h", "help", "This help menu");
-	args.flag("v", "verbose", "Be verbose");
-	args.flag("", "force", "Ignore all warnings");
-	args.flag("V", "version", "");
-
-	args.option(
-		"",
-		"color",
-		"Colorize the output",
-		"<when>",
-		Occur::Optional,
-		Some("auto".to_owned()),
-	);
-
-	args.option(
-		"",
-		"archive",
-		"Builder image archive (only with -B)",
-		"<path>",
-		Occur::Optional,
-		Some(defaults.builder.archive),
-	);
-
-	args.option(
-		"",
-		"dockerfile",
-		"Builder image dockerfile (only with -B)",
-		"<path>",
-		Occur::Optional,
-		Some(defaults.builder.dockerfile),
-	);
-
-	args.option(
-		"",
-		"image",
-		"Builder image name",
-		"<name:tag>",
-		Occur::Optional,
-		Some(defaults.builder.image),
-	);
-
-	args.option(
-		"",
-		"name",
-		"Builder container name",
-		"<name>",
-		Occur::Optional,
-		Some(defaults.builder.name),
-	);
-
-	args.option(
-		"",
-		"builddir",
-		"Package build directory",
-		"<path>",
-		Occur::Optional,
-		Some(defaults.build_dir),
-	);
-
-	args.option(
-		"",
-		"buildargs",
-		"Extra arguments for makepkg",
-		"<args>",
-		Occur::Optional,
-		None,
-	);
-
-	if _args.len() == 1 {
-		eprintln!("{}", args.full_usage());
-		exit(0);
-	}
-
-	match args.parse(&_args) {
-		Err(e) => {
-			eprintln!("{}", e.to_string());
-			exit(1);
-		}
-		_ => {}
-	}
-
-	if args.value_of::<bool>("help").unwrap() {
-		eprintln!("{}", args.full_usage());
-		exit(0);
-	}
-
-	if args.value_of::<bool>("version").unwrap() {
-		version();
-		exit(0);
-	}
+	let args = cli::build().get_matches();
 
 	let mut logger = log::Logger::new(
 		log::Stream::Stdout,
-		match &(args.value_of::<String>("color").unwrap())[..] {
-			"always" => log::ColorChoice::Always,
-			"never" => log::ColorChoice::Never,
+		match args.value_of("color") {
+			Some("always") => log::ColorChoice::Always,
+			Some("never") => log::ColorChoice::Never,
 			_ => log::ColorChoice::Auto,
 		},
 	);
 
-	logger.verbose = args.value_of("verbose").unwrap_or(false);
+	logger.verbose = args.is_present("verbose");
 
 	#[cfg(debug_assertions)]
 	logger.v(Level::Debug, "docker", "Connecting...");
 
+	let mut cfg = config::AppConfig {
+		verbose: args.is_present("verbose"),
+		force: args.is_present("force"),
+
+		// this should never fail, we set the default value in cli.rs
+		builddir: args.value_of("builddir").unwrap().to_owned(),
+
+		// initialization of the rest will be in the code that handles the subcommands
+		..Default::default()
+	};
+
+	remove_var("DOCKER_HOST"); // just to make sure
 	let docker = match Docker::connect_with_local_defaults() {
 		Ok(v) => v,
 		Err(e) => {
@@ -188,162 +59,157 @@ async fn main() {
 		}
 	};
 
-	let mut cfg = config::Config {
-		packages: args
-			.values_of("packages")
-			.unwrap_or(defaults.packages.clone()),
+	#[cfg(debug_assertions)]
+	logger.v(Level::Debug, "filesystem", "Creating lockfile...");
 
-		force: args.value_of("force").unwrap_or(defaults.force),
-		upgrade: args.value_of("upgrade").unwrap_or(defaults.upgrade),
-
-		builder: config::Builder {
-			archive: args.value_of("archive").unwrap(),
-			dockerfile: args.value_of("dockerfile").unwrap(),
-			image: args.value_of("image").unwrap(),
-			name: args.value_of("name").unwrap(),
-		},
-
-		build_dir: args.value_of("builddir").unwrap(),
-		build_args: args
-			.value_of::<String>("buildargs")
-			.unwrap_or("".to_owned())
-			.split(" ")
-			.map(|e| e.to_owned())
-			.collect(),
-	};
-
-	let sync: bool = args.value_of::<bool>("sync").unwrap();
-	let build: bool = args.value_of::<bool>("build-builder").unwrap();
-
-	if sync || build {
-		if sync {
-			if cfg.packages == defaults.packages {
-				if cfg.upgrade {
-					logger.v(
-						Level::Verbose,
-						config::PROGRAM_NAME,
-						"No packages specified! Upgrading all...",
-					);
-
-					logger.v(
-						Level::Verbose,
-						"filesystem",
-						format!("Listing {}", &cfg.build_dir),
-					);
-					let dir = match read_dir(&cfg.build_dir) {
-						Ok(v) => v,
-						Err(e) => {
-							logger.v(
-								Level::Error,
-								"filesystem",
-								format!("Cannot list directory: {}", e),
-							);
-							exit(1);
-						}
-					};
-
-					for r in dir {
-						let entry = match r {
-							Ok(v) => v,
-							Err(_) => continue,
-						};
-
-						if !entry.path().is_dir() {
-							continue;
-						}
-
-						match entry.file_name().into_string() {
-							Ok(v) => {
-								#[cfg(debug_assertions)]
-								logger.v(
-									Level::Debug,
-									"filesystem",
-									format!("Found package: {:?}", &v),
-								);
-
-								cfg.packages.push(v);
-							}
-							Err(_e) => {
-								#[cfg(debug_assertions)]
-								logger.v(
-									Level::Debug,
-									"filesystem",
-									format!("Found invalid package: {:?}", _e),
-								);
-							}
-						}
-					}
-				} else {
-					logger.v(
-						Level::Error,
-						config::PROGRAM_NAME,
-						"No packages specified! Use -p!",
-					);
-					exit(1);
-				}
-			}
-		}
-
-		#[cfg(debug_assertions)]
-		logger.v(Level::Debug, "filesystem", "Creating lockfile...");
-
-		let lockfile = match Lockfile::new(Path::new(&format!("{}/zeus.lock", &cfg.build_dir))) {
+	let lockfile = match Lockfile::new(Path::new(&format!("{}/zeus.lock", &cfg.builddir))) {
 			Ok(v) => v,
 			Err(e) => {
 				logger.v(
 					Level::Error,
 					"filesystem",
-					format!("Cannot obtain lock: {}", e),
+					format!("Cannot create lock: {}", e),
 				);
 				exit(1);
 			}
-		};
+	};
 
-		#[cfg(debug_assertions)]
-		logger.v(Level::Debug, "filesystem", "Obtaining lock...");
+	let res = match args.subcommand() {
+		Some(("sync", sync_args)) => {
+			cfg.upgrade = sync_args.is_present("upgrade");
+			cfg.buildargs = sync_args
+				.value_of("buildargs")
+				.unwrap_or("")
+				.split_ascii_whitespace()
+				.map(|x| x.to_owned())
+				.collect();
 
-		match lockfile.lock() {
-			Ok(_) => {}
-			Err(e) => {
+			cfg.image = sync_args.value_of("image").unwrap().to_owned();
+			cfg.name = sync_args.value_of("name").unwrap().to_owned();
+
+			// Yeah, i will be able to understand this code 6 months later
+			//
+			//								- The clown who wrote this
+			cfg.packages = sync_args
+				.values_of("packages")
+				.map(|x| x.map(|y| y.to_owned()).collect::<Vec<String>>())
+				.unwrap_or_default();
+
+			// We need to mimic `pacman -Su` which upgrades everything
+			// this is what i like to call nested hell
+			if cfg.upgrade && cfg.packages.is_empty() {
+				match read_dir(&cfg.builddir) {
+					Err(e) => {
+						logger.v(
+							Level::Error,
+							"filesystem",
+							format!("Cannot list directory: {}", e),
+						);
+						exit(1);
+					}
+					Ok(v) => {
+						for r in v {
+							match r {
+								Err(e) => {
+									logger.v(
+										Level::Warn,
+										"filesystem",
+										format!("Cannot read package directory: {}", e),
+									);
+								}
+								Ok(entry) => {
+									if entry.path().is_dir() {
+										match entry.file_name().into_string() {
+											Err(e) => logger.v(
+												Level::Warn,
+												"filesystem",
+												format!("Found invalid package: {:?}", e),
+											),
+											Ok(name) => cfg.packages.push(name),
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			} else if cfg.packages.is_empty() {
 				logger.v(
 					Level::Error,
-					"filesystem",
-					format!("Cannot obtain lock: {}", e),
+					config::PROGRAM_NAME,
+					"No packages specified. See --help!",
 				);
 				exit(1);
 			}
-		}
 
-		let mut result: Result<(), ZeusError> = Ok(());
-		if sync {
 			#[cfg(debug_assertions)]
-			logger.v(Level::Debug, config::PROGRAM_NAME, "Operation: sync");
+			logger.v(Level::Debug, config::PROGRAM_NAME, format!("{:?}", cfg));
 
-			result = ops::sync(&mut logger, docker, cfg).await;
-		} else if build {
 			#[cfg(debug_assertions)]
-			logger.v(Level::Debug, config::PROGRAM_NAME, "Operation: build");
+			logger.v(Level::Debug, "filesystem", "Obtaining lock...");
 
-			result = ops::build(&mut logger, docker, cfg).await;
+			match lockfile.lock() {
+				Ok(_) => {}
+				Err(e) => {
+					logger.v(
+						Level::Error,
+						"filesystem",
+						format!("Cannot obtain lock: {}", e),
+					);
+					exit(1);
+				}
+			};
+
+			ops::sync(&mut logger, docker, cfg).await
 		}
+		Some(("build", build_args)) => {
+			cfg.archive = build_args.value_of("archive").unwrap().to_owned();
+			cfg.dockerfile = build_args.value_of("dockerfile").unwrap().to_owned();
 
-		#[cfg(debug_assertions)]
-		logger.v(Level::Debug, "filesystem", "Unlocking lockfile...");
+			cfg.image = build_args.value_of("image").unwrap().to_owned();
+			cfg.name = build_args.value_of("name").unwrap().to_owned();
 
-		let _ = lockfile.unlock();
+			#[cfg(debug_assertions)]
+			logger.v(Level::Debug, config::PROGRAM_NAME, format!("{:?}", cfg));
 
-		match result {
-			Ok(_) => exit(0),
-			Err(e) => {
-				logger.v(Level::Error, e.facility, e.data);
-				exit(1);
-			}
+			#[cfg(debug_assertions)]
+			logger.v(Level::Debug, "filesystem", "Obtaining lock...");
+
+			match lockfile.lock() {
+				Ok(_) => {}
+				Err(e) => {
+					logger.v(
+						Level::Error,
+						"filesystem",
+						format!("Cannot obtain lock: {}", e),
+					);
+					exit(1);
+				}
+			};
+
+			ops::build(&mut logger, docker, cfg).await
 		}
-	} else {
-		logger.v(
-			Level::Error,
-			config::PROGRAM_NAME,
-			"No operation specified! See --help",
-		);
+		Some(("misc", misc_args)) => {
+			ops::misc(misc_args)
+		}
+		_ => {
+			#[cfg(debug_assertions)]
+			logger.v(
+				Level::Debug,
+				config::PROGRAM_NAME,
+				"Subcommand given didn't match anything. Check the code!",
+			);
+
+			exit(-1);
+		}
+	};
+
+	// we need to await in the respective call because otherwise we might release the lock before finishing, remember this code runs asynchronously
+	match res {
+		Ok(_) => exit(0),
+		Err(e) => {
+			logger.v(Level::Error, e.facility, e.data);
+			exit(1);
+		}
 	}
 }

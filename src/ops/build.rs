@@ -14,15 +14,15 @@ use std::io::prelude::*;
 pub async fn build(
 	logger: &mut log::Logger,
 	docker: Docker,
-	cfg: config::Config,
+	cfg: config::AppConfig,
 ) -> Result<(), ZeusError> {
 	logger.v(
 		Level::Verbose,
 		config::PROGRAM_NAME,
-		format!("Builder image archive: {}", &cfg.builder.archive),
+		format!("Builder image archive: {}", &cfg.archive),
 	);
 
-	let mut file = match File::open(&cfg.builder.archive) {
+	let mut file = match File::open(&cfg.archive) {
 		Ok(v) => v,
 		Err(e) => {
 			return Err(ZeusError::new(
@@ -43,11 +43,11 @@ pub async fn build(
 		}
 	}
 
-	logger.v(Level::Info, "docker", "Starting builder...\n");
+	logger.v(Level::Info, "docker", "Starting builder...");
 
 	let opts = BuildImageOptions {
-		dockerfile: cfg.builder.dockerfile,
-		t: cfg.builder.image,
+		dockerfile: cfg.dockerfile,
+		t: cfg.image,
 		nocache: cfg.force,
 		pull: true,
 		rm: true,
@@ -75,7 +75,7 @@ pub async fn build(
 					let msg = msg.trim_end();
 
 					if msg != "" {
-						logger.v(Level::Info, "builder", msg);
+						println!("{}", msg);
 					}
 				}
 			}
