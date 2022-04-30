@@ -78,6 +78,46 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 					.default_value(default_env!("DEFAULT_NAME", "zeus-builder")),
 			),
 		////////////////////////////////////////////////////
+		Command::new("query")
+			.short_flag('Q')
+			.about("Query the AUR")
+			.arg(
+				Arg::new("info")
+					.short('i')
+					.long("info")
+					.help("Display additional information on results")
+					.takes_value(false)
+					.conflicts_with("by"),
+			)
+			.arg(
+				Arg::new("by")
+					.long("by")
+					.help("Query AUR packages by")
+					.possible_values([
+						"name",
+						"description",
+						"maintainer",
+						"depends",
+						"makedepends",
+						"optdepends",
+						"checkdepends",
+					])
+					.default_value("description")
+					.conflicts_with("info"),
+			)
+			.arg(
+				Arg::new("output")
+					.long("output")
+					.help("Output format")
+					.possible_values(["pretty", "json"])
+					.default_value("pretty"),
+			)
+			.arg(
+				Arg::new("keywords")
+					.help("Keywords to use")
+					.multiple_occurrences(true),
+			),
+		////////////////////////////////////////////////////
 		Command::new("misc")
 			.about("Generate shell completions & others")
 			.arg(
@@ -134,6 +174,12 @@ pub fn build() -> Command<'static> {
 				.long("builddir")
 				.help("Package build directory")
 				.default_value(default_env!("DEFAULT_BUILDDIR", "/var/cache/aur")),
+		)
+		.arg(
+			Arg::new("aur")
+				.long("aur")
+				.help("AUR host")
+				.default_value(default_env!("DEFAULT_AUR_HOST", "aur.archlinux.org")),
 		)
 		.subcommand_required(true)
 		.subcommands(build_subcommands())

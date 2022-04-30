@@ -4,6 +4,8 @@ mod error;
 mod log;
 mod util;
 
+mod aur;
+
 mod ops;
 
 use log::Level;
@@ -41,6 +43,8 @@ async fn main() {
 
 		// this should never fail, we set the default value in cli.rs
 		builddir: args.value_of("builddir").unwrap().to_owned(),
+
+		aur_host: args.value_of("aur").unwrap().to_owned(),
 
 		// initialization of the rest will be in the code that handles the subcommands
 		..Default::default()
@@ -188,6 +192,14 @@ async fn main() {
 			};
 
 			ops::build(&mut logger, docker, cfg).await
+		}
+		Some(("query", query_args)) => {
+			cfg.keywords = query_args
+				.values_of("keywords")
+				.map(|x| x.map(|y| y.to_owned()).collect::<Vec<String>>())
+				.unwrap_or_default();
+
+			ops::query(&mut logger, cfg, query_args).await
 		}
 		Some(("misc", misc_args)) => ops::misc(misc_args),
 		_ => {

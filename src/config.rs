@@ -32,4 +32,7 @@ pub struct AppConfig {
 	pub dockerfile: String,
 	pub image: String,
 	pub name: String,
+
+	pub aur_host: String,
+	pub keywords: Vec<String>,
 }
