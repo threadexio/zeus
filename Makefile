@@ -43,7 +43,7 @@ completions: FORCE
 	./target/$(BUILD_TYPE)/zeus misc --shell fish > completions/zeus.fish
 
 .PHONY:
-package: build completions
+package: build
 	tar -acvf zeus-bin.tar.gz \
 		-C $$PWD/target/$(BUILD_TYPE)/  zeus \
 		-C $$PWD/                       builder.tar.gz \
