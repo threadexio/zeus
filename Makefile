@@ -16,7 +16,7 @@ endif
 all: build
 
 .PHONY:
-FORCE: ; 
+FORCE: ;
 
 .PHONY:
 .ONESHELL:
@@ -37,14 +37,21 @@ clean: FORCE
 	-cargo clean $(CARGO_ARGS) --
 
 .PHONY:
-package: build FORCE
+completions: FORCE
+	./target/$(BUILD_TYPE)/zeus misc --shell bash > completions/zeus.bash
+	./target/$(BUILD_TYPE)/zeus misc --shell zsh > completions/zeus.zsh
+	./target/$(BUILD_TYPE)/zeus misc --shell fish > completions/zeus.fish
+
+.PHONY:
+package: build completions
 	tar -acvf zeus-bin.tar.gz \
 		-C $$PWD/target/$(BUILD_TYPE)/  zeus \
 		-C $$PWD/                       builder.tar.gz \
+		-C $$PWD/                       completions/ \
 		extra/zeus
 
 .PHONY:
-install:
+install: completions
 	install -Dm0755 -t "$(DESTDIR)/$(PREFIX)/bin" target/$(BUILD_TYPE)/zeus
 	install -Dm0644 -t "$(DESTDIR)/$(PREFIX)/share/zeus" builder.tar.gz
 
@@ -52,6 +59,10 @@ install:
 	chmod 0777 "$(DESTDIR)/var/cache/aur"
 
 	install -Dm644 -t "$(DESTDIR)/etc/apparmor.d" extra/zeus
+
+	install -Dm644 completions/zeus.bash "$(DESTDIR)/usr/share/bash-completion/completions/zeus"
+	install -Dm644 completions/zeus.zsh "$(DESTDIR)/usr/share/zsh/site-functions/_zeus"
+	install -Dm644 completions/zeus.fish "$(DESTDIR)/usr/share/fish/vendor_completions.d/zeus.fish"
 
 .PHONY:
 apparmor_test:
@@ -63,7 +74,11 @@ apparmor_test:
 uninstall:
 	-rm $(DESTDIR)/$(PREFIX)/bin/zeus
 	-rm -ri $(DESTDIR)/$(PREFIX)/share/zeus
+
 	-rm -i $(DESTDIR)/etc/apparmor.d/zeus
+	-rm -i "$(DESTDIR)/usr/share/bash-completion/completions/zeus"
+	-rm -i "$(DESTDIR)/usr/share/zsh/site-functions/_zeus"
+	-rm -i "$(DESTDIR)/usr/share/fish/vendor_completions.d/zeus.fish"
 
 .PHONY:
 assets: FORCE
@@ -76,7 +91,7 @@ assets: FORCE
 		--enable-comment-stripping \
 		--shorten-ids \
 		--remove-descriptive-elements \
-		--create-groups 
+		--create-groups
 
 	inkscape -C -w $(WIDTH) -h $(HEIGHT) \
 		-o assets/logo.$(WIDTH)x$(HEIGHT).png \
