@@ -1,8 +1,8 @@
-use std::default::Default;
-use std::io::Write;
-
 pub use termcolor::{Color, ColorChoice};
 use termcolor::{ColorSpec, StandardStream, WriteColor};
+
+use std::default::Default;
+use std::io::Write;
 
 #[allow(dead_code)]
 pub enum Stream {

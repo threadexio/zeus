@@ -1,9 +1,9 @@
 use crate::cli;
 use crate::error::ZeusError;
 
-use std::io::stdout;
-
 use clap::ArgMatches;
+
+use std::io::stdout;
 
 pub fn misc(args: &ArgMatches) -> Result<(), ZeusError> {
 	if args.is_present("shell") {

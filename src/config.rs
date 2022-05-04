@@ -1,6 +1,9 @@
+use crate::aur::Aur;
+
 use serde::{Deserialize, Serialize};
 
 use const_format::formatcp;
+
 use default_env::default_env;
 
 #[allow(dead_code)]
@@ -33,6 +36,6 @@ pub struct AppConfig {
 	pub image: String,
 	pub name: String,
 
-	pub aur_host: String,
+	pub aur: Aur,
 	pub keywords: Vec<String>,
 }

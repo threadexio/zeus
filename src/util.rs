@@ -1,10 +1,10 @@
+use fs4::FileExt;
+
 use std::fs;
 use std::io::Error;
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
-
-use fs4::FileExt;
 
 pub struct Lockfile {
 	file: fs::File,

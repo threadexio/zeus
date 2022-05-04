@@ -9,7 +9,6 @@ use bollard::container::{
 	AttachContainerOptions, Config, CreateContainerOptions, KillContainerOptions,
 	ListContainersOptions, StartContainerOptions,
 };
-
 use bollard::models::{
 	HostConfig, Mount, MountBindOptions, MountBindOptionsPropagationEnum, MountTypeEnum,
 };
@@ -91,19 +90,32 @@ pub async fn sync(
 			host_config: Some(HostConfig {
 				privileged: Some(false),
 				cap_drop: Some(vec!["all".to_owned()]),
-				cap_add: Some(vec!["CAP_SETUID".to_owned(), "CAP_SETGID".to_owned()]), // needed for sudo
-				//security_opt: Some(vec!["no-new-privileges:true".to_owned()]), // conflicts with sudo
-				mounts: Some(vec![Mount {
-					typ: Some(MountTypeEnum::BIND),
-					source: Some(cfg.builddir.clone()),
-					target: Some("/build".to_owned()),
-					read_only: Some(false),
-					bind_options: Some(MountBindOptions {
-						propagation: Some(MountBindOptionsPropagationEnum::RPRIVATE),
+				//cap_add: Some(vec!["CAP_SETUID".to_owned(), "CAP_SETGID".to_owned()]), // needed for sudo
+				security_opt: Some(vec!["no-new-privileges:true".to_owned()]), // conflicts with sudo
+				mounts: Some(vec![
+					Mount {
+						typ: Some(MountTypeEnum::BIND),
+						source: Some("/var/cache/pacman/pkg".to_owned()),
+						target: Some("/var/cache/pacman/pkg".to_owned()),
+						read_only: Some(false),
+						bind_options: Some(MountBindOptions {
+							propagation: Some(MountBindOptionsPropagationEnum::RPRIVATE),
+							..Default::default()
+						}),
 						..Default::default()
-					}),
-					..Default::default()
-				}]),
+					},
+					Mount {
+						typ: Some(MountTypeEnum::BIND),
+						source: Some(cfg.builddir.clone()),
+						target: Some("/build".to_owned()),
+						read_only: Some(false),
+						bind_options: Some(MountBindOptions {
+							propagation: Some(MountBindOptionsPropagationEnum::RPRIVATE),
+							..Default::default()
+						}),
+						..Default::default()
+					},
+				]),
 				..Default::default()
 			}),
 			..Default::default()

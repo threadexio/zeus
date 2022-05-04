@@ -66,13 +66,11 @@ pub async fn query(
 		return Err(ZeusError::new("aur", "No keywords specified".to_owned()));
 	}
 
-	let aur_instance = aur::Aur::new().host(cfg.aur_host).build();
-
 	let by = args.value_of_t::<aur::By>("by").unwrap();
 
 	let res = match args.is_present("info") {
-		true => aur_instance.info(&cfg.keywords).await,
-		false => aur_instance.search(by, &cfg.keywords).await,
+		true => cfg.aur.info(&cfg.keywords).await,
+		false => cfg.aur.search(by, &cfg.keywords).await,
 	};
 
 	let data = match res {

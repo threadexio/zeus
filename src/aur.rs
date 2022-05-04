@@ -1,11 +1,11 @@
-use std::fmt;
-use std::str::FromStr;
+use crate::config;
 
 use serde::{Deserialize, Serialize};
 
 use const_format::formatcp;
 
-use crate::config;
+use std::fmt;
+use std::str::FromStr;
 
 /// Type alias for timestamps
 pub type Timestamp = u64;
@@ -47,12 +47,10 @@ pub struct AurBuilder {
 }
 
 /// Structure representing an AUR instance
-#[derive(Debug)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Aur {
 	base_url: String,
-
-	client: reqwest::Client,
-	headers: reqwest::header::HeaderMap,
+	rpc_url: String,
 }
 
 #[allow(non_snake_case)]
@@ -100,6 +98,17 @@ pub struct AurResponse {
 	pub version: Version,
 }
 
+fn make_req_client() -> reqwest::Client {
+	reqwest::ClientBuilder::new()
+		.user_agent(formatcp!(
+			"{}-{}",
+			config::PROGRAM_NAME,
+			config::PROGRAM_VERSION
+		))
+		.build()
+		.unwrap()
+}
+
 impl fmt::Display for By {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 		write!(
@@ -139,23 +148,12 @@ impl FromStr for By {
 impl AurBuilder {
 	/// Create a new AUR instance
 	pub fn build(self) -> Aur {
-		let client = reqwest::Client::new();
-
-		let mut headers = reqwest::header::HeaderMap::new();
-		headers.append(
-			reqwest::header::USER_AGENT,
-			formatcp!("{}-{}", config::PROGRAM_NAME, config::PROGRAM_VERSION)
-				.parse()
-				.unwrap(),
-		);
-
 		Aur {
-			base_url: format!(
+			base_url: format!("{}://{}/", self.protocol, self.host),
+			rpc_url: format!(
 				"{}://{}/{}/?v={}",
 				self.protocol, self.host, self.rpc_path, self.version
 			),
-			client: client,
-			headers: headers,
 		}
 	}
 
@@ -218,10 +216,34 @@ impl Aur {
 	pub fn new() -> AurBuilder {
 		AurBuilder {
 			host: "aur.archlinux.org".to_owned(),
-			protocol: "http".to_owned(),
+			protocol: "https".to_owned(),
 			rpc_path: "rpc".to_owned(),
 			version: 5,
 		}
+	}
+
+	/// Get full URL of AUR instance
+	///
+	/// # Example:
+	/// ```
+	/// let aur_instance = aur::Aur::new().build();
+	///
+	/// let url = aur_instance.get_url();
+	/// ```
+	pub fn get_url(&self) -> &str {
+		&self.base_url
+	}
+
+	/// Get full URL of AUR RPC endpoint
+	///
+	/// # Example:
+	/// ```
+	/// let aur_instance = aur::Aur::new().build();
+	///
+	/// let url = aur_instance.get_rpc_url();
+	/// ```
+	pub fn get_rpc_url(&self) -> &str {
+		&self.rpc_url
 	}
 
 	/// Search for packages.
@@ -246,14 +268,7 @@ impl Aur {
 			url.push_str(&format!("&arg={}", keyword));
 		}
 
-		let res: AurResponse = self
-			.client
-			.get(url)
-			.headers(self.headers.clone())
-			.send()
-			.await?
-			.json()
-			.await?;
+		let res: AurResponse = make_req_client().get(url).send().await?.json().await?;
 
 		Ok(res)
 	}
@@ -276,14 +291,7 @@ impl Aur {
 			url.push_str(&format!("&arg[]={}", package));
 		}
 
-		let res: AurResponse = self
-			.client
-			.get(url)
-			.headers(self.headers.clone())
-			.send()
-			.await?
-			.json()
-			.await?;
+		let res: AurResponse = make_req_client().get(url).send().await?.json().await?;
 
 		Ok(res)
 	}

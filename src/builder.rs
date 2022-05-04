@@ -1,13 +1,51 @@
-use std::{io::Read, os::unix::net::UnixStream};
-
+mod aur;
 mod config;
 mod error;
 mod log;
 
 use log::Level;
-use std::process::exit;
 
+use std::env;
+use std::io::Read;
+use std::os::unix::net::UnixStream;
+use std::path;
+use std::process::exit;
 use std::process::Command;
+
+fn build_packages(cfg: config::AppConfig) {
+	//! TODO: Error handling please
+
+	for package in cfg.packages {
+		let pkg_dir = path::Path::new(&package);
+
+		if !pkg_dir.exists() {
+			let _ = Command::new("/usr/bin/git")
+				.arg("clone")
+				.arg(format!("{}/{}.git", cfg.aur.get_url(), &package))
+				.status();
+		}
+
+		let _ = env::set_current_dir(pkg_dir);
+
+		if cfg.upgrade {
+			let _ = Command::new("/usr/bin/git")
+				.arg("pull")
+				.arg("origin")
+				.arg("master")
+				.status();
+		}
+
+		let _ = Command::new("/usr/bin/makepkg")
+			.arg("-s")
+			.arg("--needed")
+			.arg("--noconfirm")
+			.arg("--noprogressbar")
+			.args(&cfg.buildargs)
+			.status();
+
+		let _ = env::set_current_dir("/build/");
+	}
+}
 
 fn main() {
 	let mut logger = log::Logger::new(log::Stream::Stdout, log::ColorChoice::Auto);
@@ -18,7 +56,7 @@ fn main() {
 		format!("Version: {}", config::PROGRAM_VERSION),
 	);
 
-	let socket_path = format!("/build/{}.sock", config::PROGRAM_NAME);
+	let socket_path = format!("{}.sock", config::PROGRAM_NAME);
 	let mut stream = match UnixStream::connect(&socket_path) {
 		Ok(v) => v,
 		Err(e) => {
@@ -60,60 +98,5 @@ fn main() {
 		}
 	};
 
-	for package in cfg.packages {
-		let mut command = Command::new("/usr/bin/sudo");
-		command.arg("-u");
-		command.arg("builder");
-		command.arg("/usr/local/bin/package_builder.sh");
-		command.arg(&package);
-
-		if cfg.upgrade {
-			command.arg("Upgrade");
-		} else {
-			command.arg("Build");
-		}
-
-		command.args(&cfg.buildargs);
-
-		let mut child = match command.spawn() {
-			Ok(v) => v,
-			Err(e) => {
-				logger.v(
-					Level::Error,
-					"builder",
-					format!("Cannot start package builder: {}", e),
-				);
-				exit(1);
-			}
-		};
-
-		match child.wait() {
-			Err(e) => {
-				logger.v(
-					Level::Error,
-					"builder",
-					format!("Package builder error: {}", e),
-				);
-				exit(1);
-			}
-			Ok(v) => {
-				if let Some(code) = v.code() {
-					if code != 0 {
-						logger.v(
-							Level::Warn,
-							"builder",
-							format!("Package build failed with code: {}", code),
-						);
-						continue;
-					} else {
-						logger.v(
-							Level::Success,
-							"builder",
-							format!("Package {} built successfully!", &package),
-						);
-					}
-				}
-			}
-		}
-	}
+	build_packages(cfg);
 }

@@ -1,8 +1,8 @@
 use crate::config::{PROGRAM_DESC, PROGRAM_NAME, PROGRAM_VERSION};
 
-use std::io::Write;
-
 use clap::{Arg, Command};
+
+use std::io::Write;
 
 use clap_complete::generate;
 pub use clap_complete::Shell;

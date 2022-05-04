@@ -1,13 +1,12 @@
+mod aur;
 mod cli;
 mod config;
 mod error;
 mod log;
+mod ops;
 mod util;
 
-mod aur;
-
-mod ops;
-
+use aur::Aur;
 use log::Level;
 use util::Lockfile;
 
@@ -16,7 +15,6 @@ use bollard::Docker;
 use std::env::remove_var;
 use std::fs::read_dir;
 use std::path::Path;
-
 use std::process::exit;
 
 #[tokio::main]
@@ -44,7 +42,9 @@ async fn main() {
 		// this should never fail, we set the default value in cli.rs
 		builddir: args.value_of("builddir").unwrap().to_owned(),
 
-		aur_host: args.value_of("aur").unwrap().to_owned(),
+		aur: Aur::new()
+			.host(args.value_of("aur").unwrap().to_owned())
+			.build(),
 
 		// initialization of the rest will be in the code that handles the subcommands
 		..Default::default()

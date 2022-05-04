@@ -11,9 +11,10 @@ RUN echo "builder ALL=(ALL:ALL) NOPASSWD: /usr/bin/pacman" > /etc/sudoers.d/buil
 VOLUME [ "/build" ]
 
 COPY --chown=root:root builder /usr/local/bin
-COPY --chown=root:root package_builder.sh /usr/local/bin
 
 RUN chmod +x /usr/local/bin/*
+
+USER builder
 
 WORKDIR /build
 ENTRYPOINT ["/usr/local/bin/builder"]
