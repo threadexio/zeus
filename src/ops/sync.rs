@@ -1,5 +1,5 @@
 use crate::config;
-use crate::error::ZeusError;
+use crate::error::{zerr, ZeusError};
 use crate::log::{self, Level};
 use crate::util::LocalListener;
 
@@ -30,19 +30,13 @@ pub async fn sync(
 
 	logger.v(
 		Level::Verbose,
-		"unix",
 		format!("Opening socket for builder: {}", socket_path),
 	);
 
-	let listener = match LocalListener::new(Path::new(&socket_path), Some(0o666)) {
-		Ok(v) => v,
-		Err(e) => {
-			return Err(ZeusError::new(
-				"unix",
-				format!("Cannot listen on socket: {}", e),
-			));
-		}
-	};
+	let listener = zerr!(
+		LocalListener::new(Path::new(&socket_path), Some(0o666)),
+		"Cannot listen on socket: "
+	);
 
 	let opts = ListContainersOptions::<String> {
 		all: true,
@@ -51,33 +45,24 @@ pub async fn sync(
 
 	let mut should_create = true;
 
-	logger.v(Level::Verbose, "docker", "Querying containers...");
+	logger.v(Level::Verbose, "Querying created containers...");
 
-	match docker.list_containers(Some(opts)).await {
-		Err(e) => {
-			return Err(ZeusError::new(
-				"docker",
-				format!("Cannot query containers: {}", e),
-			));
-		}
-		Ok(v) => {
-			for container in v {
-				if let Some(names) = &container.names {
-					if names.contains(&format!("/{}", &cfg.name)) {
-						should_create = false;
-						break;
-					}
-				}
+	let container_list = zerr!(
+		docker.list_containers(Some(opts)).await,
+		"Cannot query containers: "
+	);
+
+	for container in container_list {
+		if let Some(names) = &container.names {
+			if names.contains(&format!("/{}", &cfg.name)) {
+				should_create = false;
+				break;
 			}
 		}
 	}
 
 	#[cfg(debug_assertions)]
-	logger.v(
-		Level::Debug,
-		config::PROGRAM_NAME,
-		format!("should_create = {:?}", should_create),
-	);
+	logger.v(Level::Debug, format!("should_create = {:?}", should_create));
 
 	if should_create {
 		let opts = CreateContainerOptions { name: &cfg.name };
@@ -90,8 +75,8 @@ pub async fn sync(
 			host_config: Some(HostConfig {
 				privileged: Some(false),
 				cap_drop: Some(vec!["all".to_owned()]),
-				//cap_add: Some(vec!["CAP_SETUID".to_owned(), "CAP_SETGID".to_owned()]), // needed for sudo
-				security_opt: Some(vec!["no-new-privileges:true".to_owned()]), // conflicts with sudo
+				cap_add: Some(vec!["CAP_SETUID".to_owned(), "CAP_SETGID".to_owned()]), // needed for sudo
+				//security_opt: Some(vec!["no-new-privileges:true".to_owned()]), // conflicts with sudo
 				mounts: Some(vec![
 					Mount {
 						typ: Some(MountTypeEnum::BIND),
@@ -121,82 +106,49 @@ pub async fn sync(
 			..Default::default()
 		};
 
-		logger.v(Level::Verbose, "docker", "Creating builder...");
+		logger.v(Level::Verbose, "Creating builder...");
 
-		match docker.create_container(Some(opts), config).await {
-			Ok(_) => {}
-			Err(e) => {
-				return Err(ZeusError::new(
-					"docker",
-					format!("Error creating builder: {}", e),
-				));
-			}
-		}
+		zerr!(
+			docker.create_container(Some(opts), config).await,
+			"Error creating builder: "
+		);
 	} else {
 		logger.v(
 			Level::Verbose,
-			"docker",
 			"Builder already exists! Not creating a new one...",
 		);
 	}
 
-	logger.v(Level::Verbose, config::PROGRAM_NAME, "Starting builder...");
+	logger.v(Level::Verbose, "Starting builder...");
 
 	let opts = StartContainerOptions::<String> {
 		..Default::default()
 	};
 
-	match docker.start_container(&cfg.name, Some(opts)).await {
-		Ok(_) => {}
-		Err(e) => {
-			return Err(ZeusError::new(
-				"docker",
-				format!("Error starting builder: {}", e),
-			));
-		}
-	}
-
-	logger.v(
-		Level::Verbose,
-		config::PROGRAM_NAME,
-		"Waiting for builder...",
+	zerr!(
+		docker.start_container(&cfg.name, Some(opts)).await,
+		"Error starting builder: "
 	);
 
-	let mut stream = match listener.listener.accept() {
-		Ok(v) => v.0,
-		Err(e) => {
-			return Err(ZeusError::new(
-				"unix",
-				format!("Cannot open communication stream with builder: {}", e),
-			));
-		}
-	};
+	logger.v(Level::Verbose, "Waiting for builder...");
 
-	let data = match serde_json::to_string(&cfg) {
-		Ok(v) => v,
-		Err(e) => {
-			return Err(ZeusError::new(
-				config::PROGRAM_NAME,
-				format!("Cannot serialize builder data: {}", e),
-			));
-		}
-	};
+	let mut stream = zerr!(
+		listener.listener.accept(),
+		"Cannot open communication stream with builder: "
+	)
+	.0;
 
-	match write!(&mut stream, "{}", data) {
-		Ok(_) => {}
-		Err(e) => {
-			return Err(ZeusError::new(
-				config::PROGRAM_NAME,
-				format!("Cannot send package information to builder: {}", e),
-			));
-		}
-	}
-
-	logger.v(
-		Level::Verbose,
-		config::PROGRAM_NAME,
-		"Attaching to builder...",
+	let data = zerr!(
+		serde_json::to_string(&cfg),
+		"Cannot serialize builder data: "
 	);
+
+	zerr!(
+		write!(&mut stream, "{}", data),
+		"Cannot send package information to builder: "
+	);
+
+	logger.v(Level::Verbose, "Attaching to builder...");
 
 	let opts = AttachContainerOptions::<String> {
 		stdin: Some(true),
@@ -208,61 +160,30 @@ pub async fn sync(
 	};
 
 	let (tx, rx) = channel();
-	match ctrlc::set_handler(move || tx.send(()).expect("Cannot send signal")) {
-		Ok(_) => {}
-		Err(e) => {
-			return Err(ZeusError::new(
-				"system",
-				format!("Cannot set signal handler: {}", e),
-			));
-		}
-	}
+	zerr!(
+		ctrlc::set_handler(move || tx.send(()).expect("Cannot send signal")),
+		"Cannot set signal handler: "
+	);
 
-	match docker.attach_container(&cfg.name, Some(opts)).await {
-		Ok(mut v) => {
-			while let Some(res) = v.output.next().await {
-				// This means the signal handler above triggered
-				if rx.try_recv().is_ok() {
-					logger.v(
-						Level::Info,
-						config::PROGRAM_NAME,
-						"Interrupt detected. Exiting...",
-					);
+	let mut out_stream = zerr!(
+		docker.attach_container(&cfg.name, Some(opts)).await,
+		"Cannot attach to builder: "
+	)
+	.output;
+	while let Some(res) = out_stream.next().await {
+		// This means the signal handler above triggered
+		if rx.try_recv().is_ok() {
+			logger.v(Level::Info, "Interrupt detected. Exiting...");
 
-					match docker
-						.kill_container(&cfg.name, Some(KillContainerOptions { signal: "SIGKILL" }))
-						.await
-					{
-						Ok(_) => {
-							logger.v(Level::Success, "docker", "Killed builder");
-							break;
-						}
-						Err(e) => {
-							return Err(ZeusError::new(
-								"docker",
-								format!("Cannot kill builder: {}", e),
-							));
-						}
-					}
-				}
+			zerr!(
+				docker
+					.kill_container(&cfg.name, Some(KillContainerOptions { signal: "SIGKILL" }))
+					.await,
+				"Cannot kill builder: "
+			);
+		}
 
-				match res {
-					Ok(v) => print!("{}", v),
-					Err(e) => {
-						return Err(ZeusError::new(
-							"docker",
-							format!("Error displaying builder logs: {}", e),
-						));
-					}
-				}
-			}
-		}
-		Err(e) => {
-			return Err(ZeusError::new(
-				config::PROGRAM_NAME,
-				format!("Cannot attach to builder: {}", e),
-			));
-		}
+		print!("{}", zerr!(res, "Error displaying builder logs: "));
 	}
 
 	Ok(())

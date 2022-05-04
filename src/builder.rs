@@ -50,21 +50,13 @@ fn build_packages(cfg: config::AppConfig) {
 fn main() {
 	let mut logger = log::Logger::new(log::Stream::Stdout, log::ColorChoice::Auto);
 
-	logger.v(
-		Level::Info,
-		"builder",
-		format!("Version: {}", config::PROGRAM_VERSION),
-	);
+	logger.v(Level::Info, format!("Version: {}", config::PROGRAM_VERSION));
 
 	let socket_path = format!("{}.sock", config::PROGRAM_NAME);
 	let mut stream = match UnixStream::connect(&socket_path) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.v(
-				Level::Error,
-				"builder",
-				format!("Cannot connect to socket: {}", e),
-			);
+			logger.v(Level::Error, format!("Cannot connect to socket: {}", e));
 			exit(1);
 		}
 	};
@@ -76,11 +68,7 @@ fn main() {
 			data_len = v;
 		}
 		Err(e) => {
-			logger.v(
-				Level::Error,
-				"builder",
-				format!("Cannot read data from socket: {}", e),
-			);
+			logger.v(Level::Error, format!("Cannot read data from socket: {}", e));
 			exit(1);
 		}
 	}
@@ -89,11 +77,7 @@ fn main() {
 	let cfg: config::AppConfig = match serde_json::from_slice(&data[..data_len]) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.v(
-				Level::Error,
-				"builder",
-				format!("Cannot deserialize config: {}", e),
-			);
+			logger.v(Level::Error, format!("Cannot deserialize config: {}", e));
 			exit(1);
 		}
 	};

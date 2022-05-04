@@ -1,6 +1,6 @@
 use crate::aur;
 use crate::config;
-use crate::error::ZeusError;
+use crate::error::{zerr, ZeusError};
 use crate::log::{self, Level};
 
 use clap::ArgMatches;
@@ -63,7 +63,7 @@ pub async fn query(
 	args: &ArgMatches,
 ) -> Result<(), ZeusError> {
 	if cfg.keywords.is_empty() {
-		return Err(ZeusError::new("aur", "No keywords specified".to_owned()));
+		return Err(ZeusError::new("No keywords specified".to_owned()));
 	}
 
 	let by = args.value_of_t::<aur::By>("by").unwrap();
@@ -73,23 +73,13 @@ pub async fn query(
 		false => cfg.aur.search(by, &cfg.keywords).await,
 	};
 
-	let data = match res {
-		Ok(v) => v,
-		Err(e) => {
-			return Err(ZeusError::new("aur", format!("Error: {}", e)));
-		}
-	};
+	let data = zerr!(res, "Error: ");
 
 	match args.value_of("output").unwrap() {
-		"json" => match serde_json::to_writer(stdout(), &data) {
-			Err(e) => {
-				return Err(ZeusError::new(
-					"aur",
-					format!("Error serializing JSON: {}", e),
-				))
-			}
-			_ => {}
-		},
+		"json" => zerr!(
+			serde_json::to_writer(stdout(), &data),
+			"Error serializing JSON: "
+		),
 		_ => {
 			if args.is_present("info") {
 				for package in &data.results {
@@ -99,7 +89,6 @@ pub async fn query(
 				for package in &data.results {
 					logger.v(
 						Level::Info,
-						"aur",
 						format!(
 							"{} - {}\n\t{}",
 							package.Name, package.Version, package.Description,

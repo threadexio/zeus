@@ -33,7 +33,7 @@ async fn main() {
 	logger.verbose = args.is_present("verbose");
 
 	#[cfg(debug_assertions)]
-	logger.v(Level::Debug, "docker", "Connecting...");
+	logger.v(Level::Debug, "Connecting to docker...");
 
 	let mut cfg = config::AppConfig {
 		verbose: args.is_present("verbose"),
@@ -56,24 +56,19 @@ async fn main() {
 		Err(e) => {
 			logger.v(
 				Level::Error,
-				"docker",
-				format!("Unable to connect to daemon: {}", e),
+				format!("Unable to connect to docker daemon: {}", e),
 			);
 			exit(1);
 		}
 	};
 
 	#[cfg(debug_assertions)]
-	logger.v(Level::Debug, "filesystem", "Creating lockfile...");
+	logger.v(Level::Debug, "Creating lockfile...");
 
 	let lockfile = match Lockfile::new(Path::new(&format!("{}/zeus.lock", &cfg.builddir))) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.v(
-				Level::Error,
-				"filesystem",
-				format!("Cannot create lock: {}", e),
-			);
+			logger.v(Level::Error, format!("Cannot create lock: {}", e));
 			exit(1);
 		}
 	};
@@ -104,11 +99,7 @@ async fn main() {
 			if cfg.upgrade && cfg.packages.is_empty() {
 				match read_dir(&cfg.builddir) {
 					Err(e) => {
-						logger.v(
-							Level::Error,
-							"filesystem",
-							format!("Cannot list directory: {}", e),
-						);
+						logger.v(Level::Error, format!("Cannot list build directory: {}", e));
 						exit(1);
 					}
 					Ok(v) => {
@@ -117,7 +108,6 @@ async fn main() {
 								Err(e) => {
 									logger.v(
 										Level::Warn,
-										"filesystem",
 										format!("Cannot read package directory: {}", e),
 									);
 								}
@@ -126,7 +116,6 @@ async fn main() {
 										match entry.file_name().into_string() {
 											Err(e) => logger.v(
 												Level::Warn,
-												"filesystem",
 												format!("Found invalid package: {:?}", e),
 											),
 											Ok(name) => cfg.packages.push(name),
@@ -138,28 +127,20 @@ async fn main() {
 					}
 				}
 			} else if cfg.packages.is_empty() {
-				logger.v(
-					Level::Error,
-					config::PROGRAM_NAME,
-					"No packages specified. See --help!",
-				);
+				logger.v(Level::Error, "No packages specified. See --help!");
 				exit(1);
 			}
 
 			#[cfg(debug_assertions)]
-			logger.v(Level::Debug, config::PROGRAM_NAME, format!("{:?}", cfg));
+			logger.v(Level::Debug, format!("{:?}", cfg));
 
 			#[cfg(debug_assertions)]
-			logger.v(Level::Debug, "filesystem", "Obtaining lock...");
+			logger.v(Level::Debug, "Obtaining lock...");
 
 			match lockfile.lock() {
 				Ok(_) => {}
 				Err(e) => {
-					logger.v(
-						Level::Error,
-						"filesystem",
-						format!("Cannot obtain lock: {}", e),
-					);
+					logger.v(Level::Error, format!("Cannot obtain lock: {}", e));
 					exit(1);
 				}
 			};
@@ -174,19 +155,15 @@ async fn main() {
 			cfg.name = build_args.value_of("name").unwrap().to_owned();
 
 			#[cfg(debug_assertions)]
-			logger.v(Level::Debug, config::PROGRAM_NAME, format!("{:?}", cfg));
+			logger.v(Level::Debug, format!("{:?}", cfg));
 
 			#[cfg(debug_assertions)]
-			logger.v(Level::Debug, "filesystem", "Obtaining lock...");
+			logger.v(Level::Debug, "Obtaining lock...");
 
 			match lockfile.lock() {
 				Ok(_) => {}
 				Err(e) => {
-					logger.v(
-						Level::Error,
-						"filesystem",
-						format!("Cannot obtain lock: {}", e),
-					);
+					logger.v(Level::Error, format!("Cannot obtain lock: {}", e));
 					exit(1);
 				}
 			};
@@ -206,7 +183,6 @@ async fn main() {
 			#[cfg(debug_assertions)]
 			logger.v(
 				Level::Debug,
-				config::PROGRAM_NAME,
 				"Subcommand given didn't match anything. Check the code!",
 			);
 
@@ -218,7 +194,7 @@ async fn main() {
 	match res {
 		Ok(_) => exit(0),
 		Err(e) => {
-			logger.v(Level::Error, e.facility, e.data);
+			logger.v(Level::Error, &e.data);
 			exit(1);
 		}
 	}
