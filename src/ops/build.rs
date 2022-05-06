@@ -1,5 +1,5 @@
 use crate::config;
-use crate::error::{zerr, ZeusError};
+use crate::error::{zerr, Result, ZeusError};
 use crate::log::{self, Level};
 
 use bollard::container::RemoveContainerOptions;
@@ -11,11 +11,7 @@ use futures::StreamExt;
 use std::fs::File;
 use std::io::prelude::*;
 
-pub async fn build(
-	logger: &mut log::Logger,
-	docker: Docker,
-	cfg: config::AppConfig,
-) -> Result<(), ZeusError> {
+pub async fn build(logger: &mut log::Logger, docker: Docker, cfg: config::AppConfig) -> Result<()> {
 	logger.v(
 		Level::Verbose,
 		format!("Builder image archive: {}", &cfg.archive),

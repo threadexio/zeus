@@ -3,6 +3,7 @@ mod config;
 mod error;
 mod log;
 
+use error::{zerr, Result, ZeusError};
 use log::Level;
 
 use std::env;
@@ -12,39 +13,60 @@ use std::path;
 use std::process::exit;
 use std::process::Command;
 
-fn build_packages(cfg: config::AppConfig) {
-	//! TODO: Error handling please
+fn build_packages(cfg: config::AppConfig) -> Result<Vec<String>> {
+	let mut new_packages: Vec<String> = vec![];
 
 	for package in cfg.packages {
+		zerr!(env::set_current_dir("/build"), "Cannot change directory: ");
+
 		let pkg_dir = path::Path::new(&package);
 
 		if !pkg_dir.exists() {
 			let _ = Command::new("/usr/bin/git")
 				.arg("clone")
-				.arg(format!("{}/{}.git", cfg.aur.get_url(), &package))
+				.arg(format!("/{}/{}.git", cfg.aur.get_url(), &package))
 				.status();
 		}
 
-		let _ = env::set_current_dir(pkg_dir);
+		zerr!(env::set_current_dir(pkg_dir), "Cannot change directory: ");
 
 		if cfg.upgrade {
-			let _ = Command::new("/usr/bin/git")
-				.arg("pull")
-				.arg("origin")
-				.arg("master")
-				.status();
+			let status = zerr!(
+				Command::new("/usr/bin/git")
+					.arg("pull")
+					.arg("origin")
+					.arg("master")
+					.status(),
+				"Cannot start git: "
+			);
+
+			if !status.success() {
+				return Err(ZeusError::new(format!(
+					"makepkg exited with: {}",
+					status.code().unwrap_or(-99999)
+				)));
+			}
 		}
 
-		let _ = Command::new("/usr/bin/makepkg")
-			.arg("-s")
-			.arg("--needed")
-			.arg("--noconfirm")
-			.arg("--noprogressbar")
-			.args(&cfg.buildargs)
-			.status();
+		let status = zerr!(
+			Command::new("/usr/bin/makepkg")
+				.arg("-s")
+				.arg("--needed")
+				.arg("--noconfirm")
+				.arg("--noprogressbar")
+				.args(&cfg.buildargs)
+				.status(),
+			"Cannot start makepkg: "
+		);
 
-		let _ = env::set_current_dir("/build/");
+		if !status.success() {
+			continue;
+		}
+
+		new_packages.push(package);
 	}
+
+	Ok(new_packages)
 }
 
 fn main() {
@@ -82,5 +104,19 @@ fn main() {
 		}
 	};
 
-	build_packages(cfg);
+	let pkgs = match build_packages(cfg) {
+		Ok(v) => v,
+		Err(e) => {
+			logger.v(Level::Error, e.data);
+			exit(1);
+		}
+	};
+
+	logger.v(Level::Info, "Upgraded packages:");
+
+	if pkgs.len() != 0 {
+		logger.v(Level::Info, pkgs.join("\n"));
+	} else {
+		logger.v(Level::Info, "None");
+	}
 }

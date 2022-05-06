@@ -1,5 +1,5 @@
 use crate::config;
-use crate::error::{zerr, ZeusError};
+use crate::error::{zerr, Result, ZeusError};
 use crate::log::{self, Level};
 use crate::util::LocalListener;
 
@@ -21,11 +21,7 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::mpsc::channel;
 
-pub async fn sync(
-	logger: &mut log::Logger,
-	docker: Docker,
-	cfg: config::AppConfig,
-) -> Result<(), ZeusError> {
+pub async fn sync(logger: &mut log::Logger, docker: Docker, cfg: config::AppConfig) -> Result<()> {
 	let socket_path = format!("{}/zeus.sock", &cfg.builddir);
 
 	logger.v(

@@ -1,6 +1,6 @@
 use crate::aur;
 use crate::config;
-use crate::error::{zerr, ZeusError};
+use crate::error::{zerr, Result, ZeusError};
 use crate::log::{self, Level};
 
 use clap::ArgMatches;
@@ -61,9 +61,9 @@ pub async fn query(
 	logger: &mut log::Logger,
 	cfg: config::AppConfig,
 	args: &ArgMatches,
-) -> Result<(), ZeusError> {
+) -> Result<()> {
 	if cfg.keywords.is_empty() {
-		return Err(ZeusError::new("No keywords specified".to_owned()));
+		return Err(ZeusError::new("No keywords specified"));
 	}
 
 	let by = args.value_of_t::<aur::By>("by").unwrap();

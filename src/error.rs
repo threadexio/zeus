@@ -1,4 +1,6 @@
+use std::error;
 use std::fmt;
+use std::io;
 
 #[allow(unused_macros)]
 macro_rules! zerr {
@@ -15,14 +17,21 @@ macro_rules! zerr {
 #[allow(unused_imports)]
 pub(crate) use zerr;
 
+pub type Result<T> = std::result::Result<T, ZeusError>;
+
 pub struct ZeusError {
 	pub data: String,
 }
 
 #[allow(dead_code)]
 impl ZeusError {
-	pub fn new(data: String) -> Self {
-		Self { data: data }
+	pub fn new<T>(data: T) -> Self
+	where
+		T: fmt::Display,
+	{
+		Self {
+			data: data.to_string(),
+		}
 	}
 }
 
@@ -38,4 +47,10 @@ impl fmt::Debug for ZeusError {
 	}
 }
 
-impl std::error::Error for ZeusError {}
+impl error::Error for ZeusError {}
+
+impl From<io::Error> for ZeusError {
+	fn from(e: io::Error) -> Self {
+		Self::new(e.to_string())
+	}
+}
