@@ -55,7 +55,7 @@ pub async fn build(logger: &mut log::Logger, docker: Docker, cfg: config::AppCon
 			let msg = msg.trim_end();
 
 			if msg != "" {
-				println!("{}", msg);
+				logger.v(Level::Info, msg);
 			}
 		}
 	}

@@ -260,7 +260,7 @@ impl Aur {
 	{
 		let mut url = format!(
 			"{}&type=search&by={}",
-			&self.base_url,
+			&self.rpc_url,
 			by.to_string().to_lowercase()
 		);
 
@@ -285,7 +285,7 @@ impl Aur {
 	where
 		T: fmt::Display,
 	{
-		let mut url = format!("{}&type=info", &self.base_url);
+		let mut url = format!("{}&type=info", &self.rpc_url);
 
 		for package in packages {
 			url.push_str(&format!("&arg[]={}", package));
