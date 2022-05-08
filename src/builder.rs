@@ -24,7 +24,7 @@ fn build_packages(cfg: config::AppConfig) -> Result<Vec<String>> {
 		if !pkg_dir.exists() {
 			let _ = Command::new("/usr/bin/git")
 				.arg("clone")
-				.arg(format!("/{}/{}.git", cfg.aur.get_url(), &package))
+				.arg(format!("{}/{}.git", cfg.aur.get_url(), &package))
 				.status();
 		}
 
