@@ -13,10 +13,10 @@ use std::path;
 use std::process::exit;
 use std::process::Command;
 
-fn build_packages(cfg: config::AppConfig) -> Result<Vec<String>> {
-	let mut new_packages: Vec<String> = vec![];
+fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
+	let mut new_packages: Vec<&str> = vec![];
 
-	for package in cfg.packages {
+	for package in &cfg.packages {
 		zerr!(env::set_current_dir("/build"), "Cannot change directory: ");
 
 		let pkg_dir = path::Path::new(&package);
@@ -42,7 +42,7 @@ fn build_packages(cfg: config::AppConfig) -> Result<Vec<String>> {
 
 			if !status.success() {
 				return Err(ZeusError::new(format!(
-					"makepkg exited with: {}",
+					"git exited with: {}",
 					status.code().unwrap_or(-99999)
 				)));
 			}
@@ -104,7 +104,7 @@ fn main() {
 		}
 	};
 
-	let pkgs = match build_packages(cfg) {
+	let pkgs = match build_packages(&cfg) {
 		Ok(v) => v,
 		Err(e) => {
 			logger.v(Level::Error, e.data);
@@ -112,7 +112,11 @@ fn main() {
 		}
 	};
 
-	logger.v(Level::Info, "Upgraded packages:");
+	if cfg.upgrade {
+		logger.v(Level::Info, "Upgraded packages:");
+	} else {
+		logger.v(Level::Info, "Built packages:");
+	}
 
 	if pkgs.len() != 0 {
 		logger.v(Level::Info, pkgs.join("\n"));
