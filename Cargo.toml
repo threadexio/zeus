@@ -17,9 +17,9 @@ name = "builder"
 path = "src/builder.rs"
 
 [dependencies]
-termcolor = "1.1.3"
-clap = { version = "3.1.12", features = ["cargo"] }
-clap_complete = "3.1.2"
+termcolor = "^1.1"
+clap = { version = "^3.1", features = ["cargo"] }
+clap_complete = "^3.1"
 tokio = { version = "^1.18", features = ["full"] }
 futures = "^0.3"
 bollard = "0.12.0"
