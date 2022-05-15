@@ -58,7 +58,7 @@ install: completions
 	mkdir -p "$(DESTDIR)/var/cache/aur"
 	chmod 0777 "$(DESTDIR)/var/cache/aur"
 
-	install -Dm644 -t "$(DESTDIR)/etc/apparmor.d" extra/zeus
+	install -Dm644 -t "$(DESTDIR)/etc/apparmor.d" apparmor/zeus
 
 	install -Dm644 completions/zeus.bash "$(DESTDIR)/usr/share/bash-completion/completions/zeus"
 	install -Dm644 completions/zeus.zsh "$(DESTDIR)/usr/share/zsh/site-functions/_zeus"
@@ -67,11 +67,13 @@ install: completions
 .PHONY:
 apparmor_test:
 	-apparmor_parser -R /etc/apparmor.d/zeus
-	-cp extra/zeus /etc/apparmor.d/zeus
+	-cp apparmor/zeus /etc/apparmor.d/zeus
 	-aa-enforce /etc/apparmor.d/zeus
 
 .PHONY:
 uninstall:
+	-apparmor_parser -R /etc/apparmor.d/zeus
+
 	-rm $(DESTDIR)/$(PREFIX)/bin/zeus
 	-rm -ri $(DESTDIR)/$(PREFIX)/share/zeus
 
