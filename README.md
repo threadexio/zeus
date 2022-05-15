@@ -30,7 +30,7 @@
 	<b>zeus</b>
 </h1>
 
-[Releases][releases] &nbsp; | &nbsp; [CI][actions] &nbsp; | &nbsp; [Issues][issues] &nbsp; | &nbsp; [Installing](#installing) &nbsp; | &nbsp; [Building](#building)
+[Releases][releases] &nbsp; | &nbsp; [CI][actions] &nbsp; | &nbsp; [Issues][issues] &nbsp; | &nbsp; [Usage](#usage) &nbsp; | &nbsp; [Installing](#installing) &nbsp; | &nbsp; [Building](#building)
 
 [![release-badge]][releases]
 [![issues-badge]][issues]
@@ -56,7 +56,9 @@
 	- [Installing a package](#installing-a-package)
 	- [Upgrading a package](#upgrading-a-package)
 	- [Removing a package](#removing-a-package)
-	- [Getting shell completions](#getting-shell-completions)
+	- [Querying the AUR](#querying-the-aur)
+	- [Buidler images](#buidler-images)
+	- [Please read](#please-read)
 - [Installing](#installing)
 - [Building](#building)
 	- [Not installing locally](#not-installing-locally)
@@ -80,29 +82,68 @@ Some examples:
 
 ```shell
 $ zeus -S package_name
+# pacman -U /var/cache/aur/package_name/package_archive.zst
 ```
+
+> Note the `#`, this means the command must be ran as `root` to work properly
+
 
 ### Upgrading a package
 
 ```shell
 $ zeus -Su package_name
+# pacman -U /var/cache/aur/package_name/newer_archive.zst
+```
+
+or to upgrade all AUR packages
+
+```shell
+$ zeus -Su
+```
+
+and for every listed package run
+
+```shell
+# pacman -U /var/cache/aur/package_name/newer_archive.zst
 ```
 
 ### Removing a package
 
 ```shell
+# zeus -R package_name
 # pacman -R package_name
 ```
 
-> Note the `#`, this means the command must be ran as `root` to work properly
-
-### Getting shell completions
+### Querying the AUR
 
 ```shell
-$ zeus misc --shell your_shell
+$ zeus -Q foo bar
 ```
 
-For a list of supported shells, see `zeus misc --help`.
+or getting detailed information about 1 or more packages
+
+```shell
+$ zues -Q -i foobar
+```
+
+> Note that the `-i` only accepts package names not keywords, this means `foobar` must be a valid package in the AUR
+
+### Buidler images
+
+To build a new image run:
+
+```shell
+$ zeus -B
+```
+
+It is recommended to do this every time you update your normal system
+
+### Please read
+
+`zeus` does not execute `pacman` commands automatically for 2 reasons:
+
+1. It gives more control to the user and helps package developers
+2. It allows auditing `PKGBUILD`s and install scriptlets manually before installing
 
 <br>
 

@@ -15,6 +15,7 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 		////////////////////////////////////////////////////
 		Command::new("sync")
 			.short_flag('S')
+			.long_flag("sync")
 			.about("Sync packages")
 			.arg(
 				Arg::new("upgrade")
@@ -43,12 +44,23 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 			)
 			.arg(
 				Arg::new("packages")
-					.help("Package names")
+					.help("Packages to sync")
+					.multiple_occurrences(true),
+			),
+		////////////////////////////////////////////////////
+		Command::new("remove")
+			.short_flag('R')
+			.long_flag("remove")
+			.about("Remove packages")
+			.arg(
+				Arg::new("packages")
+					.help("Packages to remove")
 					.multiple_occurrences(true),
 			),
 		////////////////////////////////////////////////////
 		Command::new("build")
 			.short_flag('B')
+			.long_flag("build")
 			.about("Build/Update builder image")
 			.arg(
 				Arg::new("archive")
@@ -80,6 +92,7 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 		////////////////////////////////////////////////////
 		Command::new("query")
 			.short_flag('Q')
+			.long_flag("query")
 			.about("Query the AUR")
 			.arg(
 				Arg::new("info")
@@ -119,6 +132,7 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 			),
 		////////////////////////////////////////////////////
 		Command::new("misc")
+			.long_flag("misc")
 			.about("Generate shell completions & others")
 			.arg(
 				Arg::new("shell")

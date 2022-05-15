@@ -23,19 +23,27 @@ pub const PROGRAM_VERSION: &'static str =
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AppConfig {
+	// Global
 	pub verbose: bool,
 	pub force: bool,
+	pub aur: Aur,
+	pub builddir: String,
 
+	// Sync
 	pub upgrade: bool,
 	pub buildargs: Vec<String>,
-	pub builddir: String,
-	pub packages: Vec<String>,
 
+	// Build
 	pub archive: String,
 	pub dockerfile: String,
+
+	// Sync + Build
 	pub image: String,
 	pub name: String,
 
-	pub aur: Aur,
+	// Sync + Remove
+	pub packages: Vec<String>,
+
+	// Query
 	pub keywords: Vec<String>,
 }

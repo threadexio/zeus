@@ -147,6 +147,33 @@ async fn main() {
 
 			ops::sync(&mut logger, docker, cfg).await
 		}
+		Some(("remove", misc_args)) => {
+			cfg.packages = misc_args
+				.values_of("packages")
+				.map(|x| x.map(|y| y.to_owned()).collect::<Vec<String>>())
+				.unwrap_or_default();
+
+			if cfg.packages.is_empty() {
+				logger.v(Level::Error, "No packages specified. See --help!");
+				exit(1);
+			}
+
+			#[cfg(debug_assertions)]
+			logger.v(Level::Debug, format!("{:?}", cfg));
+
+			#[cfg(debug_assertions)]
+			logger.v(Level::Debug, "Obtaining lock...");
+
+			match lockfile.lock() {
+				Ok(_) => {}
+				Err(e) => {
+					logger.v(Level::Error, format!("Cannot obtain lock: {}", e));
+					exit(1);
+				}
+			};
+
+			ops::remove(&mut logger, cfg)
+		}
 		Some(("build", build_args)) => {
 			cfg.archive = build_args.value_of("archive").unwrap().to_owned();
 			cfg.dockerfile = build_args.value_of("dockerfile").unwrap().to_owned();
