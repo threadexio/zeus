@@ -48,7 +48,7 @@ package: build
 		-C $$PWD/target/$(BUILD_TYPE)/  zeus \
 		-C $$PWD/                       builder.tar.gz \
 		-C $$PWD/                       completions/ \
-		extra/zeus
+		apparmor/zeus
 
 .PHONY:
 install: completions

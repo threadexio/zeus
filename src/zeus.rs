@@ -22,7 +22,7 @@ async fn main() {
 	let args = cli::build().get_matches();
 
 	let mut logger = log::Logger::new(
-		log::Stream::Stdout,
+		log::Stream::Stderr,
 		match args.value_of("color") {
 			Some("always") => log::ColorChoice::Always,
 			Some("never") => log::ColorChoice::Never,
