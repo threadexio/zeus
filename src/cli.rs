@@ -34,13 +34,19 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 				Arg::new("image")
 					.long("image")
 					.help("Builder image name")
-					.default_value(default_env!("DEFAULT_IMAGE", "zeus-builder")),
+					.default_value(default_env!(
+						"DEFAULT_IMAGE",
+						"zeus-builder"
+					)),
 			)
 			.arg(
 				Arg::new("name")
 					.long("name")
 					.help("Builder container name")
-					.default_value(default_env!("DEFAULT_NAME", "zeus-builder")),
+					.default_value(default_env!(
+						"DEFAULT_NAME",
+						"zeus-builder"
+					)),
 			)
 			.arg(
 				Arg::new("packages")
@@ -75,19 +81,28 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 				Arg::new("dockerfile")
 					.long("dockerfile")
 					.help("Builder image dockerfile in archive")
-					.default_value(default_env!("DEFAULT_DOCKERFILE", "Dockerfile")),
+					.default_value(default_env!(
+						"DEFAULT_DOCKERFILE",
+						"Dockerfile"
+					)),
 			)
 			.arg(
 				Arg::new("image")
 					.long("image")
 					.help("Builder image name")
-					.default_value(default_env!("DEFAULT_IMAGE", "zeus-builder")),
+					.default_value(default_env!(
+						"DEFAULT_IMAGE",
+						"zeus-builder"
+					)),
 			)
 			.arg(
 				Arg::new("name")
 					.long("name")
 					.help("Builder container name")
-					.default_value(default_env!("DEFAULT_NAME", "zeus-builder")),
+					.default_value(default_env!(
+						"DEFAULT_NAME",
+						"zeus-builder"
+					)),
 			),
 		////////////////////////////////////////////////////
 		Command::new("query")
@@ -187,13 +202,19 @@ pub fn build() -> Command<'static> {
 			Arg::new("builddir")
 				.long("builddir")
 				.help("Package build directory")
-				.default_value(default_env!("DEFAULT_BUILDDIR", "/var/cache/aur")),
+				.default_value(default_env!(
+					"DEFAULT_BUILDDIR",
+					"/var/cache/aur"
+				)),
 		)
 		.arg(
 			Arg::new("aur")
 				.long("aur")
 				.help("AUR host")
-				.default_value(default_env!("DEFAULT_AUR_HOST", "aur.archlinux.org")),
+				.default_value(default_env!(
+					"DEFAULT_AUR_HOST",
+					"aur.archlinux.org"
+				)),
 		)
 		.subcommand_required(true)
 		.subcommands(build_subcommands())

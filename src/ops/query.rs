@@ -10,10 +10,10 @@ use std::io::stdout;
 macro_rules! print_if_some {
 	($a:expr,$b:expr) => {{
 		match $b {
-			None => {}
+			None => {},
 			Some(v) => {
 				println!("{0: <16}: {1}", $a, v);
-			}
+			},
 		}
 	}};
 }
@@ -21,10 +21,10 @@ macro_rules! print_if_some {
 macro_rules! print_vec_if_some {
 	($a:expr,$b:expr) => {{
 		match $b {
-			None => {}
+			None => {},
 			Some(v) => {
 				println!("{0: <16}: {1}", $a, v.join(" "));
-			}
+			},
 		}
 	}};
 }
@@ -96,17 +96,22 @@ pub async fn query(
 						Level::Info,
 						format!(
 							"{} - {}\n\t{}",
-							package.Name.as_ref().unwrap_or(&"unnamed".to_owned()),
-							package.Version.as_ref().unwrap_or(&"0.0.0-0".to_owned()),
 							package
-								.Description
+								.Name
 								.as_ref()
-								.unwrap_or(&"No description".to_owned()),
+								.unwrap_or(&"unnamed".to_owned()),
+							package
+								.Version
+								.as_ref()
+								.unwrap_or(&"0.0.0-0".to_owned()),
+							package.Description.as_ref().unwrap_or(
+								&"No description".to_owned()
+							),
 						),
 					);
 				}
 			}
-		}
+		},
 	}
 
 	Ok(())

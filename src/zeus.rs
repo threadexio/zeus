@@ -59,18 +59,24 @@ async fn main() {
 				format!("Unable to connect to docker daemon: {}", e),
 			);
 			exit(1);
-		}
+		},
 	};
 
 	#[cfg(debug_assertions)]
 	logger.v(Level::Debug, "Creating lockfile...");
 
-	let lockfile = match Lockfile::new(Path::new(&format!("{}/zeus.lock", &cfg.builddir))) {
+	let lockfile = match Lockfile::new(Path::new(&format!(
+		"{}/zeus.lock",
+		&cfg.builddir
+	))) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.v(Level::Error, format!("Cannot create lock: {}", e));
+			logger.v(
+				Level::Error,
+				format!("Cannot create lock: {}", e),
+			);
 			exit(1);
-		}
+		},
 	};
 
 	let res = match args.subcommand() {
@@ -83,7 +89,8 @@ async fn main() {
 				.map(|x| x.to_owned())
 				.collect();
 
-			cfg.image = sync_args.value_of("image").unwrap().to_owned();
+			cfg.image =
+				sync_args.value_of("image").unwrap().to_owned();
 			cfg.name = sync_args.value_of("name").unwrap().to_owned();
 
 			// Yeah, i will be able to understand this code 6 months later
@@ -91,7 +98,9 @@ async fn main() {
 			//								- The clown who wrote this
 			cfg.packages = sync_args
 				.values_of("packages")
-				.map(|x| x.map(|y| y.to_owned()).collect::<Vec<String>>())
+				.map(|x| {
+					x.map(|y| y.to_owned()).collect::<Vec<String>>()
+				})
 				.unwrap_or_default();
 
 			// We need to mimic `pacman -Su` which upgrades everything
@@ -99,9 +108,15 @@ async fn main() {
 			if cfg.upgrade && cfg.packages.is_empty() {
 				match read_dir(&cfg.builddir) {
 					Err(e) => {
-						logger.v(Level::Error, format!("Cannot list build directory: {}", e));
+						logger.v(
+							Level::Error,
+							format!(
+								"Cannot list build directory: {}",
+								e
+							),
+						);
 						exit(1);
-					}
+					},
 					Ok(v) => {
 						for r in v {
 							match r {
@@ -110,7 +125,7 @@ async fn main() {
 										Level::Warn,
 										format!("Cannot read package directory: {}", e),
 									);
-								}
+								},
 								Ok(entry) => {
 									if entry.path().is_dir() {
 										match entry.file_name().into_string() {
@@ -121,13 +136,16 @@ async fn main() {
 											Ok(name) => cfg.packages.push(name),
 										}
 									}
-								}
+								},
 							}
 						}
-					}
+					},
 				}
 			} else if cfg.packages.is_empty() {
-				logger.v(Level::Error, "No packages specified. See --help!");
+				logger.v(
+					Level::Error,
+					"No packages specified. See --help!",
+				);
 				exit(1);
 			}
 
@@ -138,23 +156,31 @@ async fn main() {
 			logger.v(Level::Debug, "Obtaining lock...");
 
 			match lockfile.lock() {
-				Ok(_) => {}
+				Ok(_) => {},
 				Err(e) => {
-					logger.v(Level::Error, format!("Cannot obtain lock: {}", e));
+					logger.v(
+						Level::Error,
+						format!("Cannot obtain lock: {}", e),
+					);
 					exit(1);
-				}
+				},
 			};
 
 			ops::sync(&mut logger, docker, cfg).await
-		}
+		},
 		Some(("remove", misc_args)) => {
 			cfg.packages = misc_args
 				.values_of("packages")
-				.map(|x| x.map(|y| y.to_owned()).collect::<Vec<String>>())
+				.map(|x| {
+					x.map(|y| y.to_owned()).collect::<Vec<String>>()
+				})
 				.unwrap_or_default();
 
 			if cfg.packages.is_empty() {
-				logger.v(Level::Error, "No packages specified. See --help!");
+				logger.v(
+					Level::Error,
+					"No packages specified. See --help!",
+				);
 				exit(1);
 			}
 
@@ -165,21 +191,28 @@ async fn main() {
 			logger.v(Level::Debug, "Obtaining lock...");
 
 			match lockfile.lock() {
-				Ok(_) => {}
+				Ok(_) => {},
 				Err(e) => {
-					logger.v(Level::Error, format!("Cannot obtain lock: {}", e));
+					logger.v(
+						Level::Error,
+						format!("Cannot obtain lock: {}", e),
+					);
 					exit(1);
-				}
+				},
 			};
 
 			ops::remove(&mut logger, cfg)
-		}
+		},
 		Some(("build", build_args)) => {
-			cfg.archive = build_args.value_of("archive").unwrap().to_owned();
-			cfg.dockerfile = build_args.value_of("dockerfile").unwrap().to_owned();
+			cfg.archive =
+				build_args.value_of("archive").unwrap().to_owned();
+			cfg.dockerfile =
+				build_args.value_of("dockerfile").unwrap().to_owned();
 
-			cfg.image = build_args.value_of("image").unwrap().to_owned();
-			cfg.name = build_args.value_of("name").unwrap().to_owned();
+			cfg.image =
+				build_args.value_of("image").unwrap().to_owned();
+			cfg.name =
+				build_args.value_of("name").unwrap().to_owned();
 
 			#[cfg(debug_assertions)]
 			logger.v(Level::Debug, format!("{:?}", cfg));
@@ -188,23 +221,28 @@ async fn main() {
 			logger.v(Level::Debug, "Obtaining lock...");
 
 			match lockfile.lock() {
-				Ok(_) => {}
+				Ok(_) => {},
 				Err(e) => {
-					logger.v(Level::Error, format!("Cannot obtain lock: {}", e));
+					logger.v(
+						Level::Error,
+						format!("Cannot obtain lock: {}", e),
+					);
 					exit(1);
-				}
+				},
 			};
 
 			ops::build(&mut logger, docker, cfg).await
-		}
+		},
 		Some(("query", query_args)) => {
 			cfg.keywords = query_args
 				.values_of("keywords")
-				.map(|x| x.map(|y| y.to_owned()).collect::<Vec<String>>())
+				.map(|x| {
+					x.map(|y| y.to_owned()).collect::<Vec<String>>()
+				})
 				.unwrap_or_default();
 
 			ops::query(&mut logger, cfg, query_args).await
-		}
+		},
 		Some(("misc", misc_args)) => ops::misc(misc_args),
 		_ => {
 			#[cfg(debug_assertions)]
@@ -214,7 +252,7 @@ async fn main() {
 			);
 
 			exit(-1);
-		}
+		},
 	};
 
 	// we need to await in the respective call because otherwise we might release the lock before finishing, remember this code runs asynchronously
@@ -223,6 +261,6 @@ async fn main() {
 		Err(e) => {
 			logger.v(Level::Error, &e.data);
 			exit(1);
-		}
+		},
 	}
 }

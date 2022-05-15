@@ -5,7 +5,10 @@ use crate::log::{self, Level};
 use std::fs;
 use std::path::Path;
 
-pub fn remove(logger: &mut log::Logger, cfg: config::AppConfig) -> Result<()> {
+pub fn remove(
+	logger: &mut log::Logger,
+	cfg: config::AppConfig,
+) -> Result<()> {
 	logger.v(
 		Level::Info,
 		format!("Removing: \n{}", cfg.packages.join("\n")),
@@ -26,7 +29,10 @@ pub fn remove(logger: &mut log::Logger, cfg: config::AppConfig) -> Result<()> {
 		}
 
 		if !pkg_dir.exists() {
-			logger.v(Level::Warn, format!("Package has not been synced: {}", pkg));
+			logger.v(
+				Level::Warn,
+				format!("Package has not been synced: {}", pkg),
+			);
 			continue;
 		}
 

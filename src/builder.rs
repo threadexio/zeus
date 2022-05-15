@@ -17,18 +17,28 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 	let mut new_packages: Vec<&str> = vec![];
 
 	for package in &cfg.packages {
-		zerr!(env::set_current_dir("/build"), "Cannot change directory: ");
+		zerr!(
+			env::set_current_dir("/build"),
+			"Cannot change directory: "
+		);
 
 		let pkg_dir = path::Path::new(&package);
 
 		if !pkg_dir.exists() {
 			let _ = Command::new("/usr/bin/git")
 				.arg("clone")
-				.arg(format!("{}/{}.git", cfg.aur.get_url(), &package))
+				.arg(format!(
+					"{}/{}.git",
+					cfg.aur.get_url(),
+					&package
+				))
 				.status();
 		}
 
-		zerr!(env::set_current_dir(pkg_dir), "Cannot change directory: ");
+		zerr!(
+			env::set_current_dir(pkg_dir),
+			"Cannot change directory: "
+		);
 
 		if cfg.upgrade {
 			let status = zerr!(
@@ -70,17 +80,24 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 }
 
 fn main() {
-	let mut logger = log::Logger::new(log::Stream::Stdout, log::ColorChoice::Auto);
+	let mut logger =
+		log::Logger::new(log::Stream::Stdout, log::ColorChoice::Auto);
 
-	logger.v(Level::Info, format!("Version: {}", config::PROGRAM_VERSION));
+	logger.v(
+		Level::Info,
+		format!("Version: {}", config::PROGRAM_VERSION),
+	);
 
 	let socket_path = format!("{}.sock", config::PROGRAM_NAME);
 	let mut stream = match UnixStream::connect(&socket_path) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.v(Level::Error, format!("Cannot connect to socket: {}", e));
+			logger.v(
+				Level::Error,
+				format!("Cannot connect to socket: {}", e),
+			);
 			exit(1);
-		}
+		},
 	};
 
 	let mut data = vec![0u8; 1024 * 8];
@@ -88,28 +105,35 @@ fn main() {
 	match stream.read(&mut data[..]) {
 		Ok(v) => {
 			data_len = v;
-		}
+		},
 		Err(e) => {
-			logger.v(Level::Error, format!("Cannot read data from socket: {}", e));
+			logger.v(
+				Level::Error,
+				format!("Cannot read data from socket: {}", e),
+			);
 			exit(1);
-		}
+		},
 	}
 
 	// the &data[..data_len] is needed because serde_json doesn't stop parsing on a null byte
-	let cfg: config::AppConfig = match serde_json::from_slice(&data[..data_len]) {
-		Ok(v) => v,
-		Err(e) => {
-			logger.v(Level::Error, format!("Cannot deserialize config: {}", e));
-			exit(1);
-		}
-	};
+	let cfg: config::AppConfig =
+		match serde_json::from_slice(&data[..data_len]) {
+			Ok(v) => v,
+			Err(e) => {
+				logger.v(
+					Level::Error,
+					format!("Cannot deserialize config: {}", e),
+				);
+				exit(1);
+			},
+		};
 
 	let pkgs = match build_packages(&cfg) {
 		Ok(v) => v,
 		Err(e) => {
 			logger.v(Level::Error, e.data);
 			exit(1);
-		}
+		},
 	};
 
 	if cfg.upgrade {

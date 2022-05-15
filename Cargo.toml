@@ -2,6 +2,7 @@
 name = "zeus"
 version = "0.1.0"
 edition = "2021"
+authors = ["threadexio"]
 description = "Containerized AUR helper"
 readme = "README.md"
 homepage = "https://github.com/threadexio/zeus"

@@ -58,16 +58,16 @@ impl Logger {
 		match level {
 			Level::Error => {
 				color = self.error_color;
-			}
+			},
 			Level::Warn => {
 				color = self.warn_color;
-			}
+			},
 			Level::Success => {
 				color = self.success_color;
-			}
+			},
 			Level::Info => {
 				color = self.info_color;
-			}
+			},
 			Level::Verbose => {
 				// skip all verbose messages if we are not running in verbose mode
 				if !self.verbose {
@@ -75,7 +75,7 @@ impl Logger {
 				}
 
 				color = self.verbose_color;
-			}
+			},
 			Level::Debug => {
 				// skip all debug messages if we are not running in a debug build
 				#[cfg(not(debug_assertions))]
@@ -85,11 +85,13 @@ impl Logger {
 				{
 					color = self.debug_color;
 				}
-			}
+			},
 		}
 
 		self.out
-			.set_color(ColorSpec::new().set_bold(true).set_fg(Some(color)))
+			.set_color(
+				ColorSpec::new().set_bold(true).set_fg(Some(color)),
+			)
 			.unwrap();
 
 		write!(
@@ -111,7 +113,9 @@ impl Logger {
 			writeln!(&mut self.out, "{}", v).unwrap();
 		}
 
-		lines.for_each(|x| writeln!(&mut self.out, "{: >8} {}", "", x).unwrap())
+		lines.for_each(|x| {
+			writeln!(&mut self.out, "{: >8} {}", "", x).unwrap()
+		})
 	}
 }
 

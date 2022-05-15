@@ -8,8 +8,10 @@ macro_rules! zerr {
 		match $x {
 			Ok(v) => v,
 			Err(e) => {
-				return Err(ZeusError::new($m.to_string() + &e.to_string()));
-			}
+				return Err(ZeusError::new(
+					$m.to_string() + &e.to_string(),
+				));
+			},
 		}
 	};
 }
@@ -29,9 +31,7 @@ impl ZeusError {
 	where
 		T: fmt::Display,
 	{
-		Self {
-			data: data.to_string(),
-		}
+		Self { data: data.to_string() }
 	}
 }
 

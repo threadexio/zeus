@@ -13,10 +13,7 @@ pub struct Lockfile {
 
 impl Lockfile {
 	pub fn new(path: &Path) -> Result<Self, Error> {
-		Ok(Self {
-			file: fs::File::create(path)?,
-			blocking: true,
-		})
+		Ok(Self { file: fs::File::create(path)?, blocking: true })
 	}
 
 	pub fn lock(&self) -> Result<(), Error> {
@@ -44,7 +41,10 @@ pub struct LocalListener {
 }
 
 impl LocalListener {
-	pub fn new(path: &Path, mode: Option<u32>) -> Result<Self, Error> {
+	pub fn new(
+		path: &Path,
+		mode: Option<u32>,
+	) -> Result<Self, Error> {
 		let _ = fs::remove_file(path);
 
 		Ok(Self {
@@ -52,13 +52,16 @@ impl LocalListener {
 			listener: match UnixListener::bind(path) {
 				Ok(v) => {
 					if let Some(m) = mode {
-						fs::set_permissions(path, fs::Permissions::from_mode(m))?
+						fs::set_permissions(
+							path,
+							fs::Permissions::from_mode(m),
+						)?
 					}
 					v
-				}
+				},
 				Err(e) => {
 					return Err(e);
-				}
+				},
 			},
 		})
 	}

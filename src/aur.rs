@@ -254,7 +254,11 @@ impl Aur {
 	///
 	/// let response = aur_instance.search(aur::By::Name, vec!["zeus", "zeus-bin"]).await;
 	/// ```
-	pub async fn search<T>(&self, by: By, keywords: &Vec<T>) -> AurResult
+	pub async fn search<T>(
+		&self,
+		by: By,
+		keywords: &Vec<T>,
+	) -> AurResult
 	where
 		T: fmt::Display,
 	{
@@ -268,7 +272,8 @@ impl Aur {
 			url.push_str(&format!("&arg={}", keyword));
 		}
 
-		let res: AurResponse = make_req_client().get(url).send().await?.json().await?;
+		let res: AurResponse =
+			make_req_client().get(url).send().await?.json().await?;
 
 		Ok(res)
 	}
@@ -291,7 +296,8 @@ impl Aur {
 			url.push_str(&format!("&arg[]={}", package));
 		}
 
-		let res: AurResponse = make_req_client().get(url).send().await?.json().await?;
+		let res: AurResponse =
+			make_req_client().get(url).send().await?.json().await?;
 
 		Ok(res)
 	}

@@ -6,11 +6,13 @@ use crate::util::LocalListener;
 use bollard::Docker;
 
 use bollard::container::{
-	AttachContainerOptions, Config, CreateContainerOptions, KillContainerOptions,
-	ListContainersOptions, StartContainerOptions,
+	AttachContainerOptions, Config, CreateContainerOptions,
+	KillContainerOptions, ListContainersOptions,
+	StartContainerOptions,
 };
 use bollard::models::{
-	HostConfig, Mount, MountBindOptions, MountBindOptionsPropagationEnum, MountTypeEnum,
+	HostConfig, Mount, MountBindOptions,
+	MountBindOptionsPropagationEnum, MountTypeEnum,
 };
 
 use futures::StreamExt;
@@ -21,7 +23,11 @@ use std::io::prelude::*;
 use std::path::Path;
 use std::sync::mpsc::channel;
 
-pub async fn sync(logger: &mut log::Logger, docker: Docker, cfg: config::AppConfig) -> Result<()> {
+pub async fn sync(
+	logger: &mut log::Logger,
+	docker: Docker,
+	cfg: config::AppConfig,
+) -> Result<()> {
 	let socket_path = format!("{}/zeus.sock", &cfg.builddir);
 
 	logger.v(
@@ -58,7 +64,10 @@ pub async fn sync(logger: &mut log::Logger, docker: Docker, cfg: config::AppConf
 	}
 
 	#[cfg(debug_assertions)]
-	logger.v(Level::Debug, format!("should_create = {:?}", should_create));
+	logger.v(
+		Level::Debug,
+		format!("should_create = {:?}", should_create),
+	);
 
 	if should_create {
 		let opts = CreateContainerOptions { name: &cfg.name };
@@ -71,7 +80,10 @@ pub async fn sync(logger: &mut log::Logger, docker: Docker, cfg: config::AppConf
 			host_config: Some(HostConfig {
 				privileged: Some(false),
 				cap_drop: Some(vec!["all".to_owned()]),
-				cap_add: Some(vec!["CAP_SETUID".to_owned(), "CAP_SETGID".to_owned()]), // needed for sudo
+				cap_add: Some(vec![
+					"CAP_SETUID".to_owned(),
+					"CAP_SETGID".to_owned(),
+				]), // needed for sudo
 				//security_opt: Some(vec!["no-new-privileges:true".to_owned()]), // conflicts with sudo
 				mounts: Some(vec![
 					Mount {
@@ -117,9 +129,8 @@ pub async fn sync(logger: &mut log::Logger, docker: Docker, cfg: config::AppConf
 
 	logger.v(Level::Verbose, "Starting builder...");
 
-	let opts = StartContainerOptions::<String> {
-		..Default::default()
-	};
+	let opts =
+		StartContainerOptions::<String> { ..Default::default() };
 
 	zerr!(
 		docker.start_container(&cfg.name, Some(opts)).await,
@@ -157,7 +168,9 @@ pub async fn sync(logger: &mut log::Logger, docker: Docker, cfg: config::AppConf
 
 	let (tx, rx) = channel();
 	zerr!(
-		ctrlc::set_handler(move || tx.send(()).expect("Cannot send signal")),
+		ctrlc::set_handler(move || tx
+			.send(())
+			.expect("Cannot send signal")),
 		"Cannot set signal handler: "
 	);
 
@@ -173,7 +186,12 @@ pub async fn sync(logger: &mut log::Logger, docker: Docker, cfg: config::AppConf
 
 			zerr!(
 				docker
-					.kill_container(&cfg.name, Some(KillContainerOptions { signal: "SIGKILL" }))
+					.kill_container(
+						&cfg.name,
+						Some(KillContainerOptions {
+							signal: "SIGKILL"
+						})
+					)
 					.await,
 				"Cannot kill builder: "
 			);
