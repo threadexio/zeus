@@ -43,7 +43,14 @@ _arguments "${_arguments_options[@]}" \
 '--upgrade[Upgrade packages]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
-'*::packages -- Package names:' \
+'*::packages -- Packages to sync:' \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" \
+'-h[Print help information]' \
+'--help[Print help information]' \
+'*::packages -- Packages to remove:' \
 && ret=0
 ;;
 (build)
@@ -88,6 +95,7 @@ esac
 _zeus_commands() {
     local commands; commands=(
 'sync:Sync packages' \
+'remove:Remove packages' \
 'build:Build/Update builder image' \
 'query:Query the AUR' \
 'misc:Generate shell completions & others' \
@@ -114,6 +122,11 @@ _zeus__misc_commands() {
 _zeus__query_commands() {
     local commands; commands=()
     _describe -t commands 'zeus query commands' commands "$@"
+}
+(( $+functions[_zeus__remove_commands] )) ||
+_zeus__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus remove commands' commands "$@"
 }
 (( $+functions[_zeus__sync_commands] )) ||
 _zeus__sync_commands() {

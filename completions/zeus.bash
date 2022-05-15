@@ -24,6 +24,9 @@ _zeus() {
             query)
                 cmd+="__query"
                 ;;
+            remove)
+                cmd+="__remove"
+                ;;
             sync)
                 cmd+="__sync"
                 ;;
@@ -34,7 +37,7 @@ _zeus() {
 
     case "${cmd}" in
         zeus)
-            opts="-h -V -v --help --version --color --verbose --force --builddir --aur sync build query misc help"
+            opts="-h -V -v --help --version --color --verbose --force --builddir --aur sync remove build query misc help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -136,6 +139,20 @@ _zeus() {
                     COMPREPLY=($(compgen -W "" -- "${cur}"))
                     return 0
                     ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        zeus__remove)
+            opts="-h --help <packages>..."
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
                 *)
                     COMPREPLY=()
                     ;;

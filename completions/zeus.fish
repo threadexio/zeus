@@ -6,6 +6,7 @@ complete -c zeus -n "__fish_use_subcommand" -s V -l version -d 'Print version in
 complete -c zeus -n "__fish_use_subcommand" -s v -l verbose -d 'Be verbose'
 complete -c zeus -n "__fish_use_subcommand" -l force -d 'Ignore all warnings'
 complete -c zeus -n "__fish_use_subcommand" -f -a "sync" -d 'Sync packages'
+complete -c zeus -n "__fish_use_subcommand" -f -a "remove" -d 'Remove packages'
 complete -c zeus -n "__fish_use_subcommand" -f -a "build" -d 'Build/Update builder image'
 complete -c zeus -n "__fish_use_subcommand" -f -a "query" -d 'Query the AUR'
 complete -c zeus -n "__fish_use_subcommand" -f -a "misc" -d 'Generate shell completions & others'
@@ -15,6 +16,7 @@ complete -c zeus -n "__fish_seen_subcommand_from sync" -l image -d 'Builder imag
 complete -c zeus -n "__fish_seen_subcommand_from sync" -l name -d 'Builder container name' -r
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s u -l upgrade -d 'Upgrade packages'
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s h -l help -d 'Print help information'
+complete -c zeus -n "__fish_seen_subcommand_from remove" -s h -l help -d 'Print help information'
 complete -c zeus -n "__fish_seen_subcommand_from build" -l archive -d 'Builder image archive' -r
 complete -c zeus -n "__fish_seen_subcommand_from build" -l dockerfile -d 'Builder image dockerfile in archive' -r
 complete -c zeus -n "__fish_seen_subcommand_from build" -l image -d 'Builder image name' -r
