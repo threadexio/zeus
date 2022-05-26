@@ -50,6 +50,10 @@ async fn main() {
 		..Default::default()
 	};
 
+	if cfg.force {
+		cfg.buildargs.push("--force".to_owned());
+	}
+
 	remove_var("DOCKER_HOST"); // just to make sure
 	let docker = match Docker::connect_with_local_defaults() {
 		Ok(v) => v,
@@ -82,26 +86,23 @@ async fn main() {
 	let res = match args.subcommand() {
 		Some(("sync", sync_args)) => {
 			cfg.upgrade = sync_args.is_present("upgrade");
-			cfg.buildargs = sync_args
-				.value_of("buildargs")
-				.unwrap_or("")
-				.split_ascii_whitespace()
-				.map(|x| x.to_owned())
-				.collect();
+
+			if let Some(value) = sync_args.value_of("buildargs") {
+				cfg.buildargs = value
+					.split_ascii_whitespace()
+					.map(|x| x.to_owned())
+					.collect();
+			}
 
 			cfg.image =
 				sync_args.value_of("image").unwrap().to_owned();
 			cfg.name = sync_args.value_of("name").unwrap().to_owned();
 
-			// Yeah, i will be able to understand this code 6 months later
-			//
-			//								- The clown who wrote this
-			cfg.packages = sync_args
-				.values_of("packages")
-				.map(|x| {
-					x.map(|y| y.to_owned()).collect::<Vec<String>>()
-				})
-				.unwrap_or_default();
+			if let Some(values) = sync_args.values_of("packages") {
+				for pkg in values {
+					cfg.packages.push(pkg.to_owned());
+				}
+			}
 
 			// We need to mimic `pacman -Su` which upgrades everything
 			// this is what i like to call nested hell
@@ -168,13 +169,12 @@ async fn main() {
 
 			ops::sync(&mut logger, docker, cfg).await
 		},
-		Some(("remove", misc_args)) => {
-			cfg.packages = misc_args
-				.values_of("packages")
-				.map(|x| {
-					x.map(|y| y.to_owned()).collect::<Vec<String>>()
-				})
-				.unwrap_or_default();
+		Some(("remove", remove_args)) => {
+			if let Some(values) = remove_args.values_of("packages") {
+				for pkg in values {
+					cfg.packages.push(pkg.to_owned());
+				}
+			}
 
 			if cfg.packages.is_empty() {
 				logger.v(
@@ -234,12 +234,11 @@ async fn main() {
 			ops::build(&mut logger, docker, cfg).await
 		},
 		Some(("query", query_args)) => {
-			cfg.keywords = query_args
-				.values_of("keywords")
-				.map(|x| {
-					x.map(|y| y.to_owned()).collect::<Vec<String>>()
-				})
-				.unwrap_or_default();
+			if let Some(values) = query_args.values_of("keywords") {
+				for keyword in values {
+					cfg.packages.push(keyword.to_owned());
+				}
+			}
 
 			ops::query(&mut logger, cfg, query_args).await
 		},
