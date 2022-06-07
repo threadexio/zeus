@@ -64,7 +64,7 @@ fn print_pretty_package(package: &aur::Package) {
 
 pub async fn query(
 	logger: &mut log::Logger,
-	cfg: config::AppConfig,
+	cfg: &mut config::AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
 	if cfg.keywords.is_empty() {

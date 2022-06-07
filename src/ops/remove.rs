@@ -2,12 +2,14 @@ use crate::config;
 use crate::error::{zerr, Result, ZeusError};
 use crate::log::{self, Level};
 
+use clap::ArgMatches;
 use std::fs;
 use std::path::Path;
 
-pub fn remove(
+pub async fn remove(
 	logger: &mut log::Logger,
-	cfg: config::AppConfig,
+	cfg: &mut config::AppConfig,
+	args: &ArgMatches,
 ) -> Result<()> {
 	logger.v(
 		Level::Info,

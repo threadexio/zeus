@@ -6,6 +6,10 @@ use const_format::formatcp;
 
 use default_env::default_env;
 
+use bollard::Docker;
+
+use std::collections::HashSet;
+
 #[allow(dead_code)]
 pub const PROGRAM_NAME: &'static str = "zeus";
 
@@ -23,6 +27,10 @@ pub const PROGRAM_VERSION: &'static str =
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AppConfig {
+	// Docker instance
+	#[serde(skip)]
+	pub docker: Option<Docker>,
+
 	// Global
 	pub verbose: bool,
 	pub force: bool,
@@ -42,7 +50,7 @@ pub struct AppConfig {
 	pub name: String,
 
 	// Sync + Remove
-	pub packages: Vec<String>,
+	pub packages: HashSet<String>,
 
 	// Query
 	pub keywords: Vec<String>,

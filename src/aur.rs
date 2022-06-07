@@ -54,7 +54,7 @@ pub struct Aur {
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct Package {
 	pub ID: Option<Id>,
 	pub Name: Option<String>,

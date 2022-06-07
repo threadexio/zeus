@@ -8,17 +8,17 @@ mod util;
 
 use aur::Aur;
 use log::Level;
-use util::Lockfile;
 
 use bollard::Docker;
 
 use std::env::remove_var;
-use std::fs::read_dir;
 use std::path::Path;
 use std::process::exit;
 
 #[tokio::main]
 async fn main() {
+	remove_var("DOCKER_HOST"); // just to make sure
+
 	let args = cli::build().get_matches();
 
 	let mut logger = log::Logger::new(
@@ -31,9 +31,6 @@ async fn main() {
 	);
 
 	logger.verbose = args.is_present("verbose");
-
-	#[cfg(debug_assertions)]
-	logger.v(Level::Debug, "Connecting to docker...");
 
 	let mut cfg = config::AppConfig {
 		verbose: args.is_present("verbose"),
@@ -54,36 +51,7 @@ async fn main() {
 		cfg.buildargs.push("--force".to_owned());
 	}
 
-	remove_var("DOCKER_HOST"); // just to make sure
-	let docker = match Docker::connect_with_local_defaults() {
-		Ok(v) => v,
-		Err(e) => {
-			logger.v(
-				Level::Error,
-				format!("Unable to connect to docker daemon: {}", e),
-			);
-			exit(1);
-		},
-	};
-
-	#[cfg(debug_assertions)]
-	logger.v(Level::Debug, "Creating lockfile...");
-
-	let lockfile = match Lockfile::new(Path::new(&format!(
-		"{}/zeus.lock",
-		&cfg.builddir
-	))) {
-		Ok(v) => v,
-		Err(e) => {
-			logger.v(
-				Level::Error,
-				format!("Cannot create lock: {}", e),
-			);
-			exit(1);
-		},
-	};
-
-	let res = match args.subcommand() {
+	/* let res = match args.subcommand() {
 		Some(("sync", sync_args)) => {
 			cfg.upgrade = sync_args.is_present("upgrade");
 
@@ -252,13 +220,22 @@ async fn main() {
 
 			exit(-1);
 		},
-	};
+	}; */
 
-	// we need to await in the respective call because otherwise we might release the lock before finishing, remember this code runs asynchronously
+	let (command_name, command_args) = args.subcommand().unwrap();
+
+	let res = ops::run_operation(
+		command_name,
+		&mut logger,
+		&mut cfg,
+		command_args,
+	)
+	.await;
+
 	match res {
 		Ok(_) => exit(0),
 		Err(e) => {
-			logger.v(Level::Error, &e.data);
+			logger.v(Level::Error, e);
 			exit(1);
 		},
 	}

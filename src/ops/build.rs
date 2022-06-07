@@ -4,24 +4,26 @@ use crate::log::{self, Level};
 
 use bollard::container::RemoveContainerOptions;
 use bollard::image::BuildImageOptions;
-use bollard::Docker;
+
+use clap::ArgMatches;
 
 use futures::StreamExt;
 
-use std::fs::File;
+use std::collections::HashSet;
+use std::fs;
 use std::io::prelude::*;
 
 pub async fn build(
 	logger: &mut log::Logger,
-	docker: Docker,
-	cfg: config::AppConfig,
+	cfg: &mut config::AppConfig,
+	args: &ArgMatches,
 ) -> Result<()> {
 	logger.v(
 		Level::Verbose,
 		format!("Builder image archive: {}", &cfg.archive),
 	);
 
-	let mut file = match File::open(&cfg.archive) {
+	let mut file = match fs::File::open(&cfg.archive) {
 		Ok(v) => v,
 		Err(e) => {
 			return Err(ZeusError::new(format!(

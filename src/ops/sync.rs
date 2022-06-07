@@ -3,8 +3,6 @@ use crate::error::{zerr, Result, ZeusError};
 use crate::log::{self, Level};
 use crate::util::LocalListener;
 
-use bollard::Docker;
-
 use bollard::container::{
 	AttachContainerOptions, Config, CreateContainerOptions,
 	KillContainerOptions, ListContainersOptions,
@@ -15,19 +13,104 @@ use bollard::models::{
 	MountBindOptionsPropagationEnum, MountTypeEnum,
 };
 
+use clap::ArgMatches;
 use futures::StreamExt;
+use std::collections::HashMap;
+use std::process::exit;
 
 use ctrlc;
 
+use std::fs;
 use std::io::prelude::*;
-use std::path::Path;
+use std::path;
 use std::sync::mpsc::channel;
 
 pub async fn sync(
 	logger: &mut log::Logger,
-	docker: Docker,
-	cfg: config::AppConfig,
+	cfg: &mut config::AppConfig,
+	args: &ArgMatches,
 ) -> Result<()> {
+	cfg.upgrade = args.is_present("upgrade");
+
+	cfg.buildargs = args
+		.value_of("buildargs")
+		.unwrap_or_default()
+		.split_ascii_whitespace()
+		.map(|x| x.to_owned())
+		.collect();
+
+	cfg.image = args.value_of("image").unwrap().to_owned();
+	cfg.name = args.value_of("name").unwrap().to_owned();
+
+	if cfg.packages.is_empty() && cfg.upgrade {
+		for pkg in args.values_of("packages").unwrap_or_default() {
+			cfg.packages.insert(pkg.to_owned());
+		}
+
+		let dir = zerr!(
+			fs::read_dir(&cfg.builddir),
+			"Cannot list build directory: "
+		);
+
+		let mut available_packages: HashMap<usize, String> =
+			HashMap::new();
+		for (i, p) in dir
+			.filter_map(|x| x.ok())
+			.filter(|x| x.path().is_dir())
+			.map(|x| x.file_name())
+			.enumerate()
+		{
+			if let Some(v) = p.to_str() {
+				available_packages.insert(i, v.to_owned());
+			}
+		}
+
+		// TODO: Maybe sort these numerically?
+		logger.v(
+			Level::Info,
+			format!(
+				"Choose which packages to upgrade:\n{}\n",
+				available_packages
+					.iter()
+					.map(|(i, p)| format!("{} {}", i, p))
+					.collect::<Vec<String>>()
+					.join("\n")
+			),
+		);
+
+		// TODO: Some kind of prompt
+		let mut input: String = String::new();
+		zerr!(
+			std::io::stdin().read_line(&mut input),
+			"Cannot read input: "
+		);
+
+		for i in input.trim().split_ascii_whitespace() {
+			match i.parse::<usize>() {
+				Ok(v) => {
+					if available_packages.contains_key(&v) {
+						cfg.packages.insert(
+							available_packages
+								.get(&v)
+								.unwrap()
+								.to_owned(),
+						);
+					}
+				},
+				_ => {},
+			}
+		}
+	} else {
+		return Err(ZeusError::new(
+			"No packages specified. See --help!",
+		));
+	}
+
+	#[cfg(debug_assertions)]
+	logger.v(Level::Debug, format!("{:?}", &cfg));
+
+	/*
+
 	let socket_path = format!("{}/zeus.sock", &cfg.builddir);
 
 	logger.v(
@@ -198,7 +281,7 @@ pub async fn sync(
 		}
 
 		print!("{}", zerr!(res, "Error displaying builder logs: "));
-	}
+	} */
 
 	Ok(())
 }
