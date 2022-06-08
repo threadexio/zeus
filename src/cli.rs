@@ -186,10 +186,10 @@ pub fn build() -> Command<'static> {
 				.default_value("auto"),
 		)
 		.arg(
-			Arg::new("verbose")
-				.short('v')
-				.long("verbose")
-				.help("Be verbose")
+			Arg::new("debug")
+				.short('d')
+				.long("debug")
+				.help("Show debug logs")
 				.takes_value(false),
 		)
 		.arg(

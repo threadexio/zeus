@@ -18,10 +18,10 @@ fn init_docker(cfg: &mut AppConfig) -> Result<()> {
 	cfg.docker = match Docker::connect_with_local_defaults() {
 		Ok(v) => Some(v),
 		Err(e) => {
-			return Err(ZeusError::new(format!(
-				"Cannot connect to the docker daemon: {}",
-				e
-			)))
+			return Err(ZeusError::new(
+				"docker",
+				format!("Cannot connect to the docker daemon: {}", e),
+			))
 		},
 	};
 
@@ -30,17 +30,14 @@ fn init_docker(cfg: &mut AppConfig) -> Result<()> {
 
 pub async fn run_operation(
 	name: &str,
-	logger: &mut Logger,
+	logger: &Logger,
 	cfg: &mut AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
-	let lockfile = zerr!(
-		Lockfile::new(path::Path::new(&format!(
-			"{}/zeus.lock",
-			&cfg.builddir
-		))),
-		"Cannot create lockfile: "
-	);
+	let lockfile = Lockfile::new(path::Path::new(&format!(
+		"{}/zeus.lock",
+		&cfg.builddir
+	)))?;
 
 	match name {
 		//		"build" => {
@@ -60,6 +57,6 @@ pub async fn run_operation(
 		},
 		//		"misc" => misc::misc(logger, cfg, args).await,
 		//		"query" => query::query(logger, cfg, args).await,
-		_ => Err(ZeusError::new("No such operation")),
+		_ => Err(ZeusError::new("zeus", "No such operation")),
 	}
 }

@@ -32,7 +32,7 @@ pub struct AppConfig {
 	pub docker: Option<Docker>,
 
 	// Global
-	pub verbose: bool,
+	pub debug: bool,
 	pub force: bool,
 	pub aur: Aur,
 	pub builddir: String,

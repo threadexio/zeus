@@ -1,6 +1,6 @@
 use crate::config;
-use crate::error::{zerr, Result, ZeusError};
-use crate::log::{self, Level};
+use crate::error::{zerr, AsZerr, Result, ZeusError};
+use crate::log::Logger;
 use crate::util::LocalListener;
 
 use bollard::container::{
@@ -26,7 +26,7 @@ use std::path;
 use std::sync::mpsc::channel;
 
 pub async fn sync(
-	logger: &mut log::Logger,
+	logger: &Logger,
 	cfg: &mut config::AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
@@ -55,7 +55,8 @@ pub async fn sync(
 
 		let dir = zerr!(
 			fs::read_dir(&cfg.builddir),
-			"Cannot list build directory: "
+			"fs",
+			&format!("Cannot list {}", &cfg.builddir)
 		);
 
 		let mut available_packages: HashMap<usize, String> =
@@ -72,23 +73,21 @@ pub async fn sync(
 		}
 
 		// TODO: Maybe sort these numerically?
-		logger.v(
-			Level::Info,
-			format!(
-				"Choose which packages to upgrade:\n{}\n",
-				available_packages
-					.iter()
-					.map(|(i, p)| format!("{} {}", i, p))
-					.collect::<Vec<String>>()
-					.join("\n")
-			),
+		println!(
+			"Choose which packages to upgrade:\n{}\n",
+			available_packages
+				.iter()
+				.map(|(i, p)| format!("{} {}", i, p))
+				.collect::<Vec<String>>()
+				.join("\n")
 		);
 
 		// TODO: Some kind of prompt
 		let mut input: String = String::new();
 		zerr!(
 			std::io::stdin().read_line(&mut input),
-			"Cannot read input: "
+			"input",
+			"Cannot read input"
 		);
 
 		for i in input.trim().split_ascii_whitespace() {
@@ -108,12 +107,13 @@ pub async fn sync(
 		}
 	} else if cfg.packages.is_empty() {
 		return Err(ZeusError::new(
+			"zeus",
 			"No packages specified. See --help!",
 		));
 	}
 
 	#[cfg(debug_assertions)]
-	logger.v(Level::Debug, format!("{:?}", &cfg));
+	logger.d("", format!("{:?}", &cfg));
 
 	/*
 

@@ -3,8 +3,7 @@ mod config;
 mod error;
 mod log;
 
-use error::{zerr, Result, ZeusError};
-use log::Level;
+use error::{zerr, AsZerr, Result, ZeusError};
 
 use std::env;
 use std::io::Read;
@@ -19,7 +18,8 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 	for package in &cfg.packages {
 		zerr!(
 			env::set_current_dir("/build"),
-			"Cannot change directory: "
+			"fs",
+			&format!("Cannot change cwd to /build",)
 		);
 
 		let pkg_dir = path::Path::new(&package);
@@ -37,7 +37,11 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 
 		zerr!(
 			env::set_current_dir(pkg_dir),
-			"Cannot change directory: "
+			"fs",
+			&format!(
+				"Cannot change directory to {}",
+				pkg_dir.display()
+			)
 		);
 
 		if cfg.upgrade {
@@ -47,14 +51,18 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 					.arg("origin")
 					.arg("master")
 					.status(),
-				"Cannot start git: "
+				"cmd",
+				"Cannot start git"
 			);
 
 			if !status.success() {
-				return Err(ZeusError::new(format!(
-					"git exited with: {}",
-					status.code().unwrap_or(-99999)
-				)));
+				return Err(ZeusError::new(
+					"cmd",
+					format!(
+						"git exited with: {}",
+						status.code().unwrap_or(-99999)
+					),
+				));
 			}
 		}
 
@@ -66,7 +74,8 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 				.arg("--noprogressbar")
 				.args(&cfg.buildargs)
 				.status(),
-			"Cannot start makepkg: "
+			"cmd",
+			"Cannot start makepkg"
 		);
 
 		if !status.success() {
@@ -80,11 +89,13 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 }
 
 fn main() {
-	let mut logger =
-		log::Logger::new(log::Stream::Stdout, log::ColorChoice::Auto);
+	let mut logger = log::Logger {
+		out: log::Stream::Stdout,
+		..Default::default()
+	};
 
-	logger.v(
-		Level::Info,
+	logger.i(
+		"builder",
 		format!("Version: {}", config::PROGRAM_VERSION),
 	);
 
@@ -92,8 +103,8 @@ fn main() {
 	let mut stream = match UnixStream::connect(&socket_path) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.v(
-				Level::Error,
+			logger.e(
+				"unix",
 				format!("Cannot connect to socket: {}", e),
 			);
 			exit(1);
@@ -107,8 +118,8 @@ fn main() {
 			data_len = v;
 		},
 		Err(e) => {
-			logger.v(
-				Level::Error,
+			logger.e(
+				"unix",
 				format!("Cannot read data from socket: {}", e),
 			);
 			exit(1);
@@ -120,8 +131,8 @@ fn main() {
 		match serde_json::from_slice(&data[..data_len]) {
 			Ok(v) => v,
 			Err(e) => {
-				logger.v(
-					Level::Error,
+				logger.e(
+					"zeus",
 					format!("Cannot deserialize config: {}", e),
 				);
 				exit(1);
@@ -131,20 +142,16 @@ fn main() {
 	let pkgs = match build_packages(&cfg) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.v(Level::Error, e.data);
+			logger.e(e.caller, e.message);
 			exit(1);
 		},
 	};
 
 	if cfg.upgrade {
-		logger.v(Level::Info, "Upgraded packages:");
+		logger.i("builder", "Upgraded packages:");
 	} else {
-		logger.v(Level::Info, "Built packages:");
+		logger.i("builder", "Built packages:");
 	}
 
-	if pkgs.len() != 0 {
-		logger.v(Level::Info, pkgs.join("\n"));
-	} else {
-		logger.v(Level::Info, "None");
-	}
+	println!("{}", pkgs.join("\n"));
 }

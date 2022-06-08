@@ -7,7 +7,6 @@ mod ops;
 mod util;
 
 use aur::Aur;
-use log::Level;
 
 use bollard::Docker;
 
@@ -21,19 +20,24 @@ async fn main() {
 
 	let args = cli::build().get_matches();
 
-	let mut logger = log::Logger::new(
-		log::Stream::Stderr,
-		match args.value_of("color") {
-			Some("always") => log::ColorChoice::Always,
-			Some("never") => log::ColorChoice::Never,
-			_ => log::ColorChoice::Auto,
-		},
-	);
+	let mut logger = log::Logger {
+		debug: args.is_present("debug"),
+		out: log::Stream::Stderr,
+		..Default::default()
+	};
 
-	logger.verbose = args.is_present("verbose");
+	match args.value_of("color") {
+		Some("always") => {
+			log::control::set_override(true);
+		},
+		Some("never") => {
+			log::control::set_override(false);
+		},
+		_ => {},
+	}
 
 	let mut cfg = config::AppConfig {
-		verbose: args.is_present("verbose"),
+		debug: logger.debug,
 		force: args.is_present("force"),
 
 		// this should never fail, we set the default value in cli.rs
@@ -235,7 +239,7 @@ async fn main() {
 	match res {
 		Ok(_) => exit(0),
 		Err(e) => {
-			logger.v(Level::Error, e);
+			logger.e(e.caller, e.message);
 			exit(1);
 		},
 	}

@@ -1,56 +1,62 @@
 use std::error;
 use std::fmt;
-use std::io;
 
 #[allow(unused_macros)]
 macro_rules! zerr {
-	( $x:expr, $m:expr ) => {
-		match $x {
-			Ok(v) => v,
-			Err(e) => {
-				return Err(ZeusError::new(
-					$m.to_string() + &e.to_string(),
-				));
-			},
-		}
+	( $x:expr, $caller:expr, $message:expr ) => {
+		$x.map_err(|x| x.as_zerr($caller, $message))?
 	};
 }
 
 #[allow(unused_imports)]
 pub(crate) use zerr;
 
-pub type Result<T> = std::result::Result<T, ZeusError>;
-
 pub struct ZeusError {
-	pub data: String,
+	pub caller: String,
+	pub message: String,
 }
+
+pub type Result<T> = std::result::Result<T, ZeusError>;
 
 #[allow(dead_code)]
 impl ZeusError {
-	pub fn new<T>(data: T) -> Self
+	pub fn new<C, D>(caller: C, message: D) -> Self
 	where
-		T: fmt::Display,
+		C: fmt::Display,
+		D: fmt::Display,
 	{
-		Self { data: data.to_string() }
+		Self {
+			caller: caller.to_string(),
+			message: message.to_string(),
+		}
 	}
 }
 
 impl fmt::Display for ZeusError {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.data)
+		write!(f, "{}", self.message)
 	}
 }
 
 impl fmt::Debug for ZeusError {
 	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		write!(f, "{}", self.data)
+		write!(f, "{}", self.message)
 	}
 }
 
 impl error::Error for ZeusError {}
 
-impl From<io::Error> for ZeusError {
-	fn from(e: io::Error) -> Self {
-		Self::new(e.to_string())
+pub trait AsZerr: error::Error {
+	fn as_zerr(
+		&self,
+		caller: &str,
+		extra_message: &str,
+	) -> ZeusError {
+		ZeusError {
+			caller: caller.to_owned(),
+			message: format!("{}: {}", extra_message, &self),
+		}
 	}
 }
+
+impl AsZerr for std::io::Error {}
