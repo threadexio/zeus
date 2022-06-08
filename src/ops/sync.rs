@@ -42,6 +42,12 @@ pub async fn sync(
 	cfg.image = args.value_of("image").unwrap().to_owned();
 	cfg.name = args.value_of("name").unwrap().to_owned();
 
+	cfg.packages = args
+		.values_of("packages")
+		.unwrap_or_default()
+		.map(|x| x.to_owned())
+		.collect();
+
 	if cfg.packages.is_empty() && cfg.upgrade {
 		for pkg in args.values_of("packages").unwrap_or_default() {
 			cfg.packages.insert(pkg.to_owned());
@@ -100,7 +106,7 @@ pub async fn sync(
 				_ => {},
 			}
 		}
-	} else {
+	} else if cfg.packages.is_empty() {
 		return Err(ZeusError::new(
 			"No packages specified. See --help!",
 		));
