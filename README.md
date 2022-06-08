@@ -1,5 +1,5 @@
 [repo]: https://github.com/threadexio/zeus
-[commits]: https://github.com/threadexio/zeus/commits
+[commits]: https://github.com/threadexio/zeus/commits/dev
 [releases]: https://github.com/threadexio/zeus/releases
 [latest-release]: https://github.com/threadexio/zeus/releases/latest
 [issues]: https://github.com/threadexio/zeus/issues
@@ -15,7 +15,7 @@
 [pkg-bin-aur]: https://aur.archlinux.org/packages/zeus-bin
 [build-badge]: https://img.shields.io/github/workflow/status/threadexio/zeus/Build?style=for-the-badge
 [release-badge]: https://img.shields.io/github/v/release/threadexio/zeus?style=for-the-badge&display_name=release
-[release-commit-badge]: https://img.shields.io/github/commits-since/threadexio/zeus/latest?style=for-the-badge
+[release-commit-badge]: https://img.shields.io/github/commits-since/threadexio/zeus/latest/dev?logo=github&style=for-the-badge
 [license-badge]: https://img.shields.io/github/license/threadexio/zeus?style=for-the-badge
 [issues-badge]: https://img.shields.io/github/issues-raw/threadexio/zeus?style=for-the-badge
 [pkg-aur-badge]: https://img.shields.io/aur/version/zeus?style=for-the-badge&label=AUR
