@@ -1,6 +1,7 @@
 mod aur;
 mod cli;
 mod config;
+mod database;
 mod error;
 mod log;
 mod ops;
@@ -9,6 +10,8 @@ mod util;
 use aur::Aur;
 
 use bollard::Docker;
+
+use std::io::Read;
 
 use std::env::remove_var;
 use std::path::Path;
