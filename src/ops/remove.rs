@@ -1,10 +1,7 @@
-use crate::config;
-use crate::error::{Result, ZeusError, ZeusError};
-use crate::log::{self, Level};
-
-use clap::ArgMatches;
 use std::fs;
 use std::path::Path;
+
+use crate::ops::prelude::*;
 
 pub async fn remove(
 	logger: &mut log::Logger,

@@ -1,6 +1,5 @@
-use crate::config;
-use crate::error::{zerr, Result, ZeusError};
-use crate::log::Logger;
+use std::fs;
+use std::io::prelude::*;
 
 use bollard::container::RemoveContainerOptions;
 use bollard::image::BuildImageOptions;
@@ -10,8 +9,9 @@ use clap::ArgMatches;
 
 use futures::StreamExt;
 
-use std::fs;
-use std::io::prelude::*;
+use crate::config;
+use crate::error::{zerr, Result, ZeusError};
+use crate::log::Logger;
 
 pub async fn build(
 	logger: &Logger,

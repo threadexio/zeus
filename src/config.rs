@@ -6,8 +6,6 @@ use const_format::formatcp;
 
 use default_env::default_env;
 
-use bollard::Docker;
-
 use std::collections::HashSet;
 
 #[allow(dead_code)]

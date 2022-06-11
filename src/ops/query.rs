@@ -1,11 +1,8 @@
-use crate::aur;
-use crate::config;
-use crate::error::{Result, ZeusError, ZeusError};
-use crate::log::{self, Level};
-
-use clap::ArgMatches;
-
 use std::io::stdout;
+
+use crate::aur;
+
+use crate::ops::prelude::*;
 
 macro_rules! print_if_some {
 	($a:expr,$b:expr) => {{

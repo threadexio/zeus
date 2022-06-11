@@ -1,11 +1,8 @@
-use crate::cli;
-use crate::config;
-use crate::error::Result;
-use crate::log;
-
-use clap::ArgMatches;
-
 use std::io::stdout;
+
+use crate::cli;
+
+use crate::ops::prelude::*;
 
 pub async fn misc(
 	logger: &mut log::Logger,

@@ -1,7 +1,7 @@
-use crate::config;
-use crate::error::{zerr, Result, ZeusError};
-use crate::log::Logger;
-use crate::util::LocalListener;
+use std::fs;
+use std::io::{self, Write};
+use std::path::Path;
+use std::sync::mpsc::channel;
 
 use bollard::container::{
 	AttachContainerOptions, AttachContainerResults, Config,
@@ -13,18 +13,14 @@ use bollard::models::{
 	MountBindOptionsPropagationEnum, MountTypeEnum,
 };
 
-use bollard::Docker;
-
-use clap::ArgMatches;
 use futures::StreamExt;
 use std::collections::HashMap;
 
 use ctrlc;
 
-use std::fs;
-use std::io::{self, Write};
-use std::path::Path;
-use std::sync::mpsc::channel;
+use crate::util::LocalListener;
+
+use crate::ops::prelude::*;
 
 pub async fn sync(
 	logger: &Logger,

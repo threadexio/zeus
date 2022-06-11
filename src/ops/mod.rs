@@ -1,18 +1,28 @@
-mod build;
-//mod misc;
-//mod query;
-//mod remove;
-mod sync;
+use std::path;
+
+use bollard::Docker;
+use clap::ArgMatches;
 
 use crate::config::AppConfig;
 use crate::error::{Result, ZeusError};
 use crate::log::Logger;
 use crate::util::Lockfile;
 
-use bollard::Docker;
-use clap::ArgMatches;
+mod build;
+//mod misc;
+//mod query;
+//mod remove;
+mod sync;
 
-use std::path;
+mod prelude {
+	pub(crate) use bollard::Docker;
+	pub(crate) use clap::ArgMatches;
+
+	pub(crate) use crate::config;
+	pub(crate) use crate::error::{zerr, Result, ZeusError};
+	pub(crate) use crate::log::Logger;
+	pub(crate) use crate::util::LocalListener;
+}
 
 fn init_docker() -> Result<Docker> {
 	match Docker::connect_with_local_defaults() {
