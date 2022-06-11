@@ -1,54 +1,47 @@
 use crate::config;
 use crate::error::{zerr, Result, ZeusError};
-use crate::log::{self, Level};
+use crate::log::Logger;
 
 use bollard::container::RemoveContainerOptions;
 use bollard::image::BuildImageOptions;
+use bollard::Docker;
 
 use clap::ArgMatches;
 
 use futures::StreamExt;
 
-use std::collections::HashSet;
 use std::fs;
 use std::io::prelude::*;
 
 pub async fn build(
-	logger: &mut log::Logger,
+	logger: &Logger,
+	docker: Docker,
 	cfg: &mut config::AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
-	logger.v(
-		Level::Verbose,
-		format!("Builder image archive: {}", &cfg.archive),
+	cfg.archive = args.value_of("archive").unwrap().to_owned();
+	cfg.dockerfile = args.value_of("dockerfile").unwrap().to_owned();
+	cfg.image = args.value_of("image").unwrap().to_owned();
+	cfg.name = args.value_of("name").unwrap().to_owned();
+
+	let mut file = zerr!(
+		fs::File::open(&cfg.archive),
+		"system",
+		format!("Cannot open image {}", &cfg.archive)
 	);
 
-	let mut file = match fs::File::open(&cfg.archive) {
-		Ok(v) => v,
-		Err(e) => {
-			return Err(ZeusError::new(format!(
-				"Cannot open image archive: {}",
-				e
-			)));
-		},
-	};
-
 	let mut contents: Vec<u8> = vec![];
-	match file.read_to_end(&mut contents) {
-		Ok(_) => {},
-		Err(e) => {
-			return Err(ZeusError::new(format!(
-				"Cannot read image archive: {}",
-				e
-			)));
-		},
-	}
+	zerr!(
+		file.read_to_end(&mut contents),
+		"system",
+		format!("Cannot read image {}", &cfg.archive)
+	);
 
-	logger.v(Level::Info, "Starting builder...");
+	logger.i("docker", "Starting builder...");
 
 	let opts = BuildImageOptions {
-		dockerfile: cfg.dockerfile,
-		t: cfg.image,
+		dockerfile: cfg.dockerfile.as_str(),
+		t: cfg.image.as_str(),
 		nocache: cfg.force,
 		pull: true,
 		rm: true,
@@ -58,25 +51,25 @@ pub async fn build(
 	let mut stream =
 		docker.build_image(opts, None, Some(contents.into()));
 	while let Some(r) = stream.next().await {
-		let build_info = zerr!(r, "Error during build: ");
+		let build_info = zerr!(r, "docker", "Error during build");
 
 		if let Some(e) = build_info.error {
-			return Err(ZeusError::new(format!(
-				"Error during build: {}",
-				e
-			)));
+			return Err(ZeusError::new(
+				"docker".to_owned(),
+				format!("Error during build: {}", e),
+			));
 		}
 
 		if let Some(msg) = build_info.stream {
 			let msg = msg.trim_end();
 
 			if msg != "" {
-				logger.v(Level::Info, msg);
+				println!("{}", msg)
 			}
 		}
 	}
 
-	logger.v(Level::Verbose, "Removing old builder...");
+	logger.i("docker", "Removing old builder...");
 
 	match docker
 		.remove_container(
@@ -91,8 +84,8 @@ pub async fn build(
 	{
 		Ok(_) => {},
 		Err(e) => {
-			logger.v(
-				Level::Warn,
+			logger.w(
+				"docker",
 				format!("Cannot remove old builder: {}", e),
 			);
 		},

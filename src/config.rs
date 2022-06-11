@@ -27,10 +27,6 @@ pub const PROGRAM_VERSION: &'static str =
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AppConfig {
-	// Docker instance
-	#[serde(skip)]
-	pub docker: Option<Docker>,
-
 	// Global
 	pub debug: bool,
 	pub force: bool,

@@ -1,5 +1,5 @@
 use crate::config;
-use crate::error::{zerr, Result, ZeusError};
+use crate::error::{Result, ZeusError, ZeusError};
 use crate::log::{self, Level};
 
 use clap::ArgMatches;
@@ -51,7 +51,7 @@ pub async fn remove(
 			}
 		}
 
-		zerr!(
+		ZeusError!(
 			fs::remove_dir_all(pkg_dir),
 			"Error removing package directory: "
 		);

@@ -3,7 +3,7 @@ mod config;
 mod error;
 mod log;
 
-use error::{zerr, AsZerr, Result, ZeusError};
+use error::{zerr, Result, ZeusError};
 
 use std::env;
 use std::io::Read;
@@ -18,7 +18,7 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 	for package in &cfg.packages {
 		zerr!(
 			env::set_current_dir("/build"),
-			"fs",
+			"fs".to_owned(),
 			&format!("Cannot change cwd to /build",)
 		);
 
@@ -37,7 +37,7 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 
 		zerr!(
 			env::set_current_dir(pkg_dir),
-			"fs",
+			"fs".to_owned(),
 			&format!(
 				"Cannot change directory to {}",
 				pkg_dir.display()
@@ -51,13 +51,13 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 					.arg("origin")
 					.arg("master")
 					.status(),
-				"cmd",
+				"cmd".to_owned(),
 				"Cannot start git"
 			);
 
 			if !status.success() {
 				return Err(ZeusError::new(
-					"cmd",
+					"cmd".to_owned(),
 					format!(
 						"git exited with: {}",
 						status.code().unwrap_or(-99999)
@@ -74,7 +74,7 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 				.arg("--noprogressbar")
 				.args(&cfg.buildargs)
 				.status(),
-			"cmd",
+			"cmd".to_owned(),
 			"Cannot start makepkg"
 		);
 
@@ -89,7 +89,7 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 }
 
 fn main() {
-	let mut logger = log::Logger {
+	let logger = log::Logger {
 		out: log::Stream::Stdout,
 		..Default::default()
 	};

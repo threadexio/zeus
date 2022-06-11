@@ -1,6 +1,6 @@
 use crate::aur;
 use crate::config;
-use crate::error::{zerr, Result, ZeusError};
+use crate::error::{Result, ZeusError, ZeusError};
 use crate::log::{self, Level};
 
 use clap::ArgMatches;
@@ -78,10 +78,10 @@ pub async fn query(
 		false => cfg.aur.search(by, &cfg.keywords).await,
 	};
 
-	let data = zerr!(res, "Error: ");
+	let data = ZeusError!(res, "Error: ");
 
 	match args.value_of("output").unwrap() {
-		"json" => zerr!(
+		"json" => ZeusError!(
 			serde_json::to_writer(stdout(), &data),
 			"Error serializing JSON: "
 		),

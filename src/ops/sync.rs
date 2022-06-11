@@ -1,32 +1,34 @@
 use crate::config;
-use crate::error::{zerr, AsZerr, Result, ZeusError};
+use crate::error::{zerr, Result, ZeusError};
 use crate::log::Logger;
 use crate::util::LocalListener;
 
 use bollard::container::{
-	AttachContainerOptions, Config, CreateContainerOptions,
-	KillContainerOptions, ListContainersOptions,
-	StartContainerOptions,
+	AttachContainerOptions, AttachContainerResults, Config,
+	CreateContainerOptions, KillContainerOptions,
+	ListContainersOptions, StartContainerOptions,
 };
 use bollard::models::{
 	HostConfig, Mount, MountBindOptions,
 	MountBindOptionsPropagationEnum, MountTypeEnum,
 };
 
+use bollard::Docker;
+
 use clap::ArgMatches;
 use futures::StreamExt;
 use std::collections::HashMap;
-use std::process::exit;
 
 use ctrlc;
 
 use std::fs;
-use std::io::prelude::*;
-use std::path;
+use std::io::{self, Write};
+use std::path::Path;
 use std::sync::mpsc::channel;
 
 pub async fn sync(
 	logger: &Logger,
+	docker: Docker,
 	cfg: &mut config::AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
@@ -61,72 +63,71 @@ pub async fn sync(
 
 		let mut available_packages: HashMap<usize, String> =
 			HashMap::new();
+
+		// TODO: Beautify the prompt
+		println!("Choose which packages to upgrade: ");
 		for (i, p) in dir
 			.filter_map(|x| x.ok())
 			.filter(|x| x.path().is_dir())
 			.map(|x| x.file_name())
 			.enumerate()
 		{
-			if let Some(v) = p.to_str() {
-				available_packages.insert(i, v.to_owned());
+			if let Some(pkg) = p.to_str() {
+				available_packages.insert(i, pkg.to_owned());
+				println!("{} {}", i, pkg);
 			}
 		}
 
-		// TODO: Maybe sort these numerically?
-		println!(
-			"Choose which packages to upgrade:\n{}\n",
-			available_packages
-				.iter()
-				.map(|(i, p)| format!("{} {}", i, p))
-				.collect::<Vec<String>>()
-				.join("\n")
-		);
-
-		// TODO: Some kind of prompt
-		let mut input: String = String::new();
+		let mut choices = String::new();
 		zerr!(
-			std::io::stdin().read_line(&mut input),
-			"input",
+			io::stdin().read_line(&mut choices),
+			"console",
 			"Cannot read input"
 		);
 
-		for i in input.trim().split_ascii_whitespace() {
-			match i.parse::<usize>() {
-				Ok(v) => {
-					if available_packages.contains_key(&v) {
-						cfg.packages.insert(
-							available_packages
-								.get(&v)
-								.unwrap()
-								.to_owned(),
-						);
-					}
-				},
-				_ => {},
+		if !choices.trim().is_empty() {
+			for choice in choices.split_ascii_whitespace() {
+				let choice_num: usize = match choice.parse() {
+					Ok(v) => v,
+					Err(_) => continue,
+				};
+
+				if available_packages.contains_key(&choice_num) {
+					cfg.packages.insert(
+						available_packages
+							.get(&choice_num)
+							.unwrap()
+							.to_owned(),
+					);
+				}
 			}
+		} else {
+			for (_, pkg) in available_packages {
+				cfg.packages.insert(pkg);
+			}
+		}
+
+		if cfg.packages.is_empty() {
+			return Err(ZeusError::new(
+				"zeus".to_owned(),
+				"No packages specified. Exiting...".to_owned(),
+			));
 		}
 	} else if cfg.packages.is_empty() {
 		return Err(ZeusError::new(
-			"zeus",
-			"No packages specified. See --help!",
+			"zeus".to_owned(),
+			"No packages specified. See --help!".to_owned(),
 		));
 	}
 
-	#[cfg(debug_assertions)]
 	logger.d("", format!("{:?}", &cfg));
-
-	/*
 
 	let socket_path = format!("{}/zeus.sock", &cfg.builddir);
 
-	logger.v(
-		Level::Verbose,
-		format!("Opening socket for builder: {}", socket_path),
-	);
-
 	let listener = zerr!(
 		LocalListener::new(Path::new(&socket_path), Some(0o666)),
-		"Cannot listen on socket: "
+		"unix",
+		format!("Cannot listen on socket {}", &socket_path)
 	);
 
 	let opts = ListContainersOptions::<String> {
@@ -136,11 +137,10 @@ pub async fn sync(
 
 	let mut should_create = true;
 
-	logger.v(Level::Verbose, "Querying created containers...");
-
 	let container_list = zerr!(
 		docker.list_containers(Some(opts)).await,
-		"Cannot query containers: "
+		"docker",
+		"Cannot query containers"
 	);
 
 	for container in container_list {
@@ -152,11 +152,7 @@ pub async fn sync(
 		}
 	}
 
-	#[cfg(debug_assertions)]
-	logger.v(
-		Level::Debug,
-		format!("should_create = {:?}", should_create),
-	);
+	logger.d("debug", format!("should_create = {:?}", should_create));
 
 	if should_create {
 		let opts = CreateContainerOptions { name: &cfg.name };
@@ -203,48 +199,52 @@ pub async fn sync(
 			..Default::default()
 		};
 
-		logger.v(Level::Verbose, "Creating builder...");
-
 		zerr!(
 			docker.create_container(Some(opts), config).await,
-			"Error creating builder: "
+			"docker",
+			"Error creating builder"
 		);
 	} else {
-		logger.v(
-			Level::Verbose,
-			"Builder already exists! Not creating a new one...",
-		);
+		logger.i("docker", "Builder already exists!");
 	}
-
-	logger.v(Level::Verbose, "Starting builder...");
 
 	let opts =
 		StartContainerOptions::<String> { ..Default::default() };
 
 	zerr!(
 		docker.start_container(&cfg.name, Some(opts)).await,
-		"Error starting builder: "
+		"docker",
+		"Error starting builder"
 	);
 
-	logger.v(Level::Verbose, "Waiting for builder...");
+	logger.i("docker", "Waiting for builder to come online...");
 
 	let mut stream = zerr!(
 		listener.listener.accept(),
-		"Cannot open communication stream with builder: "
+		"unix",
+		"Cannot open communication stream with builder"
 	)
 	.0;
 
+	match stream.set_nonblocking(true) {
+		Ok(_) => {},
+		Err(e) => logger
+			.w("unix", format!("Cannot use non-blocking IO: {}", e)),
+	};
+
+	logger.i("docker", "Attaching to builder...");
+
 	let data = zerr!(
 		serde_json::to_string(&cfg),
-		"Cannot serialize builder data: "
+		"unix",
+		"Cannot send data to builder"
 	);
 
 	zerr!(
-		write!(&mut stream, "{}", data),
-		"Cannot send package information to builder: "
+		stream.write_all(&mut data.as_bytes()),
+		"unix",
+		"Cannot send data to builder"
 	);
-
-	logger.v(Level::Verbose, "Attaching to builder...");
 
 	let opts = AttachContainerOptions::<String> {
 		stdin: Some(true),
@@ -260,18 +260,20 @@ pub async fn sync(
 		ctrlc::set_handler(move || tx
 			.send(())
 			.expect("Cannot send signal")),
-		"Cannot set signal handler: "
+		"system",
+		"Cannot set signal handler"
 	);
 
-	let mut out_stream = zerr!(
+	let AttachContainerResults { output: mut out_stream, .. } = zerr!(
 		docker.attach_container(&cfg.name, Some(opts)).await,
-		"Cannot attach to builder: "
-	)
-	.output;
+		"docker",
+		"Cannot attach to builder"
+	);
+
 	while let Some(res) = out_stream.next().await {
 		// This means the signal handler above triggered
 		if rx.try_recv().is_ok() {
-			logger.v(Level::Info, "Interrupt detected. Exiting...");
+			logger.i("system", "Interrupt detected. Exiting...");
 
 			zerr!(
 				docker
@@ -282,12 +284,16 @@ pub async fn sync(
 						})
 					)
 					.await,
-				"Cannot kill builder: "
+				"docker",
+				"Cannot kill builder"
 			);
 		}
 
-		print!("{}", zerr!(res, "Error displaying builder logs: "));
-	} */
+		print!(
+			"{}",
+			zerr!(res, "docker", "Error displaying builder logs")
+		);
+	}
 
 	Ok(())
 }

@@ -6,6 +6,17 @@ use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
 
+use crate::error::ZeusError;
+
+impl From<io::Error> for ZeusError {
+	fn from(e: io::Error) -> Self {
+		ZeusError {
+			caller: "system".to_owned(),
+			message: e.to_string(),
+		}
+	}
+}
+
 #[derive(Debug)]
 pub struct Lockfile {
 	path: PathBuf,

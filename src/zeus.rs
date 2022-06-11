@@ -1,7 +1,6 @@
 mod aur;
 mod cli;
 mod config;
-mod database;
 mod error;
 mod log;
 mod ops;
@@ -9,12 +8,7 @@ mod util;
 
 use aur::Aur;
 
-use bollard::Docker;
-
-use std::io::Read;
-
 use std::env::remove_var;
-use std::path::Path;
 use std::process::exit;
 
 #[tokio::main]
@@ -55,8 +49,10 @@ async fn main() {
 	};
 
 	if cfg.force {
-		cfg.buildargs.push("--force".to_owned());
+		cfg.buildargs.push("-f".to_owned());
 	}
+
+	logger.d("debug", format!("{:?}", &cfg));
 
 	/* let res = match args.subcommand() {
 		Some(("sync", sync_args)) => {

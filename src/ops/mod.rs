@@ -1,11 +1,11 @@
-//mod build;
+mod build;
 //mod misc;
 //mod query;
 //mod remove;
 mod sync;
 
 use crate::config::AppConfig;
-use crate::error::{zerr, Result, ZeusError};
+use crate::error::{Result, ZeusError};
 use crate::log::Logger;
 use crate::util::Lockfile;
 
@@ -14,18 +14,16 @@ use clap::ArgMatches;
 
 use std::path;
 
-fn init_docker(cfg: &mut AppConfig) -> Result<()> {
-	cfg.docker = match Docker::connect_with_local_defaults() {
-		Ok(v) => Some(v),
+fn init_docker() -> Result<Docker> {
+	match Docker::connect_with_local_defaults() {
+		Ok(v) => return Ok(v),
 		Err(e) => {
 			return Err(ZeusError::new(
-				"docker",
+				"docker".to_owned(),
 				format!("Cannot connect to the docker daemon: {}", e),
 			))
 		},
 	};
-
-	Ok(())
 }
 
 pub async fn run_operation(
@@ -40,11 +38,10 @@ pub async fn run_operation(
 	)))?;
 
 	match name {
-		//		"build" => {
-		//			lockfile.lock()?;
-		//			init_docker(cfg)?;
-		//			build::build(logger, cfg, args).await
-		//		},
+		"build" => {
+			lockfile.lock()?;
+			build::build(logger, init_docker()?, cfg, args).await
+		},
 		//		"remove" => {
 		//			lockfile.lock()?;
 		//			init_docker(cfg)?;
@@ -52,11 +49,13 @@ pub async fn run_operation(
 		//		},
 		"sync" => {
 			lockfile.lock()?;
-			init_docker(cfg)?;
-			sync::sync(logger, cfg, args).await
+			sync::sync(logger, init_docker()?, cfg, args).await
 		},
 		//		"misc" => misc::misc(logger, cfg, args).await,
 		//		"query" => query::query(logger, cfg, args).await,
-		_ => Err(ZeusError::new("zeus", "No such operation")),
+		_ => Err(ZeusError::new(
+			"zeus".to_owned(),
+			"No such operation".to_owned(),
+		)),
 	}
 }
