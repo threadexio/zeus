@@ -30,7 +30,6 @@ impl Display for ZeusError {
 
 impl Error for ZeusError {}
 
-#[macro_use]
 macro_rules! zerr {
 	($x:expr, $caller:expr, $msg:expr) => {
 		match $x {

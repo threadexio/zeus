@@ -52,7 +52,7 @@ async fn main() {
 		cfg.buildargs.push("-f".to_owned());
 	}
 
-	logger.d("debug", format!("{:?}", &cfg));
+	log_debug!(logger, "debug", "{:?}", &cfg);
 
 	/* let res = match args.subcommand() {
 		Some(("sync", sync_args)) => {
@@ -238,7 +238,7 @@ async fn main() {
 	match res {
 		Ok(_) => exit(0),
 		Err(e) => {
-			logger.e(e.caller, e.message);
+			log_error!(logger, e.caller, "{}", e.message);
 			exit(1);
 		},
 	}

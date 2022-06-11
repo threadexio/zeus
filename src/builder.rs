@@ -94,18 +94,22 @@ fn main() {
 		..Default::default()
 	};
 
-	logger.i(
+	log_info!(
+		logger,
 		"builder",
-		format!("Version: {}", config::PROGRAM_VERSION),
+		"Version: {}",
+		config::PROGRAM_VERSION
 	);
 
 	let socket_path = format!("{}.sock", config::PROGRAM_NAME);
 	let mut stream = match UnixStream::connect(&socket_path) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.e(
+			log_error!(
+				logger,
 				"unix",
-				format!("Cannot connect to socket: {}", e),
+				"Cannot connect to socket: {}",
+				e
 			);
 			exit(1);
 		},
@@ -118,9 +122,11 @@ fn main() {
 			data_len = v;
 		},
 		Err(e) => {
-			logger.e(
+			log_error!(
+				logger,
 				"unix",
-				format!("Cannot read data from socket: {}", e),
+				"Cannot read data from socket: {}",
+				e
 			);
 			exit(1);
 		},
@@ -131,9 +137,11 @@ fn main() {
 		match serde_json::from_slice(&data[..data_len]) {
 			Ok(v) => v,
 			Err(e) => {
-				logger.e(
+				log_error!(
+					logger,
 					"zeus",
-					format!("Cannot deserialize config: {}", e),
+					"Cannot deserialize config: {}",
+					e
 				);
 				exit(1);
 			},
@@ -142,15 +150,15 @@ fn main() {
 	let pkgs = match build_packages(&cfg) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.e(e.caller, e.message);
+			log_error!(logger, e.caller, "{}", e.message);
 			exit(1);
 		},
 	};
 
 	if cfg.upgrade {
-		logger.i("builder", "Upgraded packages:");
+		log_info!(logger, "builder", "Upgraded packages:");
 	} else {
-		logger.i("builder", "Built packages:");
+		log_info!(logger, "builder", "Built packages:");
 	}
 
 	println!("{}", pkgs.join("\n"));

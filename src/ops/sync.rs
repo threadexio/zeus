@@ -116,7 +116,7 @@ pub async fn sync(
 		));
 	}
 
-	logger.d("", format!("{:?}", &cfg));
+	log_debug!(logger, "debug", "{:?}", &cfg);
 
 	let socket_path = format!("{}/zeus.sock", &cfg.builddir);
 
@@ -148,7 +148,7 @@ pub async fn sync(
 		}
 	}
 
-	logger.d("debug", format!("should_create = {:?}", should_create));
+	log_info!(logger, "debug", "should_create = {:?}", should_create);
 
 	if should_create {
 		let opts = CreateContainerOptions { name: &cfg.name };
@@ -201,7 +201,7 @@ pub async fn sync(
 			"Error creating builder"
 		);
 	} else {
-		logger.i("docker", "Builder already exists!");
+		log_info!(logger, "docker", "Builder already exists!");
 	}
 
 	let opts =
@@ -213,7 +213,11 @@ pub async fn sync(
 		"Error starting builder"
 	);
 
-	logger.i("docker", "Waiting for builder to come online...");
+	log_info!(
+		logger,
+		"docker",
+		"Waiting for builder to come online..."
+	);
 
 	let mut stream = zerr!(
 		listener.listener.accept(),
@@ -228,7 +232,7 @@ pub async fn sync(
 			.w("unix", format!("Cannot use non-blocking IO: {}", e)),
 	};
 
-	logger.i("docker", "Attaching to builder...");
+	log_info!(logger, "docker", "Attaching to builder...");
 
 	let data = zerr!(
 		serde_json::to_string(&cfg),
@@ -269,7 +273,11 @@ pub async fn sync(
 	while let Some(res) = out_stream.next().await {
 		// This means the signal handler above triggered
 		if rx.try_recv().is_ok() {
-			logger.i("system", "Interrupt detected. Exiting...");
+			log_info!(
+				logger,
+				"system",
+				"Interrupt detected. Exiting..."
+			);
 
 			zerr!(
 				docker

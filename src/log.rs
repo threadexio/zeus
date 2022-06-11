@@ -164,3 +164,39 @@ impl Logger {
 		);
 	}
 }
+
+#[macro_export]
+macro_rules! log_error {
+	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+		let mut m = format!($($arg)*);
+		m.push('\n');
+		$logger.e($caller, m)
+	});
+}
+
+#[macro_export]
+macro_rules! log_warn {
+	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+		let mut m = format!($($arg)*);
+		m.push('\n');
+		$logger.w($caller, m)
+	});
+}
+
+#[macro_export]
+macro_rules! log_info {
+	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+		let mut m = format!($($arg)*);
+		m.push('\n');
+		$logger.i($caller, m)
+	});
+}
+
+#[macro_export]
+macro_rules! log_debug {
+	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+		let mut m = format!($($arg)*);
+		m.push('\n');
+		$logger.d($caller, m)
+	});
+}

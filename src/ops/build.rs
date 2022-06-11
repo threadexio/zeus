@@ -9,9 +9,7 @@ use clap::ArgMatches;
 
 use futures::StreamExt;
 
-use crate::config;
-use crate::error::{zerr, Result, ZeusError};
-use crate::log::Logger;
+use crate::ops::prelude::*;
 
 pub async fn build(
 	logger: &Logger,
@@ -37,7 +35,7 @@ pub async fn build(
 		format!("Cannot read image {}", &cfg.archive)
 	);
 
-	logger.i("docker", "Starting builder...");
+	log_info!(logger, "docker", "Starting builder...");
 
 	let opts = BuildImageOptions {
 		dockerfile: cfg.dockerfile.as_str(),
@@ -69,7 +67,7 @@ pub async fn build(
 		}
 	}
 
-	logger.i("docker", "Removing old builder...");
+	log_info!(logger, "docker", "Removing old builder...");
 
 	match docker
 		.remove_container(
@@ -84,9 +82,11 @@ pub async fn build(
 	{
 		Ok(_) => {},
 		Err(e) => {
-			logger.w(
+			log_warn!(
+				logger,
 				"docker",
-				format!("Cannot remove old builder: {}", e),
+				"Cannot remove old builder: {}",
+				e
 			);
 		},
 	}

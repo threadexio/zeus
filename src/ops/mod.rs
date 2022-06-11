@@ -21,7 +21,9 @@ mod prelude {
 	pub(crate) use crate::config;
 	pub(crate) use crate::error::{zerr, Result, ZeusError};
 	pub(crate) use crate::log::Logger;
-	pub(crate) use crate::util::LocalListener;
+	pub(crate) use crate::{
+		log_debug, log_error, log_info, log_warn,
+	};
 }
 
 fn init_docker() -> Result<Docker> {
