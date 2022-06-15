@@ -168,35 +168,27 @@ impl Logger {
 #[macro_export]
 macro_rules! log_error {
 	($logger:tt, $caller:expr, $($arg:tt)*) => ({
-		let mut m = format!($($arg)*);
-		m.push('\n');
-		$logger.e($caller, m)
+		$logger.e($caller, format!($($arg)*))
 	});
 }
 
 #[macro_export]
 macro_rules! log_warn {
 	($logger:tt, $caller:expr, $($arg:tt)*) => ({
-		let mut m = format!($($arg)*);
-		m.push('\n');
-		$logger.w($caller, m)
+		$logger.w($caller, format!($($arg)*))
 	});
 }
 
 #[macro_export]
 macro_rules! log_info {
 	($logger:tt, $caller:expr, $($arg:tt)*) => ({
-		let mut m = format!($($arg)*);
-		m.push('\n');
-		$logger.i($caller, m)
+		$logger.i($caller, format!($($arg)*))
 	});
 }
 
 #[macro_export]
 macro_rules! log_debug {
 	($logger:tt, $caller:expr, $($arg:tt)*) => ({
-		let mut m = format!($($arg)*);
-		m.push('\n');
-		$logger.d($caller, m)
+		$logger.d($caller, format!($($arg)*))
 	});
 }

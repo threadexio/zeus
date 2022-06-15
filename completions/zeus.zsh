@@ -22,8 +22,8 @@ _zeus() {
 '--help[Print help information]' \
 '-V[Print version information]' \
 '--version[Print version information]' \
-'-v[Be verbose]' \
-'--verbose[Be verbose]' \
+'-d[Show debug logs]' \
+'--debug[Show debug logs]' \
 '--force[Ignore all warnings]' \
 ":: :_zeus_commands" \
 "*::: :->zeus" \
@@ -74,7 +74,7 @@ _arguments "${_arguments_options[@]}" \
 '*::keywords -- Keywords to use:' \
 && ret=0
 ;;
-(misc)
+(completions)
 _arguments "${_arguments_options[@]}" \
 '--shell=[Specify shell to generate completions for]: :(bash elvish fish powershell zsh)' \
 '-h[Print help information]' \
@@ -98,7 +98,7 @@ _zeus_commands() {
 'remove:Remove packages' \
 'build:Build/Update builder image' \
 'query:Query the AUR' \
-'misc:Generate shell completions & others' \
+'completions:Generate shell completions & others' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'zeus commands' commands "$@"
@@ -108,15 +108,15 @@ _zeus__build_commands() {
     local commands; commands=()
     _describe -t commands 'zeus build commands' commands "$@"
 }
+(( $+functions[_zeus__completions_commands] )) ||
+_zeus__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus completions commands' commands "$@"
+}
 (( $+functions[_zeus__help_commands] )) ||
 _zeus__help_commands() {
     local commands; commands=()
     _describe -t commands 'zeus help commands' commands "$@"
-}
-(( $+functions[_zeus__misc_commands] )) ||
-_zeus__misc_commands() {
-    local commands; commands=()
-    _describe -t commands 'zeus misc commands' commands "$@"
 }
 (( $+functions[_zeus__query_commands] )) ||
 _zeus__query_commands() {

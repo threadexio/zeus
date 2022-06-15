@@ -39,6 +39,9 @@ pub struct AppConfig {
 	pub archive: String,
 	pub dockerfile: String,
 
+	// Remove
+	pub remove: bool,
+
 	// Sync + Build
 	pub image: String,
 	pub name: String,

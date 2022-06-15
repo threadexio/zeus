@@ -6,12 +6,13 @@ use clap::ArgMatches;
 use crate::config::AppConfig;
 use crate::error::{Result, ZeusError};
 use crate::log::Logger;
+use crate::log_debug;
 use crate::util::Lockfile;
 
 mod build;
-//mod misc;
-//mod query;
-//mod remove;
+mod completions;
+mod query;
+mod remove;
 mod sync;
 
 mod prelude {
@@ -49,22 +50,25 @@ pub async fn run_operation(
 		&cfg.builddir
 	)))?;
 
+	log_debug!(logger, "pre-op config", "{:?}", cfg);
+
 	match name {
 		"build" => {
 			lockfile.lock()?;
 			build::build(logger, init_docker()?, cfg, args).await
 		},
-		//		"remove" => {
-		//			lockfile.lock()?;
-		//			init_docker(cfg)?;
-		//			remove::remove(logger, cfg, args).await
-		//		},
+		"remove" => {
+			lockfile.lock()?;
+			remove::remove(logger, init_docker()?, cfg, args).await
+		},
 		"sync" => {
 			lockfile.lock()?;
 			sync::sync(logger, init_docker()?, cfg, args).await
 		},
-		//		"misc" => misc::misc(logger, cfg, args).await,
-		//		"query" => query::query(logger, cfg, args).await,
+		"completions" => {
+			completions::completions(logger, cfg, args).await
+		},
+		"query" => query::query(cfg, args).await,
 		_ => Err(ZeusError::new(
 			"zeus".to_owned(),
 			"No such operation".to_owned(),

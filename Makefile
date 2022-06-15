@@ -38,9 +38,9 @@ clean: FORCE
 
 .PHONY:
 completions: FORCE
-	./target/$(BUILD_TYPE)/zeus misc --shell bash > completions/zeus.bash
-	./target/$(BUILD_TYPE)/zeus misc --shell zsh > completions/zeus.zsh
-	./target/$(BUILD_TYPE)/zeus misc --shell fish > completions/zeus.fish
+	./target/$(BUILD_TYPE)/zeus completions --shell bash > completions/zeus.bash
+	./target/$(BUILD_TYPE)/zeus completions --shell zsh > completions/zeus.zsh
+	./target/$(BUILD_TYPE)/zeus completions --shell fish > completions/zeus.fish
 
 .PHONY:
 package: build

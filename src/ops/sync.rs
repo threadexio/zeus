@@ -112,7 +112,7 @@ pub async fn sync(
 	} else if cfg.packages.is_empty() {
 		return Err(ZeusError::new(
 			"zeus".to_owned(),
-			"No packages specified. See --help!".to_owned(),
+			"No packages specified.".to_owned(),
 		));
 	}
 

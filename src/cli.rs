@@ -146,8 +146,8 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 					.multiple_occurrences(true),
 			),
 		////////////////////////////////////////////////////
-		Command::new("misc")
-			.long_flag("misc")
+		Command::new("completions")
+			.long_flag("completions")
 			.about("Generate shell completions & others")
 			.arg(
 				Arg::new("shell")

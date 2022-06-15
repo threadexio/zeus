@@ -15,11 +15,11 @@ _zeus() {
             build)
                 cmd+="__build"
                 ;;
+            completions)
+                cmd+="__completions"
+                ;;
             help)
                 cmd+="__help"
-                ;;
-            misc)
-                cmd+="__misc"
                 ;;
             query)
                 cmd+="__query"
@@ -37,7 +37,7 @@ _zeus() {
 
     case "${cmd}" in
         zeus)
-            opts="-h -V -v --help --version --color --verbose --force --builddir --aur sync remove build query misc help"
+            opts="-h -V -d --help --version --color --debug --force --builddir --aur sync remove build query completions help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -92,21 +92,7 @@ _zeus() {
             COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
             return 0
             ;;
-        zeus__help)
-            opts="<SUBCOMMAND>..."
-            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
-                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-                return 0
-            fi
-            case "${prev}" in
-                *)
-                    COMPREPLY=()
-                    ;;
-            esac
-            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
-            return 0
-            ;;
-        zeus__misc)
+        zeus__completions)
             opts="-h --shell --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
@@ -117,6 +103,20 @@ _zeus() {
                     COMPREPLY=($(compgen -W "" -- "${cur}"))
                     return 0
                     ;;
+                *)
+                    COMPREPLY=()
+                    ;;
+            esac
+            COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+            return 0
+            ;;
+        zeus__help)
+            opts="<SUBCOMMAND>..."
+            if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
+                COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+                return 0
+            fi
+            case "${prev}" in
                 *)
                     COMPREPLY=()
                     ;;

@@ -4,9 +4,9 @@ use crate::cli;
 
 use crate::ops::prelude::*;
 
-pub async fn misc(
-	logger: &mut log::Logger,
-	cfg: &mut config::AppConfig,
+pub async fn completions(
+	_logger: &Logger,
+	_cfg: &mut config::AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
 	if args.is_present("shell") {

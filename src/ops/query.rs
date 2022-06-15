@@ -1,5 +1,7 @@
 use std::io::stdout;
 
+use colored::Colorize;
+
 use crate::aur;
 
 use crate::ops::prelude::*;
@@ -60,12 +62,20 @@ fn print_pretty_package(package: &aur::Package) {
 }
 
 pub async fn query(
-	logger: &mut log::Logger,
 	cfg: &mut config::AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
+	cfg.keywords = args
+		.values_of("keywords")
+		.unwrap_or_default()
+		.map(|x| x.to_owned())
+		.collect();
+
 	if cfg.keywords.is_empty() {
-		return Err(ZeusError::new("No keywords specified"));
+		return Err(ZeusError::new(
+			"zeus".to_owned(),
+			"No keywords specified".to_owned(),
+		));
 	}
 
 	let by = args.value_of_t::<aur::By>("by").unwrap();
@@ -75,12 +85,13 @@ pub async fn query(
 		false => cfg.aur.search(by, &cfg.keywords).await,
 	};
 
-	let data = ZeusError!(res, "Error: ");
+	let data = zerr!(res, "aur", "Error: ");
 
 	match args.value_of("output").unwrap() {
-		"json" => ZeusError!(
-			serde_json::to_writer(stdout(), &data),
-			"Error serializing JSON: "
+		"json" => zerr!(
+			serde_json::to_writer(stdout(), &data.results),
+			"zeus",
+			"Cannot serialize JSON: "
 		),
 		_ => {
 			if args.is_present("info") {
@@ -89,22 +100,24 @@ pub async fn query(
 				}
 			} else {
 				for package in &data.results {
-					logger.v(
-						Level::Info,
-						format!(
-							"{} - {}\n\t{}",
-							package
-								.Name
-								.as_ref()
-								.unwrap_or(&"unnamed".to_owned()),
-							package
-								.Version
-								.as_ref()
-								.unwrap_or(&"0.0.0-0".to_owned()),
-							package.Description.as_ref().unwrap_or(
-								&"No description".to_owned()
-							),
-						),
+					println!(
+						"{} {} - {}\n    {}",
+						"=>".green(),
+						package
+							.Name
+							.as_ref()
+							.unwrap_or(&"".to_owned())
+							.bright_white()
+							.bold(),
+						package
+							.Version
+							.as_ref()
+							.unwrap_or(&"".to_owned())
+							.bright_blue(),
+						package
+							.Description
+							.as_ref()
+							.unwrap_or(&"".to_owned()),
 					);
 				}
 			}
