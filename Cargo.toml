@@ -18,7 +18,6 @@ name = "builder"
 path = "src/builder.rs"
 
 [dependencies]
-termcolor = "^1.1"
 clap = { version = "^3.1", features = ["cargo"] }
 clap_complete = "^3.1"
 tokio = { version = "^1.18", features = ["full"] }
@@ -31,3 +30,4 @@ ctrlc = { version = "^3.2", features = ["termination"] }
 const_format = "^0.2"
 default-env = "^0.1"
 reqwest = { version = "^0.11", features = ["json"] }
+colored = "^2.0"

@@ -31,15 +31,6 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 					.takes_value(true),
 			)
 			.arg(
-				Arg::new("image")
-					.long("image")
-					.help("Builder image name")
-					.default_value(default_env!(
-						"DEFAULT_IMAGE",
-						"zeus-builder"
-					)),
-			)
-			.arg(
 				Arg::new("name")
 					.long("name")
 					.help("Builder container name")
@@ -58,6 +49,15 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 			.short_flag('R')
 			.long_flag("remove")
 			.about("Remove packages")
+			.arg(
+				Arg::new("name")
+					.long("name")
+					.help("Builder container name")
+					.default_value(default_env!(
+						"DEFAULT_NAME",
+						"zeus-builder"
+					)),
+			)
 			.arg(
 				Arg::new("packages")
 					.help("Packages to remove")
@@ -146,8 +146,8 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 					.multiple_occurrences(true),
 			),
 		////////////////////////////////////////////////////
-		Command::new("misc")
-			.long_flag("misc")
+		Command::new("completions")
+			.long_flag("completions")
 			.about("Generate shell completions & others")
 			.arg(
 				Arg::new("shell")
@@ -186,10 +186,10 @@ pub fn build() -> Command<'static> {
 				.default_value("auto"),
 		)
 		.arg(
-			Arg::new("verbose")
-				.short('v')
-				.long("verbose")
-				.help("Be verbose")
+			Arg::new("debug")
+				.short('d')
+				.long("debug")
+				.help("Show debug logs")
 				.takes_value(false),
 		)
 		.arg(

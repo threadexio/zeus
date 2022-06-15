@@ -1,11 +1,8 @@
-use crate::aur;
-use crate::config;
-use crate::error::{zerr, Result, ZeusError};
-use crate::log::{self, Level};
-
-use clap::ArgMatches;
-
 use std::io::stdout;
+
+use crate::aur;
+use crate::log::Colorize;
+use crate::ops::prelude::*;
 
 macro_rules! print_if_some {
 	($a:expr,$b:expr) => {{
@@ -63,12 +60,20 @@ fn print_pretty_package(package: &aur::Package) {
 }
 
 pub async fn query(
-	logger: &mut log::Logger,
-	cfg: config::AppConfig,
+	cfg: &mut config::AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
+	cfg.keywords = args
+		.values_of("keywords")
+		.unwrap_or_default()
+		.map(|x| x.to_owned())
+		.collect();
+
 	if cfg.keywords.is_empty() {
-		return Err(ZeusError::new("No keywords specified"));
+		return Err(ZeusError::new(
+			"zeus".to_owned(),
+			"No keywords specified".to_owned(),
+		));
 	}
 
 	let by = args.value_of_t::<aur::By>("by").unwrap();
@@ -78,12 +83,13 @@ pub async fn query(
 		false => cfg.aur.search(by, &cfg.keywords).await,
 	};
 
-	let data = zerr!(res, "Error: ");
+	let data = zerr!(res, "aur", "Error: ");
 
 	match args.value_of("output").unwrap() {
 		"json" => zerr!(
-			serde_json::to_writer(stdout(), &data),
-			"Error serializing JSON: "
+			serde_json::to_writer(stdout(), &data.results),
+			"zeus",
+			"Cannot serialize JSON: "
 		),
 		_ => {
 			if args.is_present("info") {
@@ -92,22 +98,24 @@ pub async fn query(
 				}
 			} else {
 				for package in &data.results {
-					logger.v(
-						Level::Info,
-						format!(
-							"{} - {}\n\t{}",
-							package
-								.Name
-								.as_ref()
-								.unwrap_or(&"unnamed".to_owned()),
-							package
-								.Version
-								.as_ref()
-								.unwrap_or(&"0.0.0-0".to_owned()),
-							package.Description.as_ref().unwrap_or(
-								&"No description".to_owned()
-							),
-						),
+					println!(
+						"{} {} - {}\n    {}",
+						"=>".green(),
+						package
+							.Name
+							.as_ref()
+							.unwrap_or(&"".to_owned())
+							.bright_white()
+							.bold(),
+						package
+							.Version
+							.as_ref()
+							.unwrap_or(&"".to_owned())
+							.bright_blue(),
+						package
+							.Description
+							.as_ref()
+							.unwrap_or(&"".to_owned()),
 					);
 				}
 			}

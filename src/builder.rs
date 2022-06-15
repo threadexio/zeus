@@ -1,25 +1,30 @@
-mod aur;
-mod config;
-mod error;
-mod log;
-
-use error::{zerr, Result, ZeusError};
-use log::Level;
-
 use std::env;
+use std::fs;
 use std::io::Read;
 use std::os::unix::net::UnixStream;
 use std::path;
 use std::process::exit;
 use std::process::Command;
 
-fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
-	let mut new_packages: Vec<&str> = vec![];
+mod aur;
+mod config;
+mod error;
+mod log;
+
+use config::Operation;
+use error::{zerr, Result, ZeusError};
+use log::Colorize;
+
+fn build_packages<'a>(
+	cfg: &'a config::AppConfig,
+) -> Result<Vec<&'a str>> {
+	let mut new_packages: Vec<&str> = Vec::new();
 
 	for package in &cfg.packages {
 		zerr!(
 			env::set_current_dir("/build"),
-			"Cannot change directory: "
+			"fs".to_owned(),
+			&format!("Cannot change cwd to /build",)
 		);
 
 		let pkg_dir = path::Path::new(&package);
@@ -37,7 +42,11 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 
 		zerr!(
 			env::set_current_dir(pkg_dir),
-			"Cannot change directory: "
+			"fs".to_owned(),
+			&format!(
+				"Cannot change directory to {}",
+				pkg_dir.display()
+			)
 		);
 
 		if cfg.upgrade {
@@ -47,14 +56,18 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 					.arg("origin")
 					.arg("master")
 					.status(),
-				"Cannot start git: "
+				"cmd".to_owned(),
+				"Cannot start git"
 			);
 
 			if !status.success() {
-				return Err(ZeusError::new(format!(
-					"git exited with: {}",
-					status.code().unwrap_or(-99999)
-				)));
+				return Err(ZeusError::new(
+					"cmd".to_owned(),
+					format!(
+						"git exited with: {}",
+						status.code().unwrap_or(-99999)
+					),
+				));
 			}
 		}
 
@@ -66,7 +79,8 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 				.arg("--noprogressbar")
 				.args(&cfg.buildargs)
 				.status(),
-			"Cannot start makepkg: "
+			"cmd".to_owned(),
+			"Cannot start makepkg"
 		);
 
 		if !status.success() {
@@ -79,22 +93,75 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 	Ok(new_packages)
 }
 
-fn main() {
-	let mut logger =
-		log::Logger::new(log::Stream::Stdout, log::ColorChoice::Auto);
+fn remove_packages<'a>(
+	logger: &log::Logger,
+	cfg: &'a config::AppConfig,
+) -> Result<Vec<&'a str>> {
+	let mut removed_packages: Vec<&str> = Vec::new();
 
-	logger.v(
-		Level::Info,
-		format!("Version: {}", config::PROGRAM_VERSION),
+	for package in &cfg.packages {
+		let pkg_path = path::Path::new(&package);
+
+		if pkg_path.exists() && pkg_path.is_dir() {
+			match fs::remove_dir_all(pkg_path) {
+				Ok(_) => {
+					removed_packages.push(package);
+				},
+				Err(e) => {
+					log_warn!(
+						logger,
+						"fs",
+						"Cannot remove package directory {}: {}",
+						pkg_path.display(),
+						e
+					);
+				},
+			}
+		} else {
+			log_warn!(logger, "zeus", "Package has not been synced");
+		}
+	}
+
+	Ok(removed_packages)
+}
+
+fn main() {
+	let mut logger = log::Logger {
+		out: log::Stream::Stdout,
+		..Default::default()
+	};
+
+	log_info!(
+		logger,
+		"builder",
+		"Version: {}",
+		config::PROGRAM_VERSION.bright_blue()
 	);
+
+	match env::set_current_dir("/build") {
+		Ok(_) => {},
+		Err(e) => {
+			log_error!(
+				logger,
+				"builder",
+				"Cannot change directory to {}: {}",
+				"/build",
+				e
+			);
+			exit(1);
+		},
+	}
 
 	let socket_path = format!("{}.sock", config::PROGRAM_NAME);
 	let mut stream = match UnixStream::connect(&socket_path) {
 		Ok(v) => v,
 		Err(e) => {
-			logger.v(
-				Level::Error,
-				format!("Cannot connect to socket: {}", e),
+			log_error!(
+				logger,
+				"unix",
+				"Cannot connect to socket {}: {}",
+				socket_path,
+				e
 			);
 			exit(1);
 		},
@@ -107,44 +174,76 @@ fn main() {
 			data_len = v;
 		},
 		Err(e) => {
-			logger.v(
-				Level::Error,
-				format!("Cannot read data from socket: {}", e),
+			log_error!(
+				logger,
+				"unix",
+				"Cannot read data from socket: {}",
+				e
 			);
 			exit(1);
 		},
 	}
 
-	// the &data[..data_len] is needed because serde_json doesn't stop parsing on a null byte
 	let cfg: config::AppConfig =
 		match serde_json::from_slice(&data[..data_len]) {
 			Ok(v) => v,
 			Err(e) => {
-				logger.v(
-					Level::Error,
-					format!("Cannot deserialize config: {}", e),
+				log_error!(
+					logger,
+					"zeus",
+					"Cannot deserialize config: {}",
+					e
 				);
 				exit(1);
 			},
 		};
 
-	let pkgs = match build_packages(&cfg) {
-		Ok(v) => v,
-		Err(e) => {
-			logger.v(Level::Error, e.data);
-			exit(1);
+	logger.debug = cfg.debug;
+
+	match cfg.operation {
+		Operation::Sync => match build_packages(&cfg) {
+			Err(e) => {
+				log_error!(logger, e.caller, "{}", e.message);
+			},
+			Ok(pkgs) => {
+				if cfg.upgrade {
+					println!("Upgraded packages:");
+				} else {
+					println!("Built packages:");
+				}
+
+				for pkg in pkgs {
+					println!(
+						"{} {}",
+						"=>".green(),
+						pkg.bright_white().bold()
+					)
+				}
+			},
 		},
-	};
+		Operation::Remove => match remove_packages(&logger, &cfg) {
+			Err(e) => {
+				log_error!(logger, e.caller, "{}", e.message);
+			},
+			Ok(pkgs) => {
+				println!("Removed packages:");
 
-	if cfg.upgrade {
-		logger.v(Level::Info, "Upgraded packages:");
-	} else {
-		logger.v(Level::Info, "Built packages:");
-	}
-
-	if pkgs.len() != 0 {
-		logger.v(Level::Info, pkgs.join("\n"));
-	} else {
-		logger.v(Level::Info, "None");
+				for pkg in pkgs {
+					println!(
+						"{} {}",
+						"=>".green(),
+						pkg.bright_white().bold()
+					)
+				}
+			},
+		},
+		_ => {
+			log_debug!(
+				logger,
+				"builder",
+				"operation = {:?}",
+				cfg.operation
+			);
+		},
 	}
 }

@@ -6,6 +6,8 @@ use const_format::formatcp;
 
 use default_env::default_env;
 
+use std::collections::HashSet;
+
 #[allow(dead_code)]
 pub const PROGRAM_NAME: &'static str = "zeus";
 
@@ -21,10 +23,25 @@ const BUILD_TYPE: &'static str = "rls";
 pub const PROGRAM_VERSION: &'static str =
 	formatcp!("{}-{BUILD_TYPE}", default_env!("VERSION", "unknown"));
 
+// Operations that are handled inside the container
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Operation {
+	None,
+	Sync,
+	Remove,
+}
+
+impl Default for Operation {
+	fn default() -> Self {
+		Self::None
+	}
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AppConfig {
 	// Global
-	pub verbose: bool,
+	pub operation: Operation,
+	pub debug: bool,
 	pub force: bool,
 	pub aur: Aur,
 	pub builddir: String,
@@ -36,13 +53,16 @@ pub struct AppConfig {
 	// Build
 	pub archive: String,
 	pub dockerfile: String,
-
-	// Sync + Build
 	pub image: String,
+
+	// Remove
+	pub remove: bool,
+
+	// Sync + Remove + Build
 	pub name: String,
 
 	// Sync + Remove
-	pub packages: Vec<String>,
+	pub packages: HashSet<String>,
 
 	// Query
 	pub keywords: Vec<String>,

@@ -1,140 +1,197 @@
-pub use termcolor::{Color, ColorChoice, ColorSpec};
-use termcolor::{StandardStream, WriteColor};
+pub use colored::{control, Color, Colorize};
 
-use std::default::Default;
-use std::io::Write;
+use std::fmt::Display;
 
 #[allow(dead_code)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Stream {
 	Stdout,
 	Stderr,
 }
 
-#[allow(dead_code)]
-#[derive(Debug)]
-pub enum Level {
-	Error,
-	Warn,
-	Success,
-	Info,
-	Verbose,
-	Debug,
+impl Default for Stream {
+	fn default() -> Self {
+		Self::Stderr
+	}
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Colors {
+	pub error: Color,
+	pub warn: Color,
+	pub info: Color,
+	pub debug: Color,
+}
+
+impl Default for Colors {
+	fn default() -> Self {
+		ColorsBuilder::new().build()
+	}
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct ColorsBuilder {
+	pub error: Color,
+	pub warn: Color,
+	pub info: Color,
+	pub debug: Color,
+}
+
+impl Default for ColorsBuilder {
+	fn default() -> Self {
+		Self {
+			error: Color::Red,
+			warn: Color::Yellow,
+			info: Color::Green,
+			debug: Color::Blue,
+		}
+	}
+}
+
+#[allow(dead_code)]
+impl ColorsBuilder {
+	pub fn new() -> Self {
+		Self { ..Default::default() }
+	}
+
+	pub fn build(self) -> Colors {
+		Colors {
+			error: self.error,
+			warn: self.warn,
+			info: self.info,
+			debug: self.debug,
+		}
+	}
+
+	pub fn error(mut self, c: Color) -> Self {
+		self.error = c;
+		self
+	}
+	pub fn warn(mut self, c: Color) -> Self {
+		self.warn = c;
+		self
+	}
+	pub fn info(mut self, c: Color) -> Self {
+		self.info = c;
+		self
+	}
+	pub fn debug(mut self, c: Color) -> Self {
+		self.debug = c;
+		self
+	}
+}
+
+#[derive(Debug, Default)]
 pub struct Logger {
-	pub error_color: Color,
-	pub warn_color: Color,
-	pub success_color: Color,
-	pub info_color: Color,
-	pub verbose_color: Color,
+	pub colors: Colors,
 
-	pub verbose: bool,
+	pub debug: bool,
 
-	#[cfg(debug_assertions)]
-	pub debug_color: Color,
-
-	out: StandardStream,
+	pub out: Stream,
 }
 
 #[allow(dead_code)]
 impl Logger {
-	pub fn new(output: Stream, choice: ColorChoice) -> Self {
-		Self {
-			out: match output {
-				Stream::Stdout => StandardStream::stdout(choice),
-				Stream::Stderr => StandardStream::stderr(choice),
-			},
-			..Default::default()
+	fn log_impl(
+		&self,
+		level: &str,
+		c: Color,
+		caller: &str,
+		data: &str,
+	) {
+		let log_format = format!(
+			" {: <5} {} {} {}",
+			level.to_string().color(c).bold(),
+			caller.to_string().bright_white().bold(),
+			"│".bright_black(),
+			data.to_string().bright_white()
+		);
+
+		use Stream::*;
+		match self.out {
+			Stdout => println!("{}", log_format),
+			Stderr => eprintln!("{}", log_format),
 		}
 	}
 
-	pub fn v<T>(&mut self, level: Level, data: T)
+	pub fn e<C, D>(&self, caller: C, message: D)
 	where
-		T: std::fmt::Display,
+		C: Display,
+		D: Display,
 	{
-		let color: Color;
-
-		#[allow(unreachable_code)]
-		match level {
-			Level::Error => {
-				color = self.error_color;
-			},
-			Level::Warn => {
-				color = self.warn_color;
-			},
-			Level::Success => {
-				color = self.success_color;
-			},
-			Level::Info => {
-				color = self.info_color;
-			},
-			Level::Verbose => {
-				// skip all verbose messages if we are not running in verbose mode
-				if !self.verbose {
-					return;
-				}
-
-				color = self.verbose_color;
-			},
-			Level::Debug => {
-				// skip all debug messages if we are not running in a debug build
-				#[cfg(not(debug_assertions))]
-				return;
-
-				#[cfg(debug_assertions)]
-				{
-					color = self.debug_color;
-				}
-			},
+		self.log_impl(
+			"ERROR",
+			self.colors.error,
+			&caller.to_string(),
+			&message.to_string(),
+		);
+	}
+	pub fn w<C, D>(&self, caller: C, message: D)
+	where
+		C: Display,
+		D: Display,
+	{
+		self.log_impl(
+			"WARN",
+			self.colors.warn,
+			&caller.to_string(),
+			&message.to_string(),
+		);
+	}
+	pub fn i<C, D>(&self, caller: C, message: D)
+	where
+		C: Display,
+		D: Display,
+	{
+		self.log_impl(
+			"INFO",
+			self.colors.info,
+			&caller.to_string(),
+			&message.to_string(),
+		);
+	}
+	pub fn d<C, D>(&self, caller: C, message: D)
+	where
+		C: Display,
+		D: Display,
+	{
+		if !self.debug {
+			return;
 		}
 
-		self.out
-			.set_color(
-				ColorSpec::new().set_bold(true).set_fg(Some(color)),
-			)
-			.unwrap();
-
-		write!(
-			&mut self.out,
-			"{: >8} ",
-			format!("{:?}", level).to_uppercase()
-		)
-		.unwrap();
-
-		let mut clear_spec = ColorSpec::new();
-		clear_spec.clear();
-		self.out.set_color(&mut clear_spec).unwrap();
-
-		let msg = data.to_string();
-		let mut lines = msg.split('\n');
-
-		// the first line should not have additional padding
-		if let Some(v) = lines.next() {
-			writeln!(&mut self.out, "{}", v).unwrap();
-		}
-
-		lines.for_each(|x| {
-			writeln!(&mut self.out, "{: >8} {}", "", x).unwrap()
-		})
+		self.log_impl(
+			"DEBUG",
+			self.colors.debug,
+			&caller.to_string(),
+			&message.to_string(),
+		);
 	}
 }
 
-#[allow(dead_code)]
-impl Default for Logger {
-	fn default() -> Self {
-		Self {
-			error_color: Color::Red,
-			warn_color: Color::Yellow,
-			success_color: Color::Green,
-			info_color: Color::Blue,
-			verbose_color: Color::Cyan,
+#[macro_export]
+macro_rules! log_error {
+	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+		$logger.e($caller, format!($($arg)*))
+	});
+}
 
-			verbose: false,
+#[macro_export]
+macro_rules! log_warn {
+	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+		$logger.w($caller, format!($($arg)*))
+	});
+}
 
-			#[cfg(debug_assertions)]
-			debug_color: Color::White,
+#[macro_export]
+macro_rules! log_info {
+	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+		$logger.i($caller, format!($($arg)*))
+	});
+}
 
-			out: StandardStream::stdout(ColorChoice::Auto),
-		}
-	}
+#[macro_export]
+macro_rules! log_debug {
+	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+		$logger.d($caller, format!($($arg)*))
+	});
 }
