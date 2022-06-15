@@ -19,16 +19,13 @@ impl From<io::Error> for ZeusError {
 
 #[derive(Debug)]
 pub struct Lockfile {
-	path: PathBuf,
 	file: fs::File,
 }
 
+#[allow(dead_code)]
 impl Lockfile {
 	pub fn new(path: &Path) -> io::Result<Self> {
-		Ok(Self {
-			path: path.to_path_buf(),
-			file: fs::File::create(path)?,
-		})
+		Ok(Self { file: fs::File::create(path)? })
 	}
 
 	pub fn lock(&self) -> io::Result<()> {

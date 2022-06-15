@@ -2,6 +2,7 @@ pub use colored::{control, Color, Colorize};
 
 use std::fmt::Display;
 
+#[allow(dead_code)]
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub enum Stream {
 	Stdout,
@@ -47,6 +48,7 @@ impl Default for ColorsBuilder {
 	}
 }
 
+#[allow(dead_code)]
 impl ColorsBuilder {
 	pub fn new() -> Self {
 		Self { ..Default::default() }
@@ -88,6 +90,7 @@ pub struct Logger {
 	pub out: Stream,
 }
 
+#[allow(dead_code)]
 impl Logger {
 	fn log_impl(
 		&self,
