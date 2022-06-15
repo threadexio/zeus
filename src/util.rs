@@ -71,3 +71,39 @@ impl Drop for LocalListener {
 		let _ = fs::remove_file(self.path.as_path());
 	}
 }
+
+pub mod terminal {
+	use colored::Colorize;
+
+	use std::io;
+	use std::io::Read;
+	use std::io::Write;
+
+	pub fn yes_no_question(
+		message: &str,
+		default: bool,
+	) -> io::Result<bool> {
+		let mut stdout = io::stdout();
+
+		write!(
+			&mut stdout,
+			"{} [{}] ",
+			message.bright_white().bold(),
+			match default {
+				true => "Y/n",
+				false => "y/N",
+			},
+		)?;
+		stdout.flush()?;
+
+		let mut answer: [u8; 2] = [0; 2];
+		io::stdin().read(&mut answer)?;
+
+		match answer[0] as char {
+			'y' | 'Y' => Ok(true),
+			'n' | 'N' => Ok(false),
+			'\n' => Ok(default),
+			_ => Ok(false),
+		}
+	}
+}

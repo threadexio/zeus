@@ -19,7 +19,7 @@ async fn main() {
 
 	let mut logger = log::Logger {
 		debug: args.is_present("debug"),
-		out: log::Stream::Stderr,
+		out: log::Stream::Stdout,
 		..Default::default()
 	};
 

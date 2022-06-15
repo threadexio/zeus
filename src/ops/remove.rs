@@ -46,6 +46,14 @@ pub async fn remove(
 
 	cfg.remove = true;
 
+	if !terminal::yes_no_question(
+		"Are you sure you want to remove these packages?",
+		true,
+	)? {
+		log_error!(logger, "zeus", "Aborting...");
+		return Ok(());
+	}
+
 	let socket_path = format!("{}/zeus.sock", &cfg.builddir);
 
 	let listener = zerr!(
@@ -61,12 +69,6 @@ pub async fn remove(
 		docker.start_container(&cfg.name, Some(opts)).await,
 		"docker",
 		"Error starting builder"
-	);
-
-	log_info!(
-		logger,
-		"docker",
-		"Waiting for builder to come online..."
 	);
 
 	let mut stream = zerr!(

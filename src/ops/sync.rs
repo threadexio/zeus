@@ -8,11 +8,13 @@ use bollard::container::{
 	KillContainerOptions, StartContainerOptions,
 };
 
+use colored::Colorize;
 use futures::StreamExt;
 use std::collections::HashMap;
 
 use ctrlc;
 
+use crate::log_error;
 use crate::util::LocalListener;
 
 use crate::ops::prelude::*;
@@ -54,8 +56,10 @@ pub async fn sync(
 		let mut available_packages: HashMap<usize, String> =
 			HashMap::new();
 
-		// TODO: Beautify the prompt
-		println!("Choose which packages to upgrade: ");
+		println!(
+			"{} Choose which packages to upgrade: ",
+			"=>".green()
+		);
 		for (i, p) in dir
 			.filter_map(|x| x.ok())
 			.filter(|x| x.path().is_dir())
@@ -64,9 +68,25 @@ pub async fn sync(
 		{
 			if let Some(pkg) = p.to_str() {
 				available_packages.insert(i, pkg.to_owned());
-				println!("{} {}", i, pkg);
+				println!(
+					"    {} - {}",
+					i.to_string().blue(),
+					pkg.bright_white().bold()
+				);
 			}
 		}
+
+		let mut stdout = io::stdout();
+		zerr!(
+			write!(
+				&mut stdout,
+				"Enter package numbers: (space-separated)\n{}",
+				"=> ".green()
+			),
+			"system",
+			"Cannot write to stdout"
+		);
+		zerr!(stdout.flush(), "system", "Cannot flush stdout");
 
 		let mut choices = String::new();
 		zerr!(
@@ -112,6 +132,21 @@ pub async fn sync(
 
 	log_debug!(logger, "debug", "{:?}", &cfg);
 
+	if !terminal::yes_no_question(
+		match cfg.upgrade {
+			true => {
+				"Are you sure you want to upgrade these packages?"
+			},
+			false => {
+				"Are you sure you want to install these packages?"
+			},
+		},
+		true,
+	)? {
+		log_error!(logger, "zeus", "Aborting...");
+		return Ok(());
+	}
+
 	let socket_path = format!("{}/zeus.sock", &cfg.builddir);
 
 	let listener = zerr!(
@@ -127,12 +162,6 @@ pub async fn sync(
 		docker.start_container(&cfg.name, Some(opts)).await,
 		"docker",
 		"Error starting builder"
-	);
-
-	log_info!(
-		logger,
-		"docker",
-		"Waiting for builder to come online..."
 	);
 
 	let mut stream = zerr!(
