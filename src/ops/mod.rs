@@ -4,6 +4,7 @@ use bollard::Docker;
 use clap::ArgMatches;
 
 use crate::config::AppConfig;
+use crate::config::Operation;
 use crate::error::{Result, ZeusError};
 use crate::log::Logger;
 use crate::log_debug;
@@ -57,10 +58,12 @@ pub async fn run_operation(
 		},
 		"remove" => {
 			lockfile.lock()?;
+			cfg.operation = Operation::Remove;
 			remove::remove(logger, init_docker()?, cfg, args).await
 		},
 		"sync" => {
 			lockfile.lock()?;
+			cfg.operation = Operation::Sync;
 			sync::sync(logger, init_docker()?, cfg, args).await
 		},
 		"completions" => {

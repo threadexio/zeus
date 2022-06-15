@@ -1,19 +1,24 @@
-mod aur;
-mod config;
-mod error;
-mod log;
-
-use error::{zerr, Result, ZeusError};
-
 use std::env;
+use std::fs;
 use std::io::Read;
 use std::os::unix::net::UnixStream;
 use std::path;
 use std::process::exit;
 use std::process::Command;
 
-fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
-	let mut new_packages: Vec<&str> = vec![];
+mod aur;
+mod config;
+mod error;
+mod log;
+
+use config::Operation;
+use error::{zerr, Result, ZeusError};
+use log::Colorize;
+
+fn build_packages<'a>(
+	cfg: &'a config::AppConfig,
+) -> Result<Vec<&'a str>> {
+	let mut new_packages: Vec<&str> = Vec::new();
 
 	for package in &cfg.packages {
 		zerr!(
@@ -88,8 +93,40 @@ fn build_packages(cfg: &config::AppConfig) -> Result<Vec<&str>> {
 	Ok(new_packages)
 }
 
+fn remove_packages<'a>(
+	logger: &log::Logger,
+	cfg: &'a config::AppConfig,
+) -> Result<Vec<&'a str>> {
+	let mut removed_packages: Vec<&str> = Vec::new();
+
+	for package in &cfg.packages {
+		let pkg_path = path::Path::new(&package);
+
+		if pkg_path.exists() && pkg_path.is_dir() {
+			match fs::remove_dir_all(pkg_path) {
+				Ok(_) => {
+					removed_packages.push(package);
+				},
+				Err(e) => {
+					log_warn!(
+						logger,
+						"fs",
+						"Cannot remove package directory {}: {}",
+						pkg_path.display(),
+						e
+					);
+				},
+			}
+		} else {
+			log_warn!(logger, "zeus", "Package has not been synced");
+		}
+	}
+
+	Ok(removed_packages)
+}
+
 fn main() {
-	let logger = log::Logger {
+	let mut logger = log::Logger {
 		out: log::Stream::Stdout,
 		..Default::default()
 	};
@@ -98,8 +135,22 @@ fn main() {
 		logger,
 		"builder",
 		"Version: {}",
-		config::PROGRAM_VERSION
+		config::PROGRAM_VERSION.bright_blue()
 	);
+
+	match env::set_current_dir("/build") {
+		Ok(_) => {},
+		Err(e) => {
+			log_error!(
+				logger,
+				"builder",
+				"Cannot change directory to {}: {}",
+				"/build",
+				e
+			);
+			exit(1);
+		},
+	}
 
 	let socket_path = format!("{}.sock", config::PROGRAM_NAME);
 	let mut stream = match UnixStream::connect(&socket_path) {
@@ -108,7 +159,8 @@ fn main() {
 			log_error!(
 				logger,
 				"unix",
-				"Cannot connect to socket: {}",
+				"Cannot connect to socket {}: {}",
+				socket_path,
 				e
 			);
 			exit(1);
@@ -132,7 +184,6 @@ fn main() {
 		},
 	}
 
-	// the &data[..data_len] is needed because serde_json doesn't stop parsing on a null byte
 	let cfg: config::AppConfig =
 		match serde_json::from_slice(&data[..data_len]) {
 			Ok(v) => v,
@@ -147,19 +198,52 @@ fn main() {
 			},
 		};
 
-	let pkgs = match build_packages(&cfg) {
-		Ok(v) => v,
-		Err(e) => {
-			log_error!(logger, e.caller, "{}", e.message);
-			exit(1);
+	logger.debug = cfg.debug;
+
+	match cfg.operation {
+		Operation::Sync => match build_packages(&cfg) {
+			Err(e) => {
+				log_error!(logger, e.caller, "{}", e.message);
+			},
+			Ok(pkgs) => {
+				if cfg.upgrade {
+					println!("Upgraded packages:");
+				} else {
+					println!("Built packages:");
+				}
+
+				for pkg in pkgs {
+					println!(
+						"{} {}",
+						"=>".green(),
+						pkg.bright_white().bold()
+					)
+				}
+			},
 		},
-	};
+		Operation::Remove => match remove_packages(&logger, &cfg) {
+			Err(e) => {
+				log_error!(logger, e.caller, "{}", e.message);
+			},
+			Ok(pkgs) => {
+				println!("Removed packages:");
 
-	if cfg.upgrade {
-		log_info!(logger, "builder", "Upgraded packages:");
-	} else {
-		log_info!(logger, "builder", "Built packages:");
+				for pkg in pkgs {
+					println!(
+						"{} {}",
+						"=>".green(),
+						pkg.bright_white().bold()
+					)
+				}
+			},
+		},
+		_ => {
+			log_debug!(
+				logger,
+				"builder",
+				"operation = {:?}",
+				cfg.operation
+			);
+		},
 	}
-
-	println!("{}", pkgs.join("\n"));
 }

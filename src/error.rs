@@ -2,6 +2,7 @@ use std::error::Error;
 use std::fmt::Display;
 use std::result;
 
+#[allow(dead_code)]
 pub type Result<T> = result::Result<T, ZeusError>;
 
 #[derive(Debug)]
@@ -10,6 +11,7 @@ pub struct ZeusError {
 	pub message: String,
 }
 
+#[allow(dead_code)]
 impl ZeusError {
 	pub fn new(caller: String, message: String) -> Self {
 		Self {

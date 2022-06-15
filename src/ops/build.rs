@@ -5,6 +5,12 @@ use bollard::container::RemoveContainerOptions;
 use bollard::image::BuildImageOptions;
 use bollard::Docker;
 
+use bollard::container::{Config, CreateContainerOptions};
+use bollard::models::{
+	HostConfig, Mount, MountBindOptions,
+	MountBindOptionsPropagationEnum, MountTypeEnum,
+};
+
 use clap::ArgMatches;
 
 use futures::StreamExt;
@@ -67,8 +73,6 @@ pub async fn build(
 		}
 	}
 
-	log_info!(logger, "docker", "Removing old builder...");
-
 	match docker
 		.remove_container(
 			"zeus-builder",
@@ -90,6 +94,57 @@ pub async fn build(
 			);
 		},
 	}
+
+	let opts = CreateContainerOptions { name: &cfg.name };
+
+	let config =
+		Config {
+			image: Some(cfg.image.clone()),
+
+			tty: Some(true),
+
+			host_config: Some(HostConfig {
+				privileged: Some(false),
+				cap_drop: Some(vec!["all".to_owned()]),
+				cap_add: Some(vec![
+					"CAP_SETUID".to_owned(),
+					"CAP_SETGID".to_owned(),
+				]), // needed for sudo
+				//security_opt: Some(vec!["no-new-privileges:true".to_owned()]), // conflicts with sudo
+				mounts: Some(vec![
+					Mount {
+						typ: Some(MountTypeEnum::BIND),
+						source: Some("/var/cache/pacman/pkg".to_owned()),
+						target: Some("/var/cache/pacman/pkg".to_owned()),
+						read_only: Some(false),
+						bind_options: Some(MountBindOptions {
+							propagation: Some(MountBindOptionsPropagationEnum::RPRIVATE),
+							..Default::default()
+						}),
+						..Default::default()
+					},
+					Mount {
+						typ: Some(MountTypeEnum::BIND),
+						source: Some(cfg.builddir.clone()),
+						target: Some("/build".to_owned()),
+						read_only: Some(false),
+						bind_options: Some(MountBindOptions {
+							propagation: Some(MountBindOptionsPropagationEnum::RPRIVATE),
+							..Default::default()
+						}),
+						..Default::default()
+					},
+				]),
+				..Default::default()
+			}),
+			..Default::default()
+		};
+
+	zerr!(
+		docker.create_container(Some(opts), config).await,
+		"docker",
+		"Error creating new builder"
+	);
 
 	Ok(())
 }

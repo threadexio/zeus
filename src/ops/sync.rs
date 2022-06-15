@@ -4,13 +4,8 @@ use std::path::Path;
 use std::sync::mpsc::channel;
 
 use bollard::container::{
-	AttachContainerOptions, AttachContainerResults, Config,
-	CreateContainerOptions, KillContainerOptions,
-	ListContainersOptions, StartContainerOptions,
-};
-use bollard::models::{
-	HostConfig, Mount, MountBindOptions,
-	MountBindOptionsPropagationEnum, MountTypeEnum,
+	AttachContainerOptions, AttachContainerResults,
+	KillContainerOptions, StartContainerOptions,
 };
 
 use futures::StreamExt;
@@ -37,7 +32,6 @@ pub async fn sync(
 		.map(|x| x.to_owned())
 		.collect();
 
-	cfg.image = args.value_of("image").unwrap().to_owned();
 	cfg.name = args.value_of("name").unwrap().to_owned();
 
 	cfg.packages = args
@@ -126,84 +120,6 @@ pub async fn sync(
 		format!("Cannot listen on socket {}", &socket_path)
 	);
 
-	let opts = ListContainersOptions::<String> {
-		all: true,
-		..Default::default()
-	};
-
-	let mut should_create = true;
-
-	let container_list = zerr!(
-		docker.list_containers(Some(opts)).await,
-		"docker",
-		"Cannot query containers"
-	);
-
-	for container in container_list {
-		if let Some(names) = &container.names {
-			if names.contains(&format!("/{}", &cfg.name)) {
-				should_create = false;
-				break;
-			}
-		}
-	}
-
-	log_info!(logger, "debug", "should_create = {:?}", should_create);
-
-	if should_create {
-		let opts = CreateContainerOptions { name: &cfg.name };
-
-		let config = Config {
-			image: Some(cfg.image.clone()),
-
-			tty: Some(true),
-
-			host_config: Some(HostConfig {
-				privileged: Some(false),
-				cap_drop: Some(vec!["all".to_owned()]),
-				cap_add: Some(vec![
-					"CAP_SETUID".to_owned(),
-					"CAP_SETGID".to_owned(),
-				]), // needed for sudo
-				//security_opt: Some(vec!["no-new-privileges:true".to_owned()]), // conflicts with sudo
-				mounts: Some(vec![
-					Mount {
-						typ: Some(MountTypeEnum::BIND),
-						source: Some("/var/cache/pacman/pkg".to_owned()),
-						target: Some("/var/cache/pacman/pkg".to_owned()),
-						read_only: Some(false),
-						bind_options: Some(MountBindOptions {
-							propagation: Some(MountBindOptionsPropagationEnum::RPRIVATE),
-							..Default::default()
-						}),
-						..Default::default()
-					},
-					Mount {
-						typ: Some(MountTypeEnum::BIND),
-						source: Some(cfg.builddir.clone()),
-						target: Some("/build".to_owned()),
-						read_only: Some(false),
-						bind_options: Some(MountBindOptions {
-							propagation: Some(MountBindOptionsPropagationEnum::RPRIVATE),
-							..Default::default()
-						}),
-						..Default::default()
-					},
-				]),
-				..Default::default()
-			}),
-			..Default::default()
-		};
-
-		zerr!(
-			docker.create_container(Some(opts), config).await,
-			"docker",
-			"Error creating builder"
-		);
-	} else {
-		log_info!(logger, "docker", "Builder already exists!");
-	}
-
 	let opts =
 		StartContainerOptions::<String> { ..Default::default() };
 
@@ -251,7 +167,6 @@ pub async fn sync(
 		stdout: Some(true),
 		stderr: Some(true),
 		stream: Some(true),
-		//logs: Some(true), // this displays all output logs from container creation, thats bad
 		..Default::default()
 	};
 

@@ -23,9 +23,24 @@ const BUILD_TYPE: &'static str = "rls";
 pub const PROGRAM_VERSION: &'static str =
 	formatcp!("{}-{BUILD_TYPE}", default_env!("VERSION", "unknown"));
 
+// Operations that are handled inside the container
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Operation {
+	None,
+	Sync,
+	Remove,
+}
+
+impl Default for Operation {
+	fn default() -> Self {
+		Self::None
+	}
+}
+
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AppConfig {
 	// Global
+	pub operation: Operation,
 	pub debug: bool,
 	pub force: bool,
 	pub aur: Aur,
@@ -38,12 +53,12 @@ pub struct AppConfig {
 	// Build
 	pub archive: String,
 	pub dockerfile: String,
+	pub image: String,
 
 	// Remove
 	pub remove: bool,
 
-	// Sync + Build
-	pub image: String,
+	// Sync + Remove + Build
 	pub name: String,
 
 	// Sync + Remove

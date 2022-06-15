@@ -1,9 +1,7 @@
 use std::io::stdout;
 
-use colored::Colorize;
-
 use crate::aur;
-
+use crate::log::Colorize;
 use crate::ops::prelude::*;
 
 macro_rules! print_if_some {

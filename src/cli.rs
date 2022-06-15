@@ -31,15 +31,6 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 					.takes_value(true),
 			)
 			.arg(
-				Arg::new("image")
-					.long("image")
-					.help("Builder image name")
-					.default_value(default_env!(
-						"DEFAULT_IMAGE",
-						"zeus-builder"
-					)),
-			)
-			.arg(
 				Arg::new("name")
 					.long("name")
 					.help("Builder container name")
@@ -58,6 +49,15 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 			.short_flag('R')
 			.long_flag("remove")
 			.about("Remove packages")
+			.arg(
+				Arg::new("name")
+					.long("name")
+					.help("Builder container name")
+					.default_value(default_env!(
+						"DEFAULT_NAME",
+						"zeus-builder"
+					)),
+			)
 			.arg(
 				Arg::new("packages")
 					.help("Packages to remove")
