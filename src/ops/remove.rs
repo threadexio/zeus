@@ -7,7 +7,6 @@ use bollard::container::{
 	KillContainerOptions, StartContainerOptions,
 };
 
-use colored::Colorize;
 use futures::StreamExt;
 
 use crate::ops::prelude::*;

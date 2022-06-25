@@ -1,5 +1,5 @@
 use std::fs;
-use std::io::{self, Write};
+use std::io::Write;
 use std::path::Path;
 use std::sync::mpsc::channel;
 
@@ -8,7 +8,6 @@ use bollard::container::{
 	KillContainerOptions, StartContainerOptions,
 };
 
-use colored::Colorize;
 use futures::StreamExt;
 
 use ctrlc;
