@@ -12,10 +12,10 @@ complete -c zeus -n "__fish_use_subcommand" -f -a "query" -d 'Query the AUR'
 complete -c zeus -n "__fish_use_subcommand" -f -a "completions" -d 'Generate shell completions & others'
 complete -c zeus -n "__fish_use_subcommand" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c zeus -n "__fish_seen_subcommand_from sync" -l buildargs -d 'Extra arguments for makepkg' -r
-complete -c zeus -n "__fish_seen_subcommand_from sync" -l image -d 'Builder image name' -r
 complete -c zeus -n "__fish_seen_subcommand_from sync" -l name -d 'Builder container name' -r
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s u -l upgrade -d 'Upgrade packages'
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s h -l help -d 'Print help information'
+complete -c zeus -n "__fish_seen_subcommand_from remove" -l name -d 'Builder container name' -r
 complete -c zeus -n "__fish_seen_subcommand_from remove" -s h -l help -d 'Print help information'
 complete -c zeus -n "__fish_seen_subcommand_from build" -l archive -d 'Builder image archive' -r
 complete -c zeus -n "__fish_seen_subcommand_from build" -l dockerfile -d 'Builder image dockerfile in archive' -r

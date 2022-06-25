@@ -37,7 +37,6 @@ _zeus() {
             (sync)
 _arguments "${_arguments_options[@]}" \
 '--buildargs=[Extra arguments for makepkg]: : ' \
-'--image=[Builder image name]: : ' \
 '--name=[Builder container name]: : ' \
 '-u[Upgrade packages]' \
 '--upgrade[Upgrade packages]' \
@@ -48,6 +47,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" \
+'--name=[Builder container name]: : ' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 '*::packages -- Packages to remove:' \

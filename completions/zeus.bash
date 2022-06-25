@@ -147,12 +147,16 @@ _zeus() {
             return 0
             ;;
         zeus__remove)
-            opts="-h --help <packages>..."
+            opts="-h --name --help <packages>..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
+                --name)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 *)
                     COMPREPLY=()
                     ;;
@@ -161,17 +165,13 @@ _zeus() {
             return 0
             ;;
         zeus__sync)
-            opts="-u -h --upgrade --buildargs --image --name --help <packages>..."
+            opts="-u -h --upgrade --buildargs --name --help <packages>..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --buildargs)
-                    COMPREPLY=($(compgen -f "${cur}"))
-                    return 0
-                    ;;
-                --image)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
