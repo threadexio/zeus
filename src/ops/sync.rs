@@ -10,7 +10,6 @@ use bollard::container::{
 
 use colored::Colorize;
 use futures::StreamExt;
-use std::collections::HashMap;
 
 use ctrlc;
 
@@ -47,73 +46,35 @@ pub async fn sync(
 			cfg.packages.insert(pkg.to_owned());
 		}
 
-		let dir = zerr!(
+		let packages: Vec<String> = zerr!(
 			fs::read_dir(&cfg.builddir),
 			"fs",
 			&format!("Cannot list {}", &cfg.builddir)
-		);
+		)
+		.filter_map(|x| x.ok())
+		.filter(|x| x.path().is_dir())
+		.map(|x| x.file_name().into_string())
+		.filter_map(|x| x.ok())
+		.collect();
 
-		let mut available_packages: HashMap<usize, String> =
-			HashMap::new();
-
-		println!(
-			"{} Choose which packages to upgrade: ",
-			"=>".green()
-		);
-		for (i, p) in dir
-			.filter_map(|x| x.ok())
-			.filter(|x| x.path().is_dir())
-			.map(|x| x.file_name())
-			.enumerate()
-		{
-			if let Some(pkg) = p.to_str() {
-				available_packages.insert(i, pkg.to_owned());
-				println!(
-					"    {} - {}",
-					i.to_string().blue(),
-					pkg.bright_white().bold()
-				);
-			}
-		}
-
-		let mut stdout = io::stdout();
-		zerr!(
-			write!(
-				&mut stdout,
-				"Enter package numbers: (space-separated)\n{}",
-				"=> ".green()
+		let answer = zerr!(
+			logger.question(
+				"Choose which packages to upgrade:",
+				packages.iter().map(|x| x.as_str()).collect(),
+				"all",
+				4
 			),
 			"system",
-			"Cannot write to stdout"
-		);
-		zerr!(stdout.flush(), "system", "Cannot flush stdout");
-
-		let mut choices = String::new();
-		zerr!(
-			io::stdin().read_line(&mut choices),
-			"console",
-			"Cannot read input"
+			&format!("Cannot read input from terminal")
 		);
 
-		if !choices.trim().is_empty() {
-			for choice in choices.split_ascii_whitespace() {
-				let choice_num: usize = match choice.parse() {
-					Ok(v) => v,
-					Err(_) => continue,
-				};
-
-				if available_packages.contains_key(&choice_num) {
-					cfg.packages.insert(
-						available_packages
-							.get(&choice_num)
-							.unwrap()
-							.to_owned(),
-					);
-				}
+		if answer.is_empty() {
+			for package in packages {
+				cfg.packages.insert(package);
 			}
 		} else {
-			for (_, pkg) in available_packages {
-				cfg.packages.insert(pkg);
+			for package in answer {
+				cfg.packages.insert(package.to_owned());
 			}
 		}
 
@@ -132,14 +93,12 @@ pub async fn sync(
 
 	log_debug!(logger, "debug", "{:?}", &cfg);
 
-	if !terminal::yes_no_question(
+	if !logger.yes_no_question(
 		match cfg.upgrade {
 			true => {
 				"Are you sure you want to upgrade these packages?"
 			},
-			false => {
-				"Are you sure you want to install these packages?"
-			},
+			false => "Are you sure you want to build these packages?",
 		},
 		true,
 	)? {

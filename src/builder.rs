@@ -126,10 +126,7 @@ fn remove_packages<'a>(
 }
 
 fn main() {
-	let mut logger = log::Logger {
-		out: log::Stream::Stdout,
-		..Default::default()
-	};
+	let mut logger = log::Logger::default();
 
 	log_info!(
 		logger,

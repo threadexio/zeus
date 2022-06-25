@@ -7,6 +7,7 @@ use bollard::container::{
 	KillContainerOptions, StartContainerOptions,
 };
 
+use colored::Colorize;
 use futures::StreamExt;
 
 use crate::ops::prelude::*;
@@ -46,7 +47,7 @@ pub async fn remove(
 
 	cfg.remove = true;
 
-	if !terminal::yes_no_question(
+	if !logger.yes_no_question(
 		"Are you sure you want to remove these packages?",
 		true,
 	)? {
