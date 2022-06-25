@@ -33,18 +33,13 @@ pub async fn remove(
 		));
 	}
 
-	log_info!(
-		logger,
-		"zeus",
-		"Removing: {}",
-		cfg.packages
-			.iter()
-			.map(|x| x.as_str())
-			.collect::<Vec<&str>>()
-			.join(" ")
-	);
-
 	cfg.remove = true;
+
+	logger.list(
+		"The following packages will be REMOVED:",
+		cfg.packages.iter(),
+		4,
+	)?;
 
 	if !logger.yes_no_question(
 		"Are you sure you want to remove these packages?",

@@ -56,25 +56,22 @@ pub async fn sync(
 		.filter_map(|x| x.ok())
 		.collect();
 
-		let answer = zerr!(
-			logger.question(
-				"Choose which packages to upgrade:",
-				packages.iter().map(|x| x.as_str()).collect(),
-				"all",
-				4
-			),
-			"system",
-			&format!("Cannot read input from terminal")
-		);
-
-		if answer.is_empty() {
-			for package in packages {
-				cfg.packages.insert(package);
-			}
-		} else {
-			for package in answer {
-				cfg.packages.insert(package.to_owned());
-			}
+		match logger.question(
+			"Choose which packages to upgrade:",
+			packages.iter().map(|x| x.as_str()).collect(),
+			"all",
+			4,
+		)? {
+			None => {
+				for package in packages {
+					cfg.packages.insert(package);
+				}
+			},
+			Some(answer) => {
+				for package in answer {
+					cfg.packages.insert(package.to_owned());
+				}
+			},
 		}
 
 		if cfg.packages.is_empty() {

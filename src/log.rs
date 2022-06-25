@@ -247,7 +247,7 @@ impl Logger {
 		answers: Vec<&'a A>,
 		default: &'a A,
 		answers_per_line: usize,
-	) -> io::Result<Vec<&'a A>>
+	) -> io::Result<Option<Vec<&'a A>>>
 	where
 		T: Display,
 		A: Display + ?Sized,
@@ -270,9 +270,10 @@ impl Logger {
 				"   {}) {}{}",
 				index.to_string().color(self.colors.warn),
 				answer,
-				match index % answers_per_line {
-					3 => "\n",
-					_ => "",
+				if index % answers_per_line == answers_per_line - 1 {
+					"\n"
+				} else {
+					""
 				}
 			)?;
 		}
@@ -285,7 +286,7 @@ impl Logger {
 		let mut ret: Vec<&A> = Vec::new();
 
 		if input.trim().is_empty() {
-			return Ok(ret);
+			return Ok(None);
 		}
 
 		for answer_number_str in input.trim().split_ascii_whitespace()
@@ -302,7 +303,45 @@ impl Logger {
 			}
 		}
 
-		Ok(ret)
+		Ok(Some(ret))
+	}
+
+	pub fn list<H, I, T>(
+		&self,
+		header: H,
+		items: I,
+		items_per_line: usize,
+	) -> io::Result<()>
+	where
+		H: Display,
+		T: Display,
+		I: Iterator<Item = T>,
+	{
+		let mut stream = self.get_output();
+
+		writeln!(
+			stream,
+			"{} {}",
+			"=>".color(self.colors.info),
+			header
+		)?;
+
+		for (index, item) in items.enumerate() {
+			write!(
+				stream,
+				"    {}{}",
+				item,
+				if index % items_per_line == items_per_line - 1 {
+					"\n"
+				} else {
+					""
+				}
+			)?;
+		}
+		writeln!(stream, "")?;
+		stream.flush()?;
+
+		Ok(())
 	}
 }
 
