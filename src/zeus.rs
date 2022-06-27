@@ -1,46 +1,45 @@
-mod aur;
 mod cli;
-mod config;
-mod error;
-mod log;
 mod ops;
+mod term;
 mod util;
 
-use aur::Aur;
+pub mod aur;
+pub mod config;
+pub mod error;
+pub mod log;
 
-use std::env::remove_var;
+use std::env;
 use std::process::exit;
 
 #[tokio::main]
 async fn main() {
-	remove_var("DOCKER_HOST"); // just to make sure
+	crate::env::remove_var("DOCKER_HOST"); // just to make sure
 
 	let args = cli::build().get_matches();
 
-	let mut logger = log::Logger {
+	let mut term = term::Terminal::new(log::Logger {
 		debug: args.is_present("debug"),
-		out: log::Stream::Stdout,
 		..Default::default()
-	};
+	});
 
 	match args.value_of("color") {
 		Some("always") => {
-			log::control::set_override(true);
+			term.color(true);
 		},
 		Some("never") => {
-			log::control::set_override(false);
+			term.color(false);
 		},
 		_ => {},
 	}
 
 	let mut cfg = config::AppConfig {
-		debug: logger.debug,
+		debug: term.log.debug,
 		force: args.is_present("force"),
 
 		// this should never fail, we set the default value in cli.rs
 		builddir: args.value_of("builddir").unwrap().to_owned(),
 
-		aur: Aur::new()
+		aur: aur::Aur::new()
 			.host(args.value_of("aur").unwrap().to_owned())
 			.build(),
 
@@ -56,7 +55,7 @@ async fn main() {
 
 	let res = ops::run_operation(
 		command_name,
-		&mut logger,
+		&mut term,
 		&mut cfg,
 		command_args,
 	)
@@ -65,7 +64,7 @@ async fn main() {
 	match res {
 		Ok(_) => exit(0),
 		Err(e) => {
-			log_error!(logger, e.caller, "{}", e.message);
+			error!(term.log, &e.caller, "{}", e.message);
 			exit(1);
 		},
 	}

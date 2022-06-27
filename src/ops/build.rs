@@ -18,7 +18,7 @@ use futures::StreamExt;
 use crate::ops::prelude::*;
 
 pub async fn build(
-	logger: &Logger,
+	term: &Terminal,
 	docker: Docker,
 	cfg: &mut config::AppConfig,
 	args: &ArgMatches,
@@ -41,7 +41,7 @@ pub async fn build(
 		format!("Cannot read image {}", &cfg.archive)
 	);
 
-	log_info!(logger, "docker", "Starting builder...");
+	info!(term.log, "docker", "Starting builder...");
 
 	let opts = BuildImageOptions {
 		dockerfile: cfg.dockerfile.as_str(),
@@ -86,11 +86,9 @@ pub async fn build(
 	{
 		Ok(_) => {},
 		Err(e) => {
-			log_warn!(
-				logger,
-				"docker",
-				"Cannot remove old builder: {}",
-				e
+			warn!(
+				term.log,
+				"docker", "Cannot remove old builder: {}", e
 			);
 		},
 	}

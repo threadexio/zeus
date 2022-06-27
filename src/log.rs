@@ -1,25 +1,6 @@
-pub use colored::{control, Color, Colorize};
-
-use std::collections::HashMap;
 use std::fmt::Display;
 
-use std::io;
-
-use std::io::Read;
-use std::io::Write;
-
-#[allow(dead_code)]
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
-pub enum Stream {
-	Stdout,
-	Stderr,
-}
-
-impl Default for Stream {
-	fn default() -> Self {
-		Self::Stderr
-	}
-}
+use colored::{Color, Colorize};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Colors {
@@ -29,44 +10,10 @@ pub struct Colors {
 	pub debug: Color,
 }
 
-impl Default for Colors {
-	fn default() -> Self {
-		ColorsBuilder::new().build()
-	}
-}
-
-#[derive(Debug, Clone, Copy)]
-pub struct ColorsBuilder {
-	pub error: Color,
-	pub warn: Color,
-	pub info: Color,
-	pub debug: Color,
-}
-
-impl Default for ColorsBuilder {
-	fn default() -> Self {
-		Self {
-			error: Color::Red,
-			warn: Color::Yellow,
-			info: Color::Green,
-			debug: Color::Blue,
-		}
-	}
-}
-
 #[allow(dead_code)]
-impl ColorsBuilder {
+impl Colors {
 	pub fn new() -> Self {
 		Self { ..Default::default() }
-	}
-
-	pub fn build(self) -> Colors {
-		Colors {
-			error: self.error,
-			warn: self.warn,
-			info: self.info,
-			debug: self.debug,
-		}
 	}
 
 	pub fn error(mut self, c: Color) -> Self {
@@ -87,29 +34,24 @@ impl ColorsBuilder {
 	}
 }
 
-#[derive(Debug, Default)]
-pub struct Logger {
-	pub colors: Colors,
-
-	pub debug: bool,
-
-	pub out: Stream,
-}
-
-#[allow(dead_code)]
-impl Logger {
-	pub fn new(stream: Stream, colors: Colors) -> Self {
-		Self { out: stream, colors, debug: false }
-	}
-
-	fn get_output(&self) -> Box<dyn Write> {
-		use Stream::*;
-		match self.out {
-			Stdout => Box::new(io::stdout()),
-			Stderr => Box::new(io::stderr()),
+impl Default for Colors {
+	fn default() -> Self {
+		Self {
+			error: Color::Red,
+			warn: Color::Yellow,
+			info: Color::Green,
+			debug: Color::Blue,
 		}
 	}
+}
 
+#[derive(Debug, Default, Clone, Copy)]
+pub struct Logger {
+	pub colors: Colors,
+	pub debug: bool,
+}
+
+impl Logger {
 	fn log_impl(
 		&self,
 		level: &str,
@@ -117,62 +59,52 @@ impl Logger {
 		caller: &str,
 		data: &str,
 	) {
-		let log_format = format!(
-			"{} {: <5} {} {} {}",
+		eprintln!(
+			"{}{} {}{} {}",
 			"[".bright_black(),
-			level.to_string().color(c).bold(),
-			caller.to_string().bright_white().bold(),
+			level.color(c).bold(),
+			caller.bright_white().bold(),
 			"]".bright_black(),
-			data.to_string().bright_white()
+			data.bright_white()
 		);
-
-		use Stream::*;
-		match self.out {
-			Stdout => println!("{}", log_format),
-			Stderr => eprintln!("{}", log_format),
-		}
 	}
 
-	pub fn e<C, D>(&self, caller: C, message: D)
+	pub fn e<T>(&self, caller: &str, message: T)
 	where
-		C: Display,
-		D: Display,
+		T: Display,
 	{
 		self.log_impl(
 			"ERROR",
 			self.colors.error,
-			&caller.to_string(),
+			caller,
 			&message.to_string(),
 		);
 	}
-	pub fn w<C, D>(&self, caller: C, message: D)
+	pub fn w<T>(&self, caller: &str, message: T)
 	where
-		C: Display,
-		D: Display,
+		T: Display,
 	{
 		self.log_impl(
 			"WARN",
 			self.colors.warn,
-			&caller.to_string(),
+			caller,
 			&message.to_string(),
 		);
 	}
-	pub fn i<C, D>(&self, caller: C, message: D)
+	pub fn i<T>(&self, caller: &str, message: T)
 	where
-		C: Display,
-		D: Display,
+		T: Display,
 	{
 		self.log_impl(
 			"INFO",
 			self.colors.info,
-			&caller.to_string(),
+			caller,
 			&message.to_string(),
 		);
 	}
-	pub fn d<C, D>(&self, caller: C, message: D)
+	pub fn d<T>(&self, caller: &str, message: T)
 	where
-		C: Display,
-		D: Display,
+		T: Display,
 	{
 		if !self.debug {
 			return;
@@ -181,194 +113,33 @@ impl Logger {
 		self.log_impl(
 			"DEBUG",
 			self.colors.debug,
-			&caller.to_string(),
+			caller,
 			&message.to_string(),
 		);
 	}
-
-	pub fn prompt<T>(&self, message: T) -> io::Result<String>
-	where
-		T: Display,
-	{
-		let mut stream = self.get_output();
-
-		write!(
-			stream,
-			"{} {}\n{0} ",
-			"=>".color(self.colors.info),
-			message
-		)?;
-		stream.flush()?;
-
-		let mut input = String::with_capacity(16);
-		io::stdin().read_line(&mut input)?;
-
-		Ok(input)
-	}
-
-	pub fn yes_no_question<T>(
-		&self,
-		question: T,
-		default: bool,
-	) -> io::Result<bool>
-	where
-		T: Display,
-	{
-		let mut stream = self.get_output();
-
-		write!(
-			stream,
-			"{} {} [{}] ",
-			"=>".color(self.colors.info),
-			question,
-			match default {
-				true => "Y/n",
-				false => "y/N",
-			}
-			.bright_white()
-			.bold(),
-		)?;
-		stream.flush()?;
-
-		let mut answer: [u8; 1] = [0; 1];
-		io::stdin().read(&mut answer)?;
-
-		match answer[0] as char {
-			'y' | 'Y' => Ok(true),
-			'n' | 'N' => Ok(false),
-			'\n' => Ok(default),
-			_ => Ok(false),
-		}
-	}
-
-	pub fn question<'a, T, A>(
-		&self,
-		message: T,
-		answers: Vec<&'a A>,
-		default: &'a A,
-		answers_per_line: usize,
-	) -> io::Result<Option<Vec<&'a A>>>
-	where
-		T: Display,
-		A: Display + ?Sized,
-	{
-		let mut stream = self.get_output();
-
-		writeln!(
-			stream,
-			"{} {} [{}]",
-			"=>".color(self.colors.info),
-			message,
-			default.to_string().bright_white().bold()
-		)?;
-
-		let mut numbered_answers: HashMap<usize, &A> = HashMap::new();
-		for (index, answer) in answers.iter().enumerate() {
-			numbered_answers.insert(index, answer);
-			write!(
-				stream,
-				"   {}) {}{}",
-				index.to_string().color(self.colors.warn),
-				answer,
-				if index % answers_per_line == answers_per_line - 1 {
-					"\n"
-				} else {
-					""
-				}
-			)?;
-		}
-		write!(stream, "\n{} ", "=>".color(self.colors.info))?;
-		stream.flush()?;
-
-		let mut input = String::with_capacity(16);
-		io::stdin().read_line(&mut input)?;
-
-		let mut ret: Vec<&A> = Vec::new();
-
-		if input.trim().is_empty() {
-			return Ok(None);
-		}
-
-		for answer_number_str in input.trim().split_ascii_whitespace()
-		{
-			let answer_number: usize = match answer_number_str.parse()
-			{
-				Ok(v) => v,
-				Err(_) => continue,
-			};
-
-			if let Some(answer) = numbered_answers.get(&answer_number)
-			{
-				ret.push(answer)
-			}
-		}
-
-		Ok(Some(ret))
-	}
-
-	pub fn list<H, I, T>(
-		&self,
-		header: H,
-		items: I,
-		items_per_line: usize,
-	) -> io::Result<()>
-	where
-		H: Display,
-		T: Display,
-		I: Iterator<Item = T>,
-	{
-		let mut stream = self.get_output();
-
-		writeln!(
-			stream,
-			"{} {}",
-			"=>".color(self.colors.info),
-			header
-		)?;
-
-		for (index, item) in items.enumerate() {
-			write!(
-				stream,
-				"    {}{}",
-				item,
-				if index % items_per_line == items_per_line - 1 {
-					"\n"
-				} else {
-					""
-				}
-			)?;
-		}
-		writeln!(stream, "")?;
-		stream.flush()?;
-
-		Ok(())
-	}
 }
 
 #[macro_export]
-macro_rules! log_error {
-	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+macro_rules! error {
+	($logger:expr, $caller:expr, $($arg:tt)*) => ({
 		$logger.e($caller, format!($($arg)*))
 	});
 }
-
 #[macro_export]
-macro_rules! log_warn {
-	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+macro_rules! warn {
+	($logger:expr, $caller:expr, $($arg:tt)*) => ({
 		$logger.w($caller, format!($($arg)*))
 	});
 }
-
 #[macro_export]
-macro_rules! log_info {
-	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+macro_rules! info {
+	($logger:expr, $caller:expr, $($arg:tt)*) => ({
 		$logger.i($caller, format!($($arg)*))
 	});
 }
-
 #[macro_export]
-macro_rules! log_debug {
-	($logger:tt, $caller:expr, $($arg:tt)*) => ({
+macro_rules! debug {
+	($logger:expr, $caller:expr, $($arg:tt)*) => ({
 		$logger.d($caller, format!($($arg)*))
 	});
 }

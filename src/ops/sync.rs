@@ -12,13 +12,12 @@ use futures::StreamExt;
 
 use ctrlc;
 
-use crate::log_error;
 use crate::util::LocalListener;
 
 use crate::ops::prelude::*;
 
 pub async fn sync(
-	logger: &Logger,
+	term: &mut Terminal,
 	docker: Docker,
 	cfg: &mut config::AppConfig,
 	args: &ArgMatches,
@@ -56,7 +55,7 @@ pub async fn sync(
 		.filter_map(|x| x.ok())
 		.collect();
 
-		match logger.question(
+		match term.question(
 			"Choose which packages to upgrade:",
 			packages.iter().map(|x| x.as_str()).collect(),
 			"all",
@@ -87,9 +86,9 @@ pub async fn sync(
 		));
 	}
 
-	log_debug!(logger, "debug", "{:?}", &cfg);
+	debug!(term.log, "debug", "{:?}", &cfg);
 
-	if !logger.yes_no_question(
+	if !term.yes_no_question(
 		match cfg.upgrade {
 			true => {
 				"Are you sure you want to upgrade these packages?"
@@ -98,7 +97,7 @@ pub async fn sync(
 		},
 		true,
 	)? {
-		log_error!(logger, "zeus", "Aborting...");
+		error!(term.log, "zeus", "Aborting...");
 		return Ok(());
 	}
 
@@ -128,11 +127,13 @@ pub async fn sync(
 
 	match stream.set_nonblocking(true) {
 		Ok(_) => {},
-		Err(e) => logger
-			.w("unix", format!("Cannot use non-blocking IO: {}", e)),
+		Err(e) => warn!(
+			term.log,
+			"unix", "Cannot use non-blocking IO: {}", e
+		),
 	};
 
-	log_info!(logger, "docker", "Attaching to builder...");
+	info!(term.log, "docker", "Attaching to builder...");
 
 	let data = zerr!(
 		serde_json::to_string(&cfg),
@@ -172,10 +173,9 @@ pub async fn sync(
 	while let Some(res) = out_stream.next().await {
 		// This means the signal handler above triggered
 		if rx.try_recv().is_ok() {
-			log_info!(
-				logger,
-				"system",
-				"Interrupt detected. Exiting..."
+			info!(
+				term.log,
+				"system", "Interrupt detected. Exiting..."
 			);
 
 			zerr!(

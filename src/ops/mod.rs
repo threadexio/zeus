@@ -3,11 +3,10 @@ use std::path;
 use bollard::Docker;
 use clap::ArgMatches;
 
-use crate::config::AppConfig;
-use crate::config::Operation;
+use crate::config::{AppConfig, Operation};
+use crate::debug;
 use crate::error::{Result, ZeusError};
-use crate::log::Logger;
-use crate::log_debug;
+use crate::term::Terminal;
 use crate::util::Lockfile;
 
 mod build;
@@ -17,15 +16,22 @@ mod remove;
 mod sync;
 
 mod prelude {
-	pub(crate) use bollard::Docker;
-	pub(crate) use clap::ArgMatches;
+	pub use crate::config;
 
-	pub(crate) use crate::config;
-	pub(crate) use crate::error::{zerr, Result, ZeusError};
-	pub(crate) use crate::log::Logger;
-	pub(crate) use crate::{
-		log_debug, log_error, log_info, log_warn,
-	};
+	// Error handling
+	pub use crate::error::{Result, ZeusError};
+	pub use crate::zerr;
+
+	pub use crate::term::Terminal;
+
+	// Logging
+	pub use crate::log::Logger;
+	pub use crate::{debug, error, info, warn};
+
+	// Extras
+	pub use bollard::Docker;
+	pub use clap::ArgMatches;
+	pub use colored::Colorize;
 }
 
 fn init_docker() -> Result<Docker> {
@@ -42,7 +48,7 @@ fn init_docker() -> Result<Docker> {
 
 pub async fn run_operation(
 	name: &str,
-	logger: &Logger,
+	term: &mut Terminal,
 	cfg: &mut AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
@@ -51,27 +57,25 @@ pub async fn run_operation(
 		&cfg.builddir
 	)))?;
 
-	log_debug!(logger, "pre-op config", "{:?}", cfg);
+	debug!(term.log, "pre-op config", "{:?}", cfg);
 
 	match name {
 		"build" => {
 			lockfile.lock()?;
-			build::build(logger, init_docker()?, cfg, args).await
+			build::build(&term, init_docker()?, cfg, args).await
 		},
 		"remove" => {
 			lockfile.lock()?;
 			cfg.operation = Operation::Remove;
-			remove::remove(logger, init_docker()?, cfg, args).await
+			remove::remove(term, init_docker()?, cfg, args).await
 		},
 		"sync" => {
 			lockfile.lock()?;
 			cfg.operation = Operation::Sync;
-			sync::sync(logger, init_docker()?, cfg, args).await
-		},
-		"completions" => {
-			completions::completions(logger, cfg, args).await
+			sync::sync(term, init_docker()?, cfg, args).await
 		},
 		"query" => query::query(cfg, args).await,
+		"completions" => completions::completions(args).await,
 		_ => Err(ZeusError::new(
 			"zeus".to_owned(),
 			"No such operation".to_owned(),

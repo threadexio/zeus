@@ -11,9 +11,9 @@ mod config;
 mod error;
 mod log;
 
+use colored::Colorize;
 use config::Operation;
-use error::{zerr, Result, ZeusError};
-use log::Colorize;
+use error::{Result, ZeusError};
 
 fn build_packages<'a>(
 	cfg: &'a config::AppConfig,
@@ -108,7 +108,7 @@ fn remove_packages<'a>(
 					removed_packages.push(package);
 				},
 				Err(e) => {
-					log_warn!(
+					warn!(
 						logger,
 						"fs",
 						"Cannot remove package directory {}: {}",
@@ -118,7 +118,7 @@ fn remove_packages<'a>(
 				},
 			}
 		} else {
-			log_warn!(logger, "zeus", "Package has not been synced");
+			warn!(logger, "zeus", "Package has not been synced");
 		}
 	}
 
@@ -128,7 +128,7 @@ fn remove_packages<'a>(
 fn main() {
 	let mut logger = log::Logger::default();
 
-	log_info!(
+	info!(
 		logger,
 		"builder",
 		"Version: {}",
@@ -138,7 +138,7 @@ fn main() {
 	match env::set_current_dir("/build") {
 		Ok(_) => {},
 		Err(e) => {
-			log_error!(
+			error!(
 				logger,
 				"builder",
 				"Cannot change directory to {}: {}",
@@ -153,7 +153,7 @@ fn main() {
 	let mut stream = match UnixStream::connect(&socket_path) {
 		Ok(v) => v,
 		Err(e) => {
-			log_error!(
+			error!(
 				logger,
 				"unix",
 				"Cannot connect to socket {}: {}",
@@ -171,11 +171,9 @@ fn main() {
 			data_len = v;
 		},
 		Err(e) => {
-			log_error!(
+			error!(
 				logger,
-				"unix",
-				"Cannot read data from socket: {}",
-				e
+				"unix", "Cannot read data from socket: {}", e
 			);
 			exit(1);
 		},
@@ -185,11 +183,9 @@ fn main() {
 		match serde_json::from_slice(&data[..data_len]) {
 			Ok(v) => v,
 			Err(e) => {
-				log_error!(
+				error!(
 					logger,
-					"zeus",
-					"Cannot deserialize config: {}",
-					e
+					"zeus", "Cannot deserialize config: {}", e
 				);
 				exit(1);
 			},
@@ -200,7 +196,7 @@ fn main() {
 	match cfg.operation {
 		Operation::Sync => match build_packages(&cfg) {
 			Err(e) => {
-				log_error!(logger, e.caller, "{}", e.message);
+				error!(logger, &e.caller, "{}", e.message);
 			},
 			Ok(pkgs) => {
 				if cfg.upgrade {
@@ -220,7 +216,7 @@ fn main() {
 		},
 		Operation::Remove => match remove_packages(&logger, &cfg) {
 			Err(e) => {
-				log_error!(logger, e.caller, "{}", e.message);
+				error!(logger, &e.caller, "{}", e.message);
 			},
 			Ok(pkgs) => {
 				println!("Removed packages:");
@@ -235,11 +231,9 @@ fn main() {
 			},
 		},
 		_ => {
-			log_debug!(
+			debug!(
 				logger,
-				"builder",
-				"operation = {:?}",
-				cfg.operation
+				"builder", "operation = {:?}", cfg.operation
 			);
 		},
 	}

@@ -32,6 +32,7 @@ impl Display for ZeusError {
 
 impl Error for ZeusError {}
 
+#[macro_export]
 macro_rules! zerr {
 	($x:expr, $caller:expr, $msg:expr) => {
 		match $x {
@@ -45,5 +46,3 @@ macro_rules! zerr {
 		}
 	};
 }
-
-pub(crate) use zerr;

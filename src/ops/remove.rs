@@ -13,7 +13,7 @@ use crate::ops::prelude::*;
 use crate::util::LocalListener;
 
 pub async fn remove(
-	logger: &Logger,
+	term: &mut Terminal,
 	docker: Docker,
 	cfg: &mut config::AppConfig,
 	args: &ArgMatches,
@@ -35,17 +35,17 @@ pub async fn remove(
 
 	cfg.remove = true;
 
-	logger.list(
+	term.list(
 		"The following packages will be REMOVED:",
 		cfg.packages.iter(),
 		4,
 	)?;
 
-	if !logger.yes_no_question(
+	if !term.yes_no_question(
 		"Are you sure you want to remove these packages?",
 		true,
 	)? {
-		log_error!(logger, "zeus", "Aborting...");
+		error!(term.log, "zeus", "Aborting...");
 		return Ok(());
 	}
 
@@ -75,8 +75,10 @@ pub async fn remove(
 
 	match stream.set_nonblocking(true) {
 		Ok(_) => {},
-		Err(e) => logger
-			.w("unix", format!("Cannot use non-blocking IO: {}", e)),
+		Err(e) => warn!(
+			term.log,
+			"unix", "Cannot use non-blocking IO: {}", e
+		),
 	};
 
 	let data = zerr!(
@@ -117,10 +119,9 @@ pub async fn remove(
 	while let Some(res) = out_stream.next().await {
 		// This means the signal handler above triggered
 		if rx.try_recv().is_ok() {
-			log_info!(
-				logger,
-				"system",
-				"Interrupt detected. Exiting..."
+			info!(
+				term.log,
+				"system", "Interrupt detected. Exiting..."
 			);
 
 			zerr!(
