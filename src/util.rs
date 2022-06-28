@@ -52,6 +52,7 @@ pub struct LocalListener {
 	path: PathBuf,
 }
 
+#[allow(dead_code)]
 impl LocalListener {
 	pub fn new(path: &Path, mode: Option<u32>) -> io::Result<Self> {
 		let _ = fs::remove_file(path);

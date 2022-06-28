@@ -69,24 +69,6 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 			.long_flag("build")
 			.about("Build/Update builder image")
 			.arg(
-				Arg::new("archive")
-					.long("archive")
-					.help("Builder image archive")
-					.default_value(default_env!(
-						"DEFAULT_ARCHIVE",
-						"/usr/local/share/zeus/builder.tar.gz"
-					)),
-			)
-			.arg(
-				Arg::new("dockerfile")
-					.long("dockerfile")
-					.help("Builder image dockerfile in archive")
-					.default_value(default_env!(
-						"DEFAULT_DOCKERFILE",
-						"Dockerfile"
-					)),
-			)
-			.arg(
 				Arg::new("image")
 					.long("image")
 					.help("Builder image name")
@@ -156,6 +138,24 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 					.possible_values(Shell::possible_values()),
 			),
 		////////////////////////////////////////////////////
+		Command::new("runtime")
+			.long_flag("runtime")
+			.about("Various runtime operations")
+			.arg(
+				Arg::new("list")
+					.short('l')
+					.long("list")
+					.help("List all available runtimes")
+					.takes_value(false)
+					.conflicts_with_all(&[]),
+			)
+			.arg(
+				Arg::new("check")
+					.short('c')
+					.long("c")
+					.help("Check that the specified runtime works"),
+			),
+		////////////////////////////////////////////////////
 	]
 }
 
@@ -214,6 +214,24 @@ pub fn build() -> Command<'static> {
 				.default_value(default_env!(
 					"DEFAULT_AUR_HOST",
 					"aur.archlinux.org"
+				)),
+		)
+		.arg(
+			Arg::new("rt")
+				.long("rt")
+				.help("Specify runtime to use")
+				.default_value(default_env!(
+					"DEFAULT_RUNTIME",
+					"docker"
+				)),
+		)
+		.arg(
+			Arg::new("rtdir")
+				.long("rtdir")
+				.help("Specify directory to search for runtimes")
+				.default_value(default_env!(
+					"DEFAULT_RUNTIME_DIR",
+					""
 				)),
 		)
 		.subcommand_required(true)

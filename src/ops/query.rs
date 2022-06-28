@@ -58,10 +58,7 @@ fn print_pretty_package(package: &aur::Package) {
 	print_if_some!("Votes", &package.NumVotes);
 }
 
-pub async fn query(
-	cfg: &mut config::AppConfig,
-	args: &ArgMatches,
-) -> Result<()> {
+pub fn query(cfg: &mut AppConfig, args: &ArgMatches) -> Result<()> {
 	cfg.keywords = args
 		.values_of("keywords")
 		.unwrap_or_default()
@@ -78,8 +75,8 @@ pub async fn query(
 	let by = args.value_of_t::<aur::By>("by").unwrap();
 
 	let res = match args.is_present("info") {
-		true => cfg.aur.info(&cfg.keywords).await,
-		false => cfg.aur.search(by, &cfg.keywords).await,
+		true => cfg.aur.info(&cfg.keywords),
+		false => cfg.aur.search(by, &cfg.keywords),
 	};
 
 	let data = zerr!(res, "aur", "Error: ");

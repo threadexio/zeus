@@ -1,12 +1,7 @@
 use std::path;
 
-use bollard::Docker;
-use clap::ArgMatches;
-
-use crate::config::{AppConfig, Operation};
-use crate::debug;
-use crate::error::{Result, ZeusError};
-use crate::term::Terminal;
+use crate::config::Operation;
+use crate::machine::manager::RuntimeManager;
 use crate::util::Lockfile;
 
 mod build;
@@ -16,7 +11,7 @@ mod remove;
 mod sync;
 
 mod prelude {
-	pub use crate::config;
+	pub use crate::config::AppConfig;
 
 	// Error handling
 	pub use crate::error::{Result, ZeusError};
@@ -29,24 +24,26 @@ mod prelude {
 	pub use crate::{debug, error, info, warn};
 
 	// Extras
-	pub use bollard::Docker;
+	pub use crate::machine::Runtime;
 	pub use clap::ArgMatches;
 	pub use colored::Colorize;
 }
 
-fn init_docker() -> Result<Docker> {
-	match Docker::connect_with_local_defaults() {
-		Ok(v) => return Ok(v),
-		Err(e) => {
-			return Err(ZeusError::new(
-				"docker".to_owned(),
-				format!("Cannot connect to the docker daemon: {}", e),
-			))
-		},
-	};
+use prelude::*;
+
+fn get_runtime<'a>(
+	cfg: &AppConfig,
+	rt_manager: &'a mut RuntimeManager,
+) -> Result<&'a mut Runtime> {
+	Ok(rt_manager
+		.load(format!(
+			"{}/librt_{}.so",
+			cfg.runtime_dir, cfg.runtime
+		))?
+		.as_mut())
 }
 
-pub async fn run_operation(
+pub fn run_operation(
 	name: &str,
 	term: &mut Terminal,
 	cfg: &mut AppConfig,
@@ -54,28 +51,45 @@ pub async fn run_operation(
 ) -> Result<()> {
 	let lockfile = Lockfile::new(path::Path::new(&format!(
 		"{}/zeus.lock",
-		&cfg.builddir
+		&cfg.build_dir
 	)))?;
+
+	let mut rt_manager = RuntimeManager::new();
 
 	debug!(term.log, "pre-op config", "{:?}", cfg);
 
 	match name {
 		"build" => {
 			lockfile.lock()?;
-			build::build(&term, init_docker()?, cfg, args).await
+			build::build(
+				&term,
+				get_runtime(&cfg, &mut rt_manager)?,
+				cfg,
+				args,
+			)
 		},
 		"remove" => {
 			lockfile.lock()?;
 			cfg.operation = Operation::Remove;
-			remove::remove(term, init_docker()?, cfg, args).await
+			remove::remove(
+				term,
+				get_runtime(&cfg, &mut rt_manager)?,
+				cfg,
+				args,
+			)
 		},
 		"sync" => {
 			lockfile.lock()?;
 			cfg.operation = Operation::Sync;
-			sync::sync(term, init_docker()?, cfg, args).await
+			sync::sync(
+				term,
+				get_runtime(&cfg, &mut rt_manager)?,
+				cfg,
+				args,
+			)
 		},
-		"query" => query::query(cfg, args).await,
-		"completions" => completions::completions(args).await,
+		"query" => query::query(cfg, args),
+		"completions" => completions::completions(args),
 		_ => Err(ZeusError::new(
 			"zeus".to_owned(),
 			"No such operation".to_owned(),

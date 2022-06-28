@@ -77,7 +77,7 @@ fn build_packages<'a>(
 				.arg("--needed")
 				.arg("--noconfirm")
 				.arg("--noprogressbar")
-				.args(&cfg.buildargs)
+				.args(&cfg.build_args)
 				.status(),
 			"cmd".to_owned(),
 			"Cannot start makepkg"

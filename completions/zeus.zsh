@@ -18,6 +18,8 @@ _zeus() {
 '--color=[Colorize the output]: :(auto always never)' \
 '--builddir=[Package build directory]: : ' \
 '--aur=[AUR host]: : ' \
+'--rt=[Specify runtime to use]: : ' \
+'--rtdir=[Specify directory to search for runtimes]: : ' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 '-V[Print version information]' \
@@ -55,8 +57,6 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (build)
 _arguments "${_arguments_options[@]}" \
-'--archive=[Builder image archive]: : ' \
-'--dockerfile=[Builder image dockerfile in archive]: : ' \
 '--image=[Builder image name]: : ' \
 '--name=[Builder container name]: : ' \
 '-h[Print help information]' \
@@ -81,6 +81,16 @@ _arguments "${_arguments_options[@]}" \
 '--help[Print help information]' \
 && ret=0
 ;;
+(runtime)
+_arguments "${_arguments_options[@]}" \
+'-l[List all available runtimes]' \
+'--list[List all available runtimes]' \
+'-c[Check that the specified runtime works]' \
+'--c[Check that the specified runtime works]' \
+'-h[Print help information]' \
+'--help[Print help information]' \
+&& ret=0
+;;
 (help)
 _arguments "${_arguments_options[@]}" \
 '*::subcommand -- The subcommand whose help message to display:' \
@@ -99,6 +109,7 @@ _zeus_commands() {
 'build:Build/Update builder image' \
 'query:Query the AUR' \
 'completions:Generate shell completions & others' \
+'runtime:Various runtime operations' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
     _describe -t commands 'zeus commands' commands "$@"
@@ -127,6 +138,11 @@ _zeus__query_commands() {
 _zeus__remove_commands() {
     local commands; commands=()
     _describe -t commands 'zeus remove commands' commands "$@"
+}
+(( $+functions[_zeus__runtime_commands] )) ||
+_zeus__runtime_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus runtime commands' commands "$@"
 }
 (( $+functions[_zeus__sync_commands] )) ||
 _zeus__sync_commands() {

@@ -9,6 +9,10 @@ homepage = "https://github.com/threadexio/zeus"
 repository = "https://github.com/threadexio/zeus"
 license = "GPL-3.0-or-later"
 
+[lib]
+name = "zeus"
+path = "src/lib.rs"
+
 [[bin]]
 name = "zeus"
 path = "src/zeus.rs"
@@ -20,14 +24,14 @@ path = "src/builder.rs"
 [dependencies]
 clap = { version = "^3.1", features = ["cargo"] }
 clap_complete = "^3.1"
-tokio = { version = "^1.18", features = ["full"] }
-futures = "^0.3"
-bollard = "0.12.0"
-serde = "^1.0"
+serde = { version = "^1.0", features = ["derive"] }
 serde_json = "^1.0"
 fs4 = { version = "^0.5", features = ["sync"] }
-ctrlc = { version = "^3.2", features = ["termination"] }
 const_format = "^0.2"
 default-env = "^0.1"
-reqwest = { version = "^0.11", features = ["json"] }
+reqwest = { version = "^0.11", features = ["json", "blocking"] }
 colored = "^2.0"
+libloading = "^0.7"
+
+[workspace]
+members = ["runtimes/zeus_rt_docker"]

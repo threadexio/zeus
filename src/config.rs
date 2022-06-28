@@ -39,31 +39,39 @@ impl Default for Operation {
 
 #[derive(Debug, Default, Serialize, Deserialize)]
 pub struct AppConfig {
-	// Global
 	pub operation: Operation,
+
+	/// Should we display debug logs?
 	pub debug: bool,
+
 	pub force: bool,
+
+	/// Instance to communicate with the AUR RPC interface
 	pub aur: Aur,
-	pub builddir: String,
+
+	/// DirectoryBuild directory for packages
+	pub build_dir: String,
+
+	/// Name of the runtime to load
+	pub runtime: String,
+
+	/// Directory to search for runtimes
+	pub runtime_dir: String,
 
 	// Sync
 	pub upgrade: bool,
-	pub buildargs: Vec<String>,
+	pub build_args: Vec<String>,
 
-	// Build
-	pub archive: String,
-	pub dockerfile: String,
+	// Machine
+	/// Machine name
+	pub machine: String,
+
+	/// Machine image name
 	pub image: String,
 
-	// Remove
-	pub remove: bool,
-
-	// Sync + Remove + Build
-	pub name: String,
-
-	// Sync + Remove
+	/// Packages for an operation
 	pub packages: HashSet<String>,
 
-	// Query
+	/// Keywords for the query operation
 	pub keywords: Vec<String>,
 }

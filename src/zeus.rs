@@ -8,13 +8,11 @@ pub mod config;
 pub mod error;
 pub mod log;
 
-use std::env;
+pub mod machine;
+
 use std::process::exit;
 
-#[tokio::main]
-async fn main() {
-	crate::env::remove_var("DOCKER_HOST"); // just to make sure
-
+fn main() {
 	let args = cli::build().get_matches();
 
 	let mut term = term::Terminal::new(log::Logger {
@@ -37,18 +35,21 @@ async fn main() {
 		force: args.is_present("force"),
 
 		// this should never fail, we set the default value in cli.rs
-		builddir: args.value_of("builddir").unwrap().to_owned(),
+		build_dir: args.value_of("builddir").unwrap().to_owned(),
 
 		aur: aur::Aur::new()
 			.host(args.value_of("aur").unwrap().to_owned())
 			.build(),
+
+		runtime: args.value_of("rt").unwrap().to_owned(),
+		runtime_dir: args.value_of("rtdir").unwrap().to_owned(),
 
 		// initialization of the rest will be in the code that handles the subcommands
 		..Default::default()
 	};
 
 	if cfg.force {
-		cfg.buildargs.push("-f".to_owned());
+		cfg.build_args.push("-f".to_owned());
 	}
 
 	let (command_name, command_args) = args.subcommand().unwrap();
@@ -58,8 +59,7 @@ async fn main() {
 		&mut term,
 		&mut cfg,
 		command_args,
-	)
-	.await;
+	);
 
 	match res {
 		Ok(_) => exit(0),

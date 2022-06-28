@@ -1,11 +1,11 @@
-use crate::config;
-
-use serde::{Deserialize, Serialize};
-
-use const_format::formatcp;
-
 use std::fmt;
 use std::str::FromStr;
+
+use const_format::formatcp;
+use reqwest::blocking::{Client, ClientBuilder};
+use serde::{Deserialize, Serialize};
+
+use crate::config;
 
 /// Type alias for timestamps
 pub type Timestamp = u64;
@@ -98,8 +98,8 @@ pub struct AurResponse {
 	pub version: Version,
 }
 
-fn make_req_client() -> reqwest::Client {
-	reqwest::ClientBuilder::new()
+fn make_req_client() -> Client {
+	ClientBuilder::new()
 		.user_agent(formatcp!(
 			"{}-{}",
 			config::PROGRAM_NAME,
@@ -254,11 +254,7 @@ impl Aur {
 	///
 	/// let response = aur_instance.search(aur::By::Name, vec!["zeus", "zeus-bin"]).await;
 	/// ```
-	pub async fn search<T>(
-		&self,
-		by: By,
-		keywords: &Vec<T>,
-	) -> AurResult
+	pub fn search<T>(&self, by: By, keywords: &Vec<T>) -> AurResult
 	where
 		T: fmt::Display,
 	{
@@ -273,7 +269,7 @@ impl Aur {
 		}
 
 		let res: AurResponse =
-			make_req_client().get(url).send().await?.json().await?;
+			make_req_client().get(url).send()?.json()?;
 
 		Ok(res)
 	}
@@ -286,7 +282,7 @@ impl Aur {
 	///
 	/// let response = aur_instance.info(vec!["zeus", "zeus-bin"]).await;
 	/// ```
-	pub async fn info<T>(&self, packages: &Vec<T>) -> AurResult
+	pub fn info<T>(&self, packages: &Vec<T>) -> AurResult
 	where
 		T: fmt::Display,
 	{
@@ -297,7 +293,7 @@ impl Aur {
 		}
 
 		let res: AurResponse =
-			make_req_client().get(url).send().await?.json().await?;
+			make_req_client().get(url).send()?.json()?;
 
 		Ok(res)
 	}

@@ -21,11 +21,17 @@ FORCE: ;
 .PHONY:
 .ONESHELL:
 build: FORCE
+	export DEFAULT_NAME="zeus-builder"
+	export DEFAULT_IMAGE="zeus-builder"
 
-	export DEFAULT_ARCHIVE="$(PREFIX)/share/zeus/builder.tar.gz"
+	export DEFAULT_BUILDDIR="/var/cache/aur"
+	export DEFAULT_AUR_HOST="aur.archlinux.org"
+
+	export DEFAULT_RUNTIME="docker"
+	export DEFAULT_RUNTIME_DIR="$(PREFIX)/share/zeus/runtimes"
 
 	export VERSION="$(VERSION)"
-	cargo build $(CARGO_ARGS) --
+	cargo build --workspace $(CARGO_ARGS) --
 
 	tar -acvf builder.tar.gz \
 		-C $$PWD/builder/               . \
@@ -51,7 +57,7 @@ package: build
 		apparmor/zeus
 
 .PHONY:
-install: completions
+install:
 	install -Dm0755 -t "$(DESTDIR)/$(PREFIX)/bin" target/$(BUILD_TYPE)/zeus
 	install -Dm0644 -t "$(DESTDIR)/$(PREFIX)/share/zeus" builder.tar.gz
 
@@ -63,6 +69,13 @@ install: completions
 	install -Dm644 completions/zeus.bash "$(DESTDIR)/usr/share/bash-completion/completions/zeus"
 	install -Dm644 completions/zeus.zsh "$(DESTDIR)/usr/share/zsh/site-functions/_zeus"
 	install -Dm644 completions/zeus.fish "$(DESTDIR)/usr/share/fish/vendor_completions.d/zeus.fish"
+
+	mkdir -p "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes"
+	chmod 0777 "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes"
+
+	for rtlib in target/$(BUILD_TYPE)/librt_*.so; do
+		install -Dm644 -t "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes" "$$rtlib"
+	done
 
 .PHONY:
 apparmor_test:
