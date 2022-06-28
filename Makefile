@@ -71,7 +71,7 @@ install:
 	install -Dm644 completions/zeus.fish "$(DESTDIR)/usr/share/fish/vendor_completions.d/zeus.fish"
 
 	mkdir -p "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes"
-	chmod 0777 "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes"
+	chmod 0755 "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes"
 
 	for rtlib in target/$(BUILD_TYPE)/librt_*.so; do
 		install -Dm644 -t "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes" "$$rtlib"
