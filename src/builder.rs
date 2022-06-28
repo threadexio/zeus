@@ -236,5 +236,5 @@ fn main() {
 				"builder", "operation = {:?}", cfg.operation
 			);
 		},
-	}
+	};
 }

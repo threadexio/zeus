@@ -1,5 +1,10 @@
+use crate::machine::BoxedMachine;
 use crate::ops::prelude::*;
+use crate::util::LocalListener;
+
 use std::fs;
+use std::io::{Read, Write};
+use std::path::Path;
 
 pub fn sync(
 	term: &mut Terminal,
@@ -71,7 +76,7 @@ pub fn sync(
 		));
 	}
 
-	debug!(term.log, "debug", "{:?}", &cfg);
+	debug!(term.log, "post-op config", "{:?}", &cfg);
 
 	if !term.yes_no_question(
 		match cfg.upgrade {
@@ -86,11 +91,67 @@ pub fn sync(
 		return Ok(());
 	}
 
-	// start machine
+	let mut machine: Option<BoxedMachine> = None;
+	for m in zerr!(
+		runtime.list_machines(),
+		runtime.name(),
+		"Runtime error"
+	) {
+		if m.name() == cfg.machine {
+			machine = Some(m);
+			break;
+		}
+	}
 
-	// send data to machine
+	if machine.is_none() {
+		return Err(ZeusError::new(
+			"zeus".to_owned(),
+			format!("Cannot find builder machine {}", cfg.machine),
+		));
+	}
 
-	// attach to machine and display build progress
+	let socket_path = format!("{}/zeus.sock", &cfg.build_dir);
+	let listener = zerr!(
+		LocalListener::new(Path::new(&socket_path), Some(0o666)),
+		"unix",
+		format!("Cannot listen on socket {}", &socket_path)
+	);
 
-	todo!()
+	info!(term.log, "zeus", "Starting builder...");
+
+	zerr!(
+		runtime.start_machine(machine.as_ref().unwrap().as_ref()),
+		runtime.name(),
+		"Runtime error"
+	);
+
+	zerr!(
+		runtime.attach_machine(machine.as_ref().unwrap().as_ref()),
+		runtime.name(),
+		"Runtime error"
+	);
+
+	let mut stream = zerr!(
+		listener.listener.accept(),
+		"unix",
+		"Cannot open communication stream with builder"
+	)
+	.0;
+
+	let data = zerr!(
+		serde_json::to_vec(&cfg),
+		"zeus",
+		"Cannot serialize data"
+	);
+
+	zerr!(
+		stream.write_all(&data),
+		"zeus",
+		"Cannot send data to builder"
+	);
+
+	// this is here just to block until the builder is done
+	let _ = stream.read_to_end(&mut Vec::new());
+
+	Ok(())
 }

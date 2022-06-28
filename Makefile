@@ -40,10 +40,6 @@ build: FORCE
 	export VERSION="$(VERSION)"
 	cargo build --workspace $(CARGO_ARGS) --
 
-	tar -acvf builder.tar.gz \
-		-C $$PWD/builder/               . \
-		-C $$PWD/target/$(BUILD_TYPE)/  builder
-
 .PHONY:
 clean: FORCE
 	-rm builder.tar.gz zeus-bin.tar.gz
@@ -66,7 +62,6 @@ package: build
 .PHONY:
 install:
 	install -Dm0755 -t "$(DESTDIR)/$(PREFIX)/bin" target/$(BUILD_TYPE)/zeus
-	install -Dm0644 -t "$(DESTDIR)/$(PREFIX)/share/zeus" builder.tar.gz
 
 	mkdir -p "$(DESTDIR)/var/cache/aur"
 	chmod 0777 "$(DESTDIR)/var/cache/aur"
@@ -84,6 +79,12 @@ install:
 		install -Dm644 -t "$(DESTDIR)/$(PREFIX)/lib/zeus/runtimes" "$$rtlib"
 	done
 
+	install -Dm0755 -t "$(DESTDIR)/$(PREFIX)/share/zeus" target/$(BUILD_TYPE)/builder
+
+	for rtdata in runtimes/*/data/; do
+		install -Dm644 -t "$(DESTDIR)/$(PREFIX)/share/zeus" "$$rtdata"/*
+	done
+
 .PHONY:
 apparmor_test:
 	-apparmor_parser -R /etc/apparmor.d/zeus
@@ -94,13 +95,14 @@ apparmor_test:
 uninstall:
 	-apparmor_parser -R /etc/apparmor.d/zeus
 
-	-rm $(DESTDIR)/$(PREFIX)/bin/zeus
-	-rm -ri $(DESTDIR)/$(PREFIX)/share/zeus
+	-rm -f "$(DESTDIR)/$(PREFIX)/bin/zeus"
+	-rm -rf "$(DESTDIR)/$(PREFIX)/share/zeus"
+	-rm -rf "$(DESTDIR)/$(PREFIX)/lib/zeus"
 
-	-rm -i $(DESTDIR)/etc/apparmor.d/zeus
-	-rm -i "$(DESTDIR)/usr/share/bash-completion/completions/zeus"
-	-rm -i "$(DESTDIR)/usr/share/zsh/site-functions/_zeus"
-	-rm -i "$(DESTDIR)/usr/share/fish/vendor_completions.d/zeus.fish"
+	-rm -f "$(DESTDIR)/etc/apparmor.d/zeus"
+	-rm -f "$(DESTDIR)/usr/share/bash-completion/completions/zeus"
+	-rm -f "$(DESTDIR)/usr/share/zsh/site-functions/_zeus"
+	-rm -f "$(DESTDIR)/usr/share/fish/vendor_completions.d/zeus.fish"
 
 .PHONY:
 assets: FORCE

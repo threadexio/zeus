@@ -65,8 +65,8 @@ pub fn run_operation(
 		"build" => {
 			lockfile.lock()?;
 			build::build(
-				&term,
-				get_runtime(&cfg, &mut rt_manager)?,
+				term,
+				get_runtime(cfg, &mut rt_manager)?,
 				cfg,
 				args,
 			)
@@ -76,7 +76,7 @@ pub fn run_operation(
 			cfg.operation = Operation::Remove;
 			remove::remove(
 				term,
-				get_runtime(&cfg, &mut rt_manager)?,
+				get_runtime(cfg, &mut rt_manager)?,
 				cfg,
 				args,
 			)
@@ -86,12 +86,12 @@ pub fn run_operation(
 			cfg.operation = Operation::Sync;
 			sync::sync(
 				term,
-				get_runtime(&cfg, &mut rt_manager)?,
+				get_runtime(cfg, &mut rt_manager)?,
 				cfg,
 				args,
 			)
 		},
-		"query" => query::query(cfg, args),
+		"query" => query::query(term, cfg, args),
 		"completions" => completions::completions(args),
 		_ => Err(ZeusError::new(
 			"zeus".to_owned(),

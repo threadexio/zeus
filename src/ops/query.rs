@@ -58,7 +58,11 @@ fn print_pretty_package(package: &aur::Package) {
 	print_if_some!("Votes", &package.NumVotes);
 }
 
-pub fn query(cfg: &mut AppConfig, args: &ArgMatches) -> Result<()> {
+pub fn query(
+	term: &mut Terminal,
+	cfg: &mut AppConfig,
+	args: &ArgMatches,
+) -> Result<()> {
 	cfg.keywords = args
 		.values_of("keywords")
 		.unwrap_or_default()
@@ -71,6 +75,8 @@ pub fn query(cfg: &mut AppConfig, args: &ArgMatches) -> Result<()> {
 			"No keywords specified".to_owned(),
 		));
 	}
+
+	debug!(term.log, "post-op config", "{:?}", &cfg);
 
 	let by = args.value_of_t::<aur::By>("by").unwrap();
 

@@ -112,7 +112,7 @@ impl RuntimeManager {
 			let runtime_name = runtime.name();
 
 			if runtime.rt_api_version()
-				< constants::MIN_SUPPORTED_RT_API_VERSION
+				!= constants::SUPPORTED_RT_API_VERSION
 			{
 				return Err(Error::IncompatibleRuntimeApi);
 			}
