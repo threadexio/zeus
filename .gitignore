@@ -1,6 +1,7 @@
 /target
 
-/.vscode
+/.vscode/*
+!/.vscode/settings.json
 
 *.tar.gz
 

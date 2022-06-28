@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 
 use const_format::formatcp;
 
-use default_env::default_env;
-
 use std::collections::HashSet;
 
 #[allow(dead_code)]
@@ -21,9 +19,13 @@ const BUILD_TYPE: &'static str = "dbg";
 const BUILD_TYPE: &'static str = "rls";
 
 pub const PROGRAM_VERSION: &'static str =
-	formatcp!("{}-{BUILD_TYPE}", default_env!("VERSION", "unknown"));
+	formatcp!("{}-{BUILD_TYPE}", env!("VERSION", "VERSION not set"));
 
-// Operations that are handled inside the container
+#[allow(dead_code)]
+pub const DATA_DIR: &'static str =
+	env!("DEFAULT_DATA_DIR", "DEFAULT_DATA_DIR not set");
+
+// Operations that are handled inside the machine
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Operation {
 	None,
@@ -49,7 +51,7 @@ pub struct AppConfig {
 	/// Instance to communicate with the AUR RPC interface
 	pub aur: Aur,
 
-	/// DirectoryBuild directory for packages
+	/// Build directory for packages
 	pub build_dir: String,
 
 	/// Name of the runtime to load

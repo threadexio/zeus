@@ -1,3 +1,15 @@
+//! Each runtime runs in a shared environment with the rest of the program,
+//! this means that whatever process-global data is changed by the runtime
+//! should be restored back to their initial state. This for example includes
+//! the CWD. When the runtime's `init()` is ran, the CWD is set to the program's
+//! data directory where it can store any persistent internal data that is not
+//! handled by an external daemon. The runtime is only allowed to access resources
+//! outside that path the current user has access to. It can't just read `/etc/shadow`,
+//! unless of course `zeus` is running as root. This can be mitigated by modifying
+//! the Apparmor rules to allow or disallow access. This requires the runtime
+//! developers to work together with the maintainers and developers of `zeus` or
+//! issue a patch for the Apparmor profile that each user has to apply.
+
 pub mod constants {
 	use super::*;
 

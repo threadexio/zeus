@@ -1,3 +1,4 @@
+use std::env;
 use std::path;
 
 use crate::config::Operation;
@@ -35,6 +36,8 @@ fn get_runtime<'a>(
 	cfg: &AppConfig,
 	rt_manager: &'a mut RuntimeManager,
 ) -> Result<&'a mut Runtime> {
+	env::set_current_dir(crate::config::DATA_DIR)?;
+
 	Ok(rt_manager
 		.load(format!(
 			"{}/librt_{}.so",

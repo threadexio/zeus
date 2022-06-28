@@ -28,7 +28,6 @@ serde = { version = "^1.0", features = ["derive"] }
 serde_json = "^1.0"
 fs4 = { version = "^0.5", features = ["sync"] }
 const_format = "^0.2"
-default-env = "^0.1"
 reqwest = { version = "^0.11", features = ["json", "blocking"] }
 colored = "^2.0"
 libloading = "^0.7"

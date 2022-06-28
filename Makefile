@@ -6,6 +6,14 @@ VERSION	?= $(shell git describe --tags --always)
 PREFIX ?= /usr/local
 DESTDIR ?=
 
+DEFAULT_NAME ?= zeus-builder
+DEFAULT_IMAGE ?= zeus-builder
+DEFAULT_BUILDDIR ?= /var/cache/aur
+DEFAULT_AUR_HOST ?= aur.archlinux.org
+DEFAULT_RUNTIME ?= docker
+DEFAULT_RUNTIME_DIR ?= $(PREFIX)/lib/zeus/runtimes
+DEFAULT_DATA_DIR ?= $(PREFIX)/share/zeus
+
 ifeq ($(BUILD_TYPE),debug)
 	CARGO_ARGS +=
 else ifeq ($(BUILD_TYPE),release)
@@ -21,14 +29,13 @@ FORCE: ;
 .PHONY:
 .ONESHELL:
 build: FORCE
-	export DEFAULT_NAME="zeus-builder"
-	export DEFAULT_IMAGE="zeus-builder"
-
-	export DEFAULT_BUILDDIR="/var/cache/aur"
-	export DEFAULT_AUR_HOST="aur.archlinux.org"
-
-	export DEFAULT_RUNTIME="docker"
-	export DEFAULT_RUNTIME_DIR="$(PREFIX)/share/zeus/runtimes"
+	export DEFAULT_NAME="$(DEFAULT_NAME)"
+	export DEFAULT_IMAGE="$(DEFAULT_IMAGE)"
+	export DEFAULT_BUILDDIR="$(DEFAULT_BUILDDIR)"
+	export DEFAULT_AUR_HOST="$(DEFAULT_AUR_HOST)"
+	export DEFAULT_RUNTIME="$(DEFAULT_RUNTIME)"
+	export DEFAULT_RUNTIME_DIR="$(DEFAULT_RUNTIME_DIR)"
+	export DEFAULT_DATA_DIR="$(DEFAULT_DATA_DIR)"
 
 	export VERSION="$(VERSION)"
 	cargo build --workspace $(CARGO_ARGS) --
@@ -70,11 +77,11 @@ install:
 	install -Dm644 completions/zeus.zsh "$(DESTDIR)/usr/share/zsh/site-functions/_zeus"
 	install -Dm644 completions/zeus.fish "$(DESTDIR)/usr/share/fish/vendor_completions.d/zeus.fish"
 
-	mkdir -p "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes"
-	chmod 0755 "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes"
+	mkdir -p "$(DESTDIR)/$(PREFIX)/lib/zeus/runtimes"
+	chmod 0755 "$(DESTDIR)/$(PREFIX)/lib/zeus/runtimes"
 
 	for rtlib in target/$(BUILD_TYPE)/librt_*.so; do
-		install -Dm644 -t "$(DESTDIR)/$(PREFIX)/share/zeus/runtimes" "$$rtlib"
+		install -Dm644 -t "$(DESTDIR)/$(PREFIX)/lib/zeus/runtimes" "$$rtlib"
 	done
 
 .PHONY:

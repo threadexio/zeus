@@ -9,11 +9,11 @@ pub fn build(
 	cfg.image = args.value_of("image").unwrap().to_owned();
 	cfg.machine = args.value_of("name").unwrap().to_owned();
 
-	// remove old container
+	// remove old machine
 
 	// update image
 
-	// create new container
+	// create new machine
 
 	todo!()
 }

@@ -1,0 +1,12 @@
+{
+  "rust-analyzer.server.extraEnv": {
+    "DEFAULT_DATA_DIR": "",
+    "DEFAULT_NAME": "",
+    "DEFAULT_IMAGE": "",
+    "DEFAULT_BUILDDIR": "",
+    "DEFAULT_AUR_HOST": "",
+    "DEFAULT_RUNTIME": "",
+    "DEFAULT_RUNTIME_DIR": "",
+    "VERSION": ""
+  }
+}

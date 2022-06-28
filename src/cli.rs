@@ -8,7 +8,6 @@ use clap_complete::generate;
 pub use clap_complete::Shell;
 
 use const_format::formatcp;
-use default_env::default_env;
 
 pub fn build_subcommands() -> Vec<Command<'static>> {
 	vec![
@@ -33,10 +32,10 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 			.arg(
 				Arg::new("name")
 					.long("name")
-					.help("Builder container name")
-					.default_value(default_env!(
+					.help("Builder machine name")
+					.default_value(env!(
 						"DEFAULT_NAME",
-						"zeus-builder"
+						"DEFAULT_NAME not set"
 					)),
 			)
 			.arg(
@@ -52,10 +51,10 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 			.arg(
 				Arg::new("name")
 					.long("name")
-					.help("Builder container name")
-					.default_value(default_env!(
+					.help("Builder machine name")
+					.default_value(env!(
 						"DEFAULT_NAME",
-						"zeus-builder"
+						"DEFAULT_NAME not set"
 					)),
 			)
 			.arg(
@@ -72,18 +71,18 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 				Arg::new("image")
 					.long("image")
 					.help("Builder image name")
-					.default_value(default_env!(
+					.default_value(env!(
 						"DEFAULT_IMAGE",
-						"zeus-builder"
+						"DEFAULT_IMAGE not set"
 					)),
 			)
 			.arg(
 				Arg::new("name")
 					.long("name")
-					.help("Builder container name")
-					.default_value(default_env!(
+					.help("Builder machine name")
+					.default_value(env!(
 						"DEFAULT_NAME",
-						"zeus-builder"
+						"DEFAULT_NAME not set"
 					)),
 			),
 		////////////////////////////////////////////////////
@@ -202,36 +201,36 @@ pub fn build() -> Command<'static> {
 			Arg::new("builddir")
 				.long("builddir")
 				.help("Package build directory")
-				.default_value(default_env!(
+				.default_value(env!(
 					"DEFAULT_BUILDDIR",
-					"/var/cache/aur"
+					"DEFAULT_BUILDDIR not set"
 				)),
 		)
 		.arg(
 			Arg::new("aur")
 				.long("aur")
 				.help("AUR host")
-				.default_value(default_env!(
+				.default_value(env!(
 					"DEFAULT_AUR_HOST",
-					"aur.archlinux.org"
+					"DEFAULT_AUR_HOST not set"
 				)),
 		)
 		.arg(
 			Arg::new("rt")
 				.long("rt")
 				.help("Specify runtime to use")
-				.default_value(default_env!(
+				.default_value(env!(
 					"DEFAULT_RUNTIME",
-					"docker"
+					"DEFAULT_RUNTIME not set"
 				)),
 		)
 		.arg(
 			Arg::new("rtdir")
 				.long("rtdir")
 				.help("Specify directory to search for runtimes")
-				.default_value(default_env!(
+				.default_value(env!(
 					"DEFAULT_RUNTIME_DIR",
-					""
+					"DEFAULT_RUNTIME_DIR not set"
 				)),
 		)
 		.subcommand_required(true)
