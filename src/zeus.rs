@@ -1,7 +1,9 @@
 mod cli;
+mod lock;
+mod message;
 mod ops;
 mod term;
-mod util;
+mod unix;
 
 pub mod aur;
 pub mod config;
@@ -57,7 +59,7 @@ fn main() {
 	let res = ops::run_operation(
 		command_name,
 		&mut term,
-		&mut cfg,
+		cfg,
 		command_args,
 	);
 

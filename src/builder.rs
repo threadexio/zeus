@@ -1,7 +1,5 @@
 use std::env;
 use std::fs;
-use std::io::Read;
-use std::os::unix::net::UnixStream;
 use std::path;
 use std::process::exit;
 use std::process::Command;
@@ -10,10 +8,13 @@ mod aur;
 mod config;
 mod error;
 mod log;
+mod message;
+mod unix;
 
 use colored::Colorize;
 use config::Operation;
 use error::{Result, ZeusError};
+use message::Message;
 
 fn build_packages<'a>(
 	cfg: &'a config::AppConfig,
@@ -24,7 +25,7 @@ fn build_packages<'a>(
 		zerr!(
 			env::set_current_dir("/build"),
 			"fs".to_owned(),
-			&format!("Cannot change cwd to /build",)
+			"Cannot change cwd to /build"
 		);
 
 		let pkg_dir = path::Path::new(&package);
@@ -43,10 +44,8 @@ fn build_packages<'a>(
 		zerr!(
 			env::set_current_dir(pkg_dir),
 			"fs".to_owned(),
-			&format!(
-				"Cannot change directory to {}",
-				pkg_dir.display()
-			)
+			"Cannot change directory to {}",
+			pkg_dir.display()
 		);
 
 		if cfg.upgrade {
@@ -150,46 +149,33 @@ fn main() {
 	}
 
 	let socket_path = format!("{}.sock", config::PROGRAM_NAME);
-	let mut stream = match UnixStream::connect(&socket_path) {
+	let mut channel = match unix::connect::<Message, _>(socket_path) {
 		Ok(v) => v,
 		Err(e) => {
-			error!(
-				logger,
-				"unix",
-				"Cannot connect to socket {}: {}",
-				socket_path,
-				e
-			);
+			error!(logger, "unix", "Cannot connect to host: {}", e);
 			exit(1);
 		},
 	};
 
-	let mut data = vec![0u8; 1024 * 8];
-	let data_len: usize;
-	match stream.read(&mut data[..]) {
-		Ok(v) => {
-			data_len = v;
+	let cfg: config::AppConfig = match channel.recv() {
+		Ok(v) => match v {
+			Message::Config(c) => c,
+			m => {
+				error!(
+					logger,
+					"builder", "Expected config, got {:?}", m
+				);
+				exit(1);
+			},
 		},
 		Err(e) => {
 			error!(
 				logger,
-				"unix", "Cannot read data from socket: {}", e
+				"builder", "Cannot deserialize config: {}", e
 			);
 			exit(1);
 		},
-	}
-
-	let cfg: config::AppConfig =
-		match serde_json::from_slice(&data[..data_len]) {
-			Ok(v) => v,
-			Err(e) => {
-				error!(
-					logger,
-					"zeus", "Cannot deserialize config: {}", e
-				);
-				exit(1);
-			},
-		};
+	};
 
 	logger.debug = cfg.debug;
 
@@ -237,4 +223,6 @@ fn main() {
 			);
 		},
 	};
+
+	channel.send(Message::Done).unwrap();
 }

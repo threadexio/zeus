@@ -60,7 +60,7 @@ fn print_pretty_package(package: &aur::Package) {
 
 pub fn query(
 	term: &mut Terminal,
-	cfg: &mut AppConfig,
+	mut cfg: AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
 	cfg.keywords = args

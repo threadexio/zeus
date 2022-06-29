@@ -3,7 +3,7 @@ use crate::ops::prelude::*;
 pub fn build(
 	term: &mut Terminal,
 	runtime: &mut Runtime,
-	cfg: &mut AppConfig,
+	mut cfg: AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
 	cfg.image = args.value_of("image").unwrap().to_owned();
@@ -29,7 +29,7 @@ pub fn build(
 		"MachineManager", "Creating new machine {}", cfg.machine
 	);
 	runtime
-		.create_machine(&cfg.machine, image.as_ref(), cfg)
+		.create_machine(&cfg.machine, image.as_ref(), &cfg)
 		.unwrap();
 
 	Ok(())

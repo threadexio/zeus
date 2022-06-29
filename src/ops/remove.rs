@@ -1,14 +1,14 @@
 use crate::machine::BoxedMachine;
+use crate::message::Message;
 use crate::ops::prelude::*;
-use crate::util::LocalListener;
+use crate::unix::LocalListener;
 
-use std::io::{Read, Write};
 use std::path::Path;
 
 pub fn remove(
 	term: &mut Terminal,
 	runtime: &mut Runtime,
-	cfg: &mut AppConfig,
+	mut cfg: AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
 	cfg.machine = args.value_of("name").unwrap().to_owned();
@@ -63,9 +63,10 @@ pub fn remove(
 
 	let socket_path = format!("{}/zeus.sock", &cfg.build_dir);
 	let listener = zerr!(
-		LocalListener::new(Path::new(&socket_path), Some(0o666)),
+		LocalListener::new(Path::new(&socket_path), 0o666),
 		"unix",
-		format!("Cannot listen on socket {}", &socket_path)
+		"Cannot listen on socket {}",
+		&socket_path
 	);
 
 	info!(term.log, "zeus", "Starting builder...");
@@ -82,27 +83,20 @@ pub fn remove(
 		"Runtime error"
 	);
 
-	let mut stream = zerr!(
-		listener.listener.accept(),
+	let (mut channel, _) = zerr!(
+		listener.accept(),
 		"unix",
 		"Cannot open communication stream with builder"
-	)
-	.0;
-
-	let data = zerr!(
-		serde_json::to_vec(&cfg),
-		"zeus",
-		"Cannot serialize data"
 	);
 
-	zerr!(
-		stream.write_all(&data),
-		"zeus",
-		"Cannot send data to builder"
-	);
+	channel.send(Message::Config(cfg))?;
 
-	// this is here just to block until the builder is done
-	let _ = stream.read_to_end(&mut Vec::new());
+	loop {
+		match channel.recv()? {
+			Message::Done => break,
+			_ => {},
+		}
+	}
 
 	Ok(())
 }

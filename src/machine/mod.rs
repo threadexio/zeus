@@ -106,7 +106,8 @@ pub trait IRuntime {
 	/// Stop a machine. If the machine does not exist, an Ok variant should be returned.
 	fn stop_machine(&mut self, machine: &Machine) -> Result<()>;
 
-	/// Attach to a machine and return the attached stdin and stdout streams.
+	/// Attach to a machine. The runtime is responsible for having
+	/// forwarded the communication socket to the machine.
 	/// If the machine does not exist, an error should be returned.
 	fn attach_machine(&mut self, machine: &Machine) -> Result<()>;
 

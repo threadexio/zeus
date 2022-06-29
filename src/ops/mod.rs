@@ -2,8 +2,8 @@ use std::env;
 use std::path;
 
 use crate::config::Operation;
+use crate::lock::Lockfile;
 use crate::machine::manager::RuntimeManager;
-use crate::util::Lockfile;
 
 mod build;
 mod completions;
@@ -36,7 +36,12 @@ fn get_runtime<'a>(
 	cfg: &AppConfig,
 	rt_manager: &'a mut RuntimeManager,
 ) -> Result<&'a mut Runtime> {
-	env::set_current_dir(crate::config::DATA_DIR)?;
+	zerr!(
+		env::set_current_dir(crate::config::DATA_DIR),
+		"system",
+		"Cannot change directory to {}:",
+		crate::config::DATA_DIR
+	);
 
 	Ok(rt_manager
 		.load(format!(
@@ -46,16 +51,24 @@ fn get_runtime<'a>(
 		.as_mut())
 }
 
+fn get_lock(lockfile: &Lockfile) -> Result<()> {
+	Ok(zerr!(lockfile.lock(), "system", "Cannot obtain lock"))
+}
+
 pub fn run_operation(
 	name: &str,
 	term: &mut Terminal,
-	cfg: &mut AppConfig,
+	mut cfg: AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
-	let lockfile = Lockfile::new(path::Path::new(&format!(
-		"{}/zeus.lock",
-		&cfg.build_dir
-	)))?;
+	let lockfile = zerr!(
+		Lockfile::new(path::Path::new(&format!(
+			"{}/zeus.lock",
+			&cfg.build_dir
+		))),
+		"system",
+		"Cannot create lock"
+	);
 
 	let mut rt_manager = RuntimeManager::new();
 
@@ -63,30 +76,30 @@ pub fn run_operation(
 
 	match name {
 		"build" => {
-			lockfile.lock()?;
+			get_lock(&lockfile)?;
 			build::build(
 				term,
-				get_runtime(cfg, &mut rt_manager)?,
+				get_runtime(&cfg, &mut rt_manager)?,
 				cfg,
 				args,
 			)
 		},
 		"remove" => {
-			lockfile.lock()?;
+			get_lock(&lockfile)?;
 			cfg.operation = Operation::Remove;
 			remove::remove(
 				term,
-				get_runtime(cfg, &mut rt_manager)?,
+				get_runtime(&cfg, &mut rt_manager)?,
 				cfg,
 				args,
 			)
 		},
 		"sync" => {
-			lockfile.lock()?;
+			get_lock(&lockfile)?;
 			cfg.operation = Operation::Sync;
 			sync::sync(
 				term,
-				get_runtime(cfg, &mut rt_manager)?,
+				get_runtime(&cfg, &mut rt_manager)?,
 				cfg,
 				args,
 			)

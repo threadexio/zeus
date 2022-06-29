@@ -32,15 +32,24 @@ impl Display for ZeusError {
 
 impl Error for ZeusError {}
 
+impl From<std::io::Error> for ZeusError {
+	fn from(e: std::io::Error) -> Self {
+		return ZeusError {
+			caller: "system".to_string(),
+			message: e.to_string(),
+		};
+	}
+}
+
 #[macro_export]
 macro_rules! zerr {
-	($x:expr, $caller:expr, $msg:expr) => {
+	($x:expr, $caller:expr, $($arg:tt)*) => {
 		match $x {
 			Ok(v) => v,
 			Err(e) => {
 				return Err(ZeusError::new(
 					$caller.to_string(),
-					format!("{}: {}", $msg, e),
+					format!("{}: {}", format!($($arg)*), e),
 				));
 			},
 		}
