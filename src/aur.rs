@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
 
@@ -252,9 +253,17 @@ impl Aur {
 	/// ```
 	/// let aur_instance = aur::Aur::new().build();
 	///
-	/// let response = aur_instance.search(aur::By::Name, vec!["zeus", "zeus-bin"]).await;
+	///	let keywords :HashSet<&str> = HashSet::new();
+	/// keywords.insert("zeus");
+	/// keywords.insert("zeus-bin");
+	///
+	/// let response = aur_instance.search(aur::By::Name, &keywords);
 	/// ```
-	pub fn search<T>(&self, by: By, keywords: &Vec<T>) -> AurResult
+	pub fn search<T>(
+		&self,
+		by: By,
+		keywords: &HashSet<T>,
+	) -> AurResult
 	where
 		T: fmt::Display,
 	{
@@ -280,9 +289,13 @@ impl Aur {
 	/// ```
 	/// let aur_instance = aur::Aur::new().build();
 	///
-	/// let response = aur_instance.info(vec!["zeus", "zeus-bin"]).await;
+	///	let packages :HashSet<&str> = HashSet::new();
+	/// packages.insert("zeus");
+	/// packages.insert("zeus-bin");
+	///
+	/// let response = aur_instance.info(&packages);
 	/// ```
-	pub fn info<T>(&self, packages: &Vec<T>) -> AurResult
+	pub fn info<T>(&self, packages: &HashSet<T>) -> AurResult
 	where
 		T: fmt::Display,
 	{

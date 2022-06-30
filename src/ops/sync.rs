@@ -77,6 +77,26 @@ pub fn sync(
 		));
 	}
 
+	let pkg_info = zerr!(
+		cfg.aur.info(&cfg.packages),
+		"AUR",
+		"Cannot request info for packages"
+	);
+
+	cfg.packages.clear();
+	for pkg in pkg_info.results {
+		if let Some(name) = pkg.Name {
+			cfg.packages.insert(name);
+		}
+	}
+
+	if cfg.packages.is_empty() {
+		return Err(ZeusError::new(
+			"zeus".to_owned(),
+			"No valid packages specified.".to_owned(),
+		));
+	}
+
 	debug!(term.log, "post-op config", "{:?}", &cfg);
 
 	if !term.yes_no_question(
@@ -93,11 +113,7 @@ pub fn sync(
 	}
 
 	let mut machine: Option<BoxedMachine> = None;
-	for m in zerr!(
-		runtime.list_machines(),
-		runtime.name(),
-		"Runtime error"
-	) {
+	for m in runtime.list_machines()? {
 		if m.name() == cfg.machine {
 			machine = Some(m);
 			break;
@@ -121,17 +137,9 @@ pub fn sync(
 
 	info!(term.log, "zeus", "Starting builder...");
 
-	zerr!(
-		runtime.start_machine(machine.as_ref().unwrap().as_ref()),
-		runtime.name(),
-		"Runtime error"
-	);
+	runtime.start_machine(machine.as_ref().unwrap().as_ref())?;
 
-	zerr!(
-		runtime.attach_machine(machine.as_ref().unwrap().as_ref()),
-		runtime.name(),
-		"Runtime error"
-	);
+	runtime.attach_machine(machine.as_ref().unwrap().as_ref())?;
 
 	let (mut channel, _) = zerr!(
 		listener.accept(),

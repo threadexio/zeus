@@ -31,7 +31,9 @@ pub(crate) mod manager;
 pub type Error = String;
 pub type Result<T> = std::result::Result<T, Error>;
 
+#[allow(dead_code)]
 pub type Image = dyn IImage;
+#[allow(dead_code)]
 pub type BoxedImage = Box<Image>;
 pub trait IImage {
 	/// Get the ID of the image
@@ -40,7 +42,9 @@ pub trait IImage {
 	fn name(&self) -> &str;
 }
 
+#[allow(dead_code)]
 pub type Machine = dyn IMachine;
+#[allow(dead_code)]
 pub type BoxedMachine = Box<Machine>;
 pub trait IMachine {
 	/// Get the ID of the machine

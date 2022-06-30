@@ -15,22 +15,20 @@ pub fn build(
 		term.log,
 		"MachineManager", "Removing old machine {}", cfg.machine
 	);
-	for machine in runtime.list_machines().unwrap() {
+	for machine in runtime.list_machines()? {
 		if machine.name() == cfg.machine {
-			runtime.delete_machine(machine).unwrap();
+			runtime.delete_machine(machine)?;
 		}
 	}
 
 	debug!(term.log, "ImageManager", "Updating image {}", cfg.image);
-	let image = runtime.create_image(&cfg.image).unwrap();
+	let image = runtime.create_image(&cfg.image)?;
 
 	debug!(
 		term.log,
 		"MachineManager", "Creating new machine {}", cfg.machine
 	);
-	runtime
-		.create_machine(&cfg.machine, image.as_ref(), &cfg)
-		.unwrap();
+	runtime.create_machine(&cfg.machine, image.as_ref(), &cfg)?;
 
 	Ok(())
 }

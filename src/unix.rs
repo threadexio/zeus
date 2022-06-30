@@ -23,6 +23,7 @@ where
 	_p: PhantomData<T>,
 }
 
+#[allow(dead_code)]
 impl<T, S> Channel<T, S>
 where
 	T: Send + Serialize + DeserializeOwned,
@@ -76,6 +77,7 @@ where
 	_p: PhantomData<T>,
 }
 
+#[allow(dead_code)]
 impl<T> LocalListener<T>
 where
 	T: Send + Serialize + DeserializeOwned,
@@ -135,6 +137,7 @@ where
 	}
 }
 
+#[allow(dead_code)]
 pub fn connect<T, P: AsRef<Path>>(
 	path: P,
 ) -> io::Result<Channel<T, UnixStream>>

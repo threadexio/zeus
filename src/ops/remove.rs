@@ -43,11 +43,7 @@ pub fn remove(
 	}
 
 	let mut machine: Option<BoxedMachine> = None;
-	for m in zerr!(
-		runtime.list_machines(),
-		runtime.name(),
-		"Runtime error"
-	) {
+	for m in runtime.list_machines()? {
 		if m.name() == cfg.machine {
 			machine = Some(m);
 			break;
@@ -71,17 +67,9 @@ pub fn remove(
 
 	info!(term.log, "zeus", "Starting builder...");
 
-	zerr!(
-		runtime.start_machine(machine.as_ref().unwrap().as_ref()),
-		runtime.name(),
-		"Runtime error"
-	);
+	runtime.start_machine(machine.as_ref().unwrap().as_ref())?;
 
-	zerr!(
-		runtime.attach_machine(machine.as_ref().unwrap().as_ref()),
-		runtime.name(),
-		"Runtime error"
-	);
+	runtime.attach_machine(machine.as_ref().unwrap().as_ref())?;
 
 	let (mut channel, _) = zerr!(
 		listener.accept(),

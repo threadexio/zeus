@@ -8,6 +8,7 @@ mod aur;
 mod config;
 mod error;
 mod log;
+mod machine;
 mod message;
 mod unix;
 

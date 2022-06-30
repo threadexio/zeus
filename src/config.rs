@@ -75,5 +75,5 @@ pub struct AppConfig {
 	pub packages: HashSet<String>,
 
 	/// Keywords for the query operation
-	pub keywords: Vec<String>,
+	pub keywords: HashSet<String>,
 }

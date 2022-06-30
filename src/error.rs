@@ -41,6 +41,15 @@ impl From<std::io::Error> for ZeusError {
 	}
 }
 
+impl From<crate::machine::Error> for ZeusError {
+	fn from(e: crate::machine::Error) -> Self {
+		return ZeusError {
+			caller: "RuntimeManager".to_string(),
+			message: format!("Error: {}", e),
+		};
+	}
+}
+
 #[macro_export]
 macro_rules! zerr {
 	($x:expr, $caller:expr, $($arg:tt)*) => {
