@@ -66,7 +66,7 @@ pub trait IRuntime {
 
 	/// A simplistic way to signal breaking changes in the API for runtimes.
 	///
-	/// `runtime.rt_api_version()` != `constants::SUPPORTED_RT_API_VERSION`, then the runtime will be considered incompatible and not load.
+	/// If `runtime.rt_api_version()` != `constants::SUPPORTED_RT_API_VERSION`, then the runtime will be considered incompatible and not load.
 	fn rt_api_version(&self) -> u32;
 
 	/// This will be ran on driver load.
@@ -80,23 +80,51 @@ pub trait IRuntime {
 	/// List images returning a vector containing their names.
 	fn list_images(&self) -> Result<Vec<BoxedImage>>;
 
-	/// Create an image with all the necessary configuration
-	/// If the image already exists then it should be updated.
+	/// Create an image with all the necessary configuration.
+	///
+	/// If:
+	/// 	- the image already exists
+	///
+	/// Then:
+	///
+	/// An error should be returned.
 	fn create_image(
 		&mut self,
 		image_name: &str,
 	) -> Result<BoxedImage>;
 
-	/// Update an image. If the image does not exist, it should be created.
+	/// Update an image.
+	///
+	/// If:
+	/// 	- the image does NOT exist
+	///
+	/// Then:
+	///
+	/// An error should be returned.
 	fn update_image(&mut self, image: &Image) -> Result<()>;
 
-	/// Delete an image. If there are any machines using that image, they should all be removed.
+	/// Delete an image.
+	///
+	/// If:
+	/// 	- the image does NOT exist
+	/// 	- there are machines using the image
+	///
+	/// Then:
+	///
+	/// An error should be returned.
 	fn delete_image(&mut self, image: BoxedImage) -> Result<()>;
 
-	/// List machines returning a vector containing their names
+	/// List machines returning a vector containing their names.
 	fn list_machines(&self) -> Result<Vec<BoxedMachine>>;
 
-	/// Create a machine and apply the necessary configuration. If the machine already exists, an Ok variant should be returned.
+	/// Create a machine and apply the necessary configuration.
+	///
+	/// If:
+	/// 	- the image already exists
+	///
+	/// Then:
+	///
+	/// An error should be returned.
 	fn create_machine(
 		&mut self,
 		machine_name: &str,
@@ -104,26 +132,59 @@ pub trait IRuntime {
 		config: &AppConfig,
 	) -> Result<BoxedMachine>;
 
-	/// Start a machine. If the machine does not exist, an error should be returned.
+	/// Start a machine.
+	///
+	/// If:
+	/// 	- the machine does NOT exist
+	///
+	/// Then:
+	///
+	/// An error should be returned.
 	fn start_machine(&mut self, machine: &Machine) -> Result<()>;
 
-	/// Stop a machine. If the machine does not exist, an Ok variant should be returned.
+	/// Stop a machine.
+	///
+	/// If:
+	/// 	- the machine does NOT exist
+	///
+	/// Then:
+	///
+	/// An error should be returned.
 	fn stop_machine(&mut self, machine: &Machine) -> Result<()>;
 
 	/// Attach to a machine. The runtime is responsible for having
 	/// forwarded the communication socket to the machine.
-	/// If the machine does not exist, an error should be returned.
+	///
+	/// If:
+	/// 	- the machines does NOT exist
+	///
+	/// Then:
+	///
+	/// An error should be returned.
 	fn attach_machine(&mut self, machine: &Machine) -> Result<()>;
 
 	/// Execute command in a machine and get its exit code.
-	/// If the machine does not exist, an error should be returned.
+	///
+	/// If:
+	/// 	- the machine does NOT exist
+	///
+	/// Then:
+	///
+	/// An error should be returned.
 	fn execute_command(
 		&mut self,
 		machine: &Machine,
 		command: &str,
 	) -> Result<i32>;
 
-	/// Delete a machine completely. If the machine does not exist, an Ok variant should be returned.
+	/// Delete a machine completely.
+	///
+	/// If:
+	/// 	- the machine does NOT exist
+	///
+	/// Then:
+	///
+	/// An error should be returned.
 	fn delete_machine(&mut self, machine: BoxedMachine)
 		-> Result<()>;
 }

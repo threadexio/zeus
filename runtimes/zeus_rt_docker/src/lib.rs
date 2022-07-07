@@ -90,18 +90,33 @@ impl IRuntime for DockerRuntime {
 		&mut self,
 		image_name: &str,
 	) -> Result<BoxedImage> {
-		let mut image_id = "".to_string();
 		for image in self.list_images()? {
 			if image_name == image.name() {
-				image_id = image.id().to_string();
-				break;
+				return Err(format!("image already exists"));
 			}
 		}
 
-		self.update_image(&models::Image {
-			id: image_id,
-			name: image_name.to_string(),
-		})?;
+		let build_context = String::from("./");
+
+		let status = handle!(
+			process::Command::new(&self.docker_bin)
+				.arg("build")
+				.arg("--pull")
+				.arg("--rm")
+				.arg("-t")
+				.arg(image_name)
+				.arg("--")
+				.arg(build_context)
+				.status(),
+			"could not execute docker"
+		);
+
+		if !command::check_exit_ok(status) {
+			return Err(format!(
+				"docker exited with: {}",
+				status.code().unwrap_or_default()
+			));
+		}
 
 		for image in self.list_images()? {
 			if image_name == image.name() {
@@ -116,12 +131,6 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn update_image(&mut self, image: &Image) -> Result<()> {
-		for machine in self.list_machines()? {
-			if machine.image() == image.id() {
-				self.delete_machine(machine)?;
-			}
-		}
-
 		let build_context = String::from("./");
 
 		let status = handle!(
@@ -148,17 +157,10 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn delete_image(&mut self, image: BoxedImage) -> Result<()> {
-		for machine in self.list_machines()? {
-			if machine.image() == image.id() {
-				self.delete_machine(machine)?;
-			}
-		}
-
 		let process::Output { status, .. } = handle!(
 			process::Command::new(&self.docker_bin)
 				.arg("image")
 				.arg("rm")
-				.arg("-f")
 				.arg("--")
 				.arg(image.id())
 				.output(),
@@ -217,12 +219,6 @@ impl IRuntime for DockerRuntime {
 		image: &Image,
 		config: &AppConfig,
 	) -> Result<BoxedMachine> {
-		for machine in self.list_machines()? {
-			if machine.name() == machine_name {
-				return Ok(machine);
-			}
-		}
-
 		let process::Output { status, stdout, .. } = handle!(
 			process::Command::new(&self.docker_bin)
 				.arg("container")
@@ -261,17 +257,6 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn start_machine(&mut self, machine: &Machine) -> Result<()> {
-		if !self
-			.list_machines()?
-			.iter()
-			.any(|x| x.id() == machine.id())
-		{
-			return Err(format!(
-				"container \"{}\" does not exist",
-				machine.name()
-			));
-		}
-
 		let process::Output { status, .. } = handle!(
 			process::Command::new(&self.docker_bin)
 				.arg("container")
@@ -293,14 +278,6 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn stop_machine(&mut self, machine: &Machine) -> Result<()> {
-		if !self
-			.list_machines()?
-			.iter()
-			.any(|x| x.id() == machine.id())
-		{
-			return Ok(());
-		}
-
 		let process::Output { status, .. } = handle!(
 			process::Command::new(&self.docker_bin)
 				.arg("container")
@@ -322,18 +299,7 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn attach_machine(&mut self, machine: &Machine) -> Result<()> {
-		if !self
-			.list_machines()?
-			.iter()
-			.any(|x| x.id() == machine.id())
-		{
-			return Err(format!(
-				"container \"{}\" does not exist",
-				machine.name()
-			));
-		}
-
-		// todo: attach container to a pty otherwise docker complains
+		// todo: attach container to a pty for pretty colors
 
 		handle!(
 			process::Command::new(&self.docker_bin)
@@ -353,17 +319,6 @@ impl IRuntime for DockerRuntime {
 		machine: &Machine,
 		command: &str,
 	) -> Result<i32> {
-		if !self
-			.list_machines()?
-			.iter()
-			.any(|x| x.id() == machine.id())
-		{
-			return Err(format!(
-				"container \"{}\" does not exist",
-				machine.name()
-			));
-		}
-
 		let process::Output { status, .. } = handle!(
 			process::Command::new(&self.docker_bin)
 				.arg("container")
@@ -384,7 +339,7 @@ impl IRuntime for DockerRuntime {
 		&mut self,
 		machine: BoxedMachine,
 	) -> Result<()> {
-		handle!(
+		let process::Output { status, .. } = handle!(
 			process::Command::new(&self.docker_bin)
 				.arg("container")
 				.arg("rm")
@@ -395,6 +350,13 @@ impl IRuntime for DockerRuntime {
 				.output(),
 			"could not execute docker"
 		);
+
+		if !command::check_exit_ok(status) {
+			return Err(format!(
+				"docker exited with: {}",
+				status.code().unwrap_or_default()
+			));
+		}
 
 		Ok(())
 	}
