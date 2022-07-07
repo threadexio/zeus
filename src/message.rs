@@ -5,7 +5,8 @@ use crate::config::AppConfig;
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
 	Config(AppConfig),
-	Done,
+	Success(Vec<String>),
+	Failure(String),
 }
 
 unsafe impl Sync for Message {}

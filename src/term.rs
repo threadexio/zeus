@@ -70,13 +70,12 @@ impl Terminal {
 				true => "Y/n",
 				false => "y/N",
 			}
-			.bright_white()
 			.bold(),
 		)?;
 		self.output.flush()?;
 
 		let mut answer: [u8; 1] = [0; 1];
-		io::stdin().read(&mut answer)?;
+		self.input.read(&mut answer)?;
 
 		match answer[0] as char {
 			'y' | 'Y' => Ok(true),
@@ -102,7 +101,7 @@ impl Terminal {
 			"{} {} [{}]",
 			"=>".green().bold(),
 			message,
-			default.to_string().bright_white().bold()
+			default.to_string().bold()
 		)?;
 
 		let mut numbered_answers: HashMap<usize, &A> = HashMap::new();

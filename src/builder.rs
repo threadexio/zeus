@@ -180,50 +180,25 @@ fn main() {
 
 	logger.debug = cfg.debug;
 
-	match cfg.operation {
-		Operation::Sync => match build_packages(&cfg) {
-			Err(e) => {
-				error!(logger, &e.caller, "{}", e.message);
-			},
-			Ok(pkgs) => {
-				if cfg.upgrade {
-					println!("Upgraded packages:");
-				} else {
-					println!("Built packages:");
-				}
-
-				for pkg in pkgs {
-					println!(
-						"{} {}",
-						"=>".green(),
-						pkg.bright_white().bold()
-					)
-				}
-			},
-		},
-		Operation::Remove => match remove_packages(&logger, &cfg) {
-			Err(e) => {
-				error!(logger, &e.caller, "{}", e.message);
-			},
-			Ok(pkgs) => {
-				println!("Removed packages:");
-
-				for pkg in pkgs {
-					println!(
-						"{} {}",
-						"=>".green(),
-						pkg.bright_white().bold()
-					)
-				}
-			},
-		},
+	let op_res = match cfg.operation {
+		Operation::Sync => build_packages(&cfg),
+		Operation::Remove => remove_packages(&logger, &cfg),
 		_ => {
-			debug!(
+			error!(
 				logger,
-				"builder", "operation = {:?}", cfg.operation
+				"builder",
+				"Unexpected operation: {:?}",
+				cfg.operation
 			);
+			exit(1);
 		},
 	};
 
-	channel.send(Message::Done).unwrap();
+	match op_res {
+		Ok(v) => channel.send(Message::Success(
+			v.iter().map(|x| -> String { x.to_string() }).collect(),
+		)),
+		Err(e) => channel.send(Message::Failure(e.to_string())),
+	}
+	.unwrap();
 }

@@ -28,14 +28,31 @@ pub const DATA_DIR: &'static str =
 // Operations that are handled inside the machine
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Operation {
-	None,
 	Sync,
 	Remove,
+	Build,
+	Query,
+	Completions,
+	None,
 }
 
 impl Default for Operation {
 	fn default() -> Self {
 		Self::None
+	}
+}
+
+impl From<&str> for Operation {
+	fn from(s: &str) -> Self {
+		use Operation::*;
+		match s {
+			"sync" => Sync,
+			"remove" => Remove,
+			"build" => Build,
+			"query" => Query,
+			"completions" => Completions,
+			_ => Default::default(),
+		}
 	}
 }
 

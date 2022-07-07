@@ -107,7 +107,6 @@ pub fn query(
 							.Name
 							.as_ref()
 							.unwrap_or(&"".to_owned())
-							.bright_white()
 							.bold(),
 						package
 							.Version

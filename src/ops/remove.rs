@@ -29,7 +29,10 @@ pub fn remove(
 	debug!(term.log, "post-op config", "{:?}", &cfg);
 
 	term.list(
-		"The following packages will be REMOVED:",
+		format!(
+			"The following packages will be {}:",
+			"REMOVED".bold()
+		),
 		cfg.packages.iter(),
 		4,
 	)?;
@@ -69,7 +72,11 @@ pub fn remove(
 
 	runtime.start_machine(machine.as_ref().unwrap().as_ref())?;
 
+	debug!(term.log, "MachineManager", "Attaching to builder...");
+
 	runtime.attach_machine(machine.as_ref().unwrap().as_ref())?;
+
+	debug!(term.log, "unix", "Waiting for builder to connect...");
 
 	let (mut channel, _) = zerr!(
 		listener.accept(),
@@ -77,14 +84,28 @@ pub fn remove(
 		"Cannot open communication stream with builder"
 	);
 
+	debug!(term.log, "zeus", "Sending config to builder...");
+
 	channel.send(Message::Config(cfg))?;
+
+	debug!(term.log, "zeus", "Entering main event loop...");
 
 	loop {
 		match channel.recv()? {
-			Message::Done => break,
+			Message::Success(pkgs) => {
+				println!("{} Removed packages:", "=>".green().bold(),);
+				for pkg in pkgs {
+					println!("    {}", pkg.bold())
+				}
+				return Ok(());
+			},
+			Message::Failure(error) => {
+				return Err(ZeusError::new(
+					"builder".to_string(),
+					error,
+				))
+			},
 			_ => {},
 		}
 	}
-
-	Ok(())
 }

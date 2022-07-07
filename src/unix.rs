@@ -12,11 +12,9 @@ use bincode::Options;
 use serde::de::DeserializeOwned;
 use serde::ser::Serialize;
 
-pub const MAX_MESSAGE_LEN: u64 = 8 * 1024;
-
 pub struct Channel<T, S>
 where
-	T: Send + Serialize + DeserializeOwned,
+	T: Serialize + DeserializeOwned,
 	S: Read + Write,
 {
 	stream: S,
@@ -26,7 +24,7 @@ where
 #[allow(dead_code)]
 impl<T, S> Channel<T, S>
 where
-	T: Send + Serialize + DeserializeOwned,
+	T: Serialize + DeserializeOwned,
 	S: Read + Write,
 {
 	pub fn new(stream: S) -> Self {
@@ -39,38 +37,32 @@ where
 
 	pub fn send(&mut self, obj: T) -> io::Result<()> {
 		let data = bincode::DefaultOptions::new()
-			.with_limit(MAX_MESSAGE_LEN)
 			.serialize(&obj)
 			.map_err(|x| io::Error::new(io::ErrorKind::Other, x))?;
+
+		self.stream.write(&(data.len() as u64).to_be_bytes())?;
 
 		self.stream.write_all(&data)
 	}
 
 	pub fn recv(&mut self) -> io::Result<T> {
-		let mut data = vec![0u8; MAX_MESSAGE_LEN as usize];
+		let mut length_bytes = [0u8; 8];
+		self.stream.read_exact(&mut length_bytes[..])?;
+		let data_length = u64::from_be_bytes(length_bytes);
+
+		let mut data = vec![0u8; data_length as usize];
 
 		let bytes_read = self.stream.read(&mut data[..])?;
 
 		bincode::DefaultOptions::new()
-			.with_limit(MAX_MESSAGE_LEN)
 			.deserialize(&data[..bytes_read])
 			.map_err(|x| io::Error::new(io::ErrorKind::Other, x))
 	}
 }
 
-impl<T, S> Drop for Channel<T, S>
-where
-	T: Send + Serialize + DeserializeOwned,
-	S: Read + Write,
-{
-	fn drop(&mut self) {
-		let _ = self.stream.flush();
-	}
-}
-
 pub struct LocalListener<T>
 where
-	T: Send + Serialize + DeserializeOwned,
+	T: Serialize + DeserializeOwned,
 {
 	listener: UnixListener,
 	path: PathBuf,
@@ -80,7 +72,7 @@ where
 #[allow(dead_code)]
 impl<T> LocalListener<T>
 where
-	T: Send + Serialize + DeserializeOwned,
+	T: Serialize + DeserializeOwned,
 {
 	pub fn new<P: AsRef<Path>>(
 		path: P,
@@ -110,7 +102,7 @@ where
 
 impl<T> std::ops::Deref for LocalListener<T>
 where
-	T: Send + Serialize + DeserializeOwned,
+	T: Serialize + DeserializeOwned,
 {
 	type Target = UnixListener;
 
@@ -121,7 +113,7 @@ where
 
 impl<T> std::ops::DerefMut for LocalListener<T>
 where
-	T: Send + Serialize + DeserializeOwned,
+	T: Serialize + DeserializeOwned,
 {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.listener
@@ -130,7 +122,7 @@ where
 
 impl<T> Drop for LocalListener<T>
 where
-	T: Send + Serialize + DeserializeOwned,
+	T: Serialize + DeserializeOwned,
 {
 	fn drop(&mut self) {
 		let _ = fs::remove_file(self.path.as_path());
@@ -142,7 +134,7 @@ pub fn connect<T, P: AsRef<Path>>(
 	path: P,
 ) -> io::Result<Channel<T, UnixStream>>
 where
-	T: Send + Serialize + DeserializeOwned,
+	T: Serialize + DeserializeOwned,
 {
 	Ok(Channel::new(UnixStream::connect(path)?))
 }

@@ -32,7 +32,11 @@ fn main() {
 		_ => {},
 	}
 
+	let (command_name, command_args) = args.subcommand().unwrap();
+
 	let mut cfg = config::AppConfig {
+		operation: config::Operation::from(command_name),
+
 		debug: term.log.debug,
 		force: args.is_present("force"),
 
@@ -54,14 +58,7 @@ fn main() {
 		cfg.build_args.push("-f".to_owned());
 	}
 
-	let (command_name, command_args) = args.subcommand().unwrap();
-
-	let res = ops::run_operation(
-		command_name,
-		&mut term,
-		cfg,
-		command_args,
-	);
+	let res = ops::run_operation(&mut term, cfg, command_args);
 
 	match res {
 		Ok(_) => exit(0),

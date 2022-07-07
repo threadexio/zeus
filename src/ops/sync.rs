@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
@@ -63,14 +64,9 @@ pub fn sync(
 				}
 			},
 		}
+	}
 
-		if cfg.packages.is_empty() {
-			return Err(ZeusError::new(
-				"zeus".to_owned(),
-				"No packages specified. Exiting...".to_owned(),
-			));
-		}
-	} else if cfg.packages.is_empty() {
+	if cfg.packages.is_empty() {
 		return Err(ZeusError::new(
 			"zeus".to_owned(),
 			"No packages specified.".to_owned(),
@@ -83,31 +79,52 @@ pub fn sync(
 		"Cannot request info for packages"
 	);
 
-	cfg.packages.clear();
+	let mut valid_packages: HashSet<String> = HashSet::new();
 	for pkg in pkg_info.results {
 		if let Some(name) = pkg.Name {
-			cfg.packages.insert(name);
+			valid_packages.insert(name);
 		}
 	}
 
-	if cfg.packages.is_empty() {
+	let invalid_packages: Vec<&String> =
+		cfg.packages.difference(&valid_packages).collect();
+	if !invalid_packages.is_empty() {
+		term.list(
+			format!(
+				"The following packages do {} exist in the AUR:",
+				"NOT".bold()
+			),
+			invalid_packages.iter(),
+			4,
+		)?;
+	}
+	cfg.packages = valid_packages;
+
+	debug!(term.log, "post-op config", "{:?}", &cfg);
+
+	if !cfg.packages.is_empty() {
+		term.list(
+			format!(
+				"The following packages will be {}:",
+				match cfg.upgrade {
+					true => "UPGRADED",
+					false => "BUILT",
+				}
+				.bold()
+			),
+			cfg.packages.iter(),
+			4,
+		)?;
+	} else {
 		return Err(ZeusError::new(
 			"zeus".to_owned(),
 			"No valid packages specified.".to_owned(),
 		));
 	}
 
-	debug!(term.log, "post-op config", "{:?}", &cfg);
-
-	if !term.yes_no_question(
-		match cfg.upgrade {
-			true => {
-				"Are you sure you want to upgrade these packages?"
-			},
-			false => "Are you sure you want to build these packages?",
-		},
-		true,
-	)? {
+	if !term
+		.yes_no_question("Are you sure you want to continue?", true)?
+	{
 		error!(term.log, "zeus", "Aborting...");
 		return Ok(());
 	}
@@ -123,7 +140,7 @@ pub fn sync(
 	if machine.is_none() {
 		return Err(ZeusError::new(
 			"zeus".to_owned(),
-			format!("Cannot find builder machine {}", cfg.machine),
+			format!("Cannot find builder {}", cfg.machine),
 		));
 	}
 
@@ -139,7 +156,11 @@ pub fn sync(
 
 	runtime.start_machine(machine.as_ref().unwrap().as_ref())?;
 
+	debug!(term.log, "MachineManager", "Attaching to builder...");
+
 	runtime.attach_machine(machine.as_ref().unwrap().as_ref())?;
+
+	debug!(term.log, "unix", "Waiting for builder to connect...");
 
 	let (mut channel, _) = zerr!(
 		listener.accept(),
@@ -147,14 +168,28 @@ pub fn sync(
 		"Cannot open communication stream with builder"
 	);
 
+	debug!(term.log, "zeus", "Sending config to builder...");
+
 	channel.send(Message::Config(cfg))?;
+
+	debug!(term.log, "zeus", "Entering main event loop...");
 
 	loop {
 		match channel.recv()? {
-			Message::Done => break,
+			Message::Success(pkgs) => {
+				println!("{} Built packages:", "=>".green().bold(),);
+				for pkg in pkgs {
+					println!("    {}", pkg.bold())
+				}
+				return Ok(());
+			},
+			Message::Failure(error) => {
+				return Err(ZeusError::new(
+					"builder".to_string(),
+					error,
+				))
+			},
 			_ => {},
 		}
 	}
-
-	Ok(())
 }

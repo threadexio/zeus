@@ -56,7 +56,6 @@ fn get_lock(lockfile: &Lockfile) -> Result<()> {
 }
 
 pub fn run_operation(
-	name: &str,
 	term: &mut Terminal,
 	mut cfg: AppConfig,
 	args: &ArgMatches,
@@ -74,8 +73,8 @@ pub fn run_operation(
 
 	debug!(term.log, "pre-op config", "{:?}", cfg);
 
-	match name {
-		"build" => {
+	match cfg.operation {
+		Operation::Build => {
 			get_lock(&lockfile)?;
 			build::build(
 				term,
@@ -84,7 +83,7 @@ pub fn run_operation(
 				args,
 			)
 		},
-		"remove" => {
+		Operation::Remove => {
 			get_lock(&lockfile)?;
 			cfg.operation = Operation::Remove;
 			remove::remove(
@@ -94,7 +93,7 @@ pub fn run_operation(
 				args,
 			)
 		},
-		"sync" => {
+		Operation::Sync => {
 			get_lock(&lockfile)?;
 			cfg.operation = Operation::Sync;
 			sync::sync(
@@ -104,8 +103,8 @@ pub fn run_operation(
 				args,
 			)
 		},
-		"query" => query::query(term, cfg, args),
-		"completions" => completions::completions(args),
+		Operation::Query => query::query(term, cfg, args),
+		Operation::Completions => completions::completions(args),
 		_ => Err(ZeusError::new(
 			"zeus".to_owned(),
 			"No such operation".to_owned(),

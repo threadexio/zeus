@@ -51,6 +51,7 @@ pub struct Logger {
 	pub debug: bool,
 }
 
+#[allow(dead_code)]
 impl Logger {
 	fn log_impl(
 		&self,
@@ -63,9 +64,9 @@ impl Logger {
 			"{}{} {}{} {}",
 			"[".bright_black(),
 			level.color(c).bold(),
-			caller.bright_white().bold(),
+			caller.bold(),
 			"]".bright_black(),
-			data.bright_white()
+			data
 		);
 	}
 
