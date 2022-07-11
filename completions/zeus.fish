@@ -15,13 +15,13 @@ complete -c zeus -n "__fish_use_subcommand" -f -a "completions" -d 'Generate she
 complete -c zeus -n "__fish_use_subcommand" -f -a "runtime" -d 'Various runtime operations'
 complete -c zeus -n "__fish_use_subcommand" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c zeus -n "__fish_seen_subcommand_from sync" -l buildargs -d 'Extra arguments for makepkg' -r
-complete -c zeus -n "__fish_seen_subcommand_from sync" -l name -d 'Builder container name' -r
+complete -c zeus -n "__fish_seen_subcommand_from sync" -l name -d 'Builder machine name' -r
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s u -l upgrade -d 'Upgrade packages'
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s h -l help -d 'Print help information'
-complete -c zeus -n "__fish_seen_subcommand_from remove" -l name -d 'Builder container name' -r
+complete -c zeus -n "__fish_seen_subcommand_from remove" -l name -d 'Builder machine name' -r
 complete -c zeus -n "__fish_seen_subcommand_from remove" -s h -l help -d 'Print help information'
 complete -c zeus -n "__fish_seen_subcommand_from build" -l image -d 'Builder image name' -r
-complete -c zeus -n "__fish_seen_subcommand_from build" -l name -d 'Builder container name' -r
+complete -c zeus -n "__fish_seen_subcommand_from build" -l name -d 'Builder machine name' -r
 complete -c zeus -n "__fish_seen_subcommand_from build" -s h -l help -d 'Print help information'
 complete -c zeus -n "__fish_seen_subcommand_from query" -l by -d 'Query AUR packages by' -r -f -a "{name	,description	,maintainer	,depends	,makedepends	,optdepends	,checkdepends	}"
 complete -c zeus -n "__fish_seen_subcommand_from query" -l output -d 'Output format' -r -f -a "{pretty	,json	}"

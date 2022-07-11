@@ -30,7 +30,14 @@
 	<b>zeus</b>
 </h1>
 
-[Releases][releases] &nbsp; | &nbsp; [CI][actions] &nbsp; | &nbsp; [Issues][issues] &nbsp; | &nbsp; [Usage](#usage) &nbsp; | &nbsp; [Installing](#installing) &nbsp; | &nbsp; [Building](#building)
+**<kbd>[Releases][releases]</kbd>** &nbsp; &nbsp; &nbsp;
+**<kbd>[CI][actions]</kbd>** &nbsp; &nbsp; &nbsp;
+**<kbd>[Issues][issues]</kbd>** &nbsp; &nbsp; &nbsp;
+**<kbd>[Usage](#usage)</kbd>** &nbsp; &nbsp; &nbsp;
+**<kbd>[Installing](#installing)</kbd>** &nbsp; &nbsp; &nbsp;
+**<kbd>[Building](#building)</kbd>** &nbsp; &nbsp; &nbsp;
+
+---
 
 [![release-badge]][releases]
 [![issues-badge]][issues]
@@ -76,6 +83,8 @@ $ zeus --help
 
 The structure for the command arguments mimics `pacman`.
 
+The following examples might or might NOT work on your machine as `zeus` might need root privileges to work depending on the runtime used. For example, the default runtime (`docker`) only needs root privileges if the user executing `zeus` is not in the `docker` group.
+
 Some examples:
 
 ### Installing a package
@@ -110,7 +119,7 @@ and for every listed package run
 ### Removing a package
 
 ```shell
-# zeus -R package_name
+$ zeus -R package_name
 # pacman -R package_name
 ```
 
@@ -123,7 +132,7 @@ $ zeus -Q foo bar
 or getting detailed information about 1 or more packages
 
 ```shell
-$ zues -Q -i foobar
+$ zeus -Q -i foobar
 ```
 
 > Note that the `-i` only accepts package names not keywords, this means `foobar` must be a valid package in the AUR

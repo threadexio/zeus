@@ -42,7 +42,6 @@ build: FORCE
 
 .PHONY:
 clean: FORCE
-	-rm builder.tar.gz zeus-bin.tar.gz
 	-cargo clean $(CARGO_ARGS) --
 
 .PHONY:
@@ -50,14 +49,6 @@ completions: FORCE
 	./target/$(BUILD_TYPE)/zeus completions --shell bash > completions/zeus.bash
 	./target/$(BUILD_TYPE)/zeus completions --shell zsh > completions/zeus.zsh
 	./target/$(BUILD_TYPE)/zeus completions --shell fish > completions/zeus.fish
-
-.PHONY:
-package: build
-	tar -acvf zeus-bin.tar.gz \
-		-C $$PWD/target/$(BUILD_TYPE)/  zeus \
-		-C $$PWD/                       builder.tar.gz \
-		-C $$PWD/                       completions/ \
-		apparmor/zeus
 
 .PHONY:
 install:
@@ -75,14 +66,14 @@ install:
 	mkdir -p "$(DESTDIR)/$(PREFIX)/lib/zeus/runtimes"
 	chmod 0755 "$(DESTDIR)/$(PREFIX)/lib/zeus/runtimes"
 
+	install -Dm0755 -t "$(DESTDIR)/$(PREFIX)/share/zeus" target/$(BUILD_TYPE)/builder
+
 	for rtlib in target/$(BUILD_TYPE)/librt_*.so; do
 		install -Dm644 -t "$(DESTDIR)/$(PREFIX)/lib/zeus/runtimes" "$$rtlib"
 	done
 
-	install -Dm0755 -t "$(DESTDIR)/$(PREFIX)/share/zeus" target/$(BUILD_TYPE)/builder
-
 	for rtdata in runtimes/*/data/; do
-		install -Dm644 -t "$(DESTDIR)/$(PREFIX)/share/zeus" "$$rtdata"/*
+		install -D -t "$(DESTDIR)/$(PREFIX)/share/zeus" "$$rtdata"/*
 	done
 
 .PHONY:
