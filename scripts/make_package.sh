@@ -9,7 +9,6 @@ export DESTDIR
 export BUILD_TYPE=release
 export PREFIX=/usr
 
-make build completions
-sudo -E make install
+make build completions install
 
-(cd "$DESTDIR" && tar -acvpf "$O" -- *)
+(cd "$DESTDIR" && tar -acvpf "$O" --owner=0 --group=0 -- *)

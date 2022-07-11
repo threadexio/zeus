@@ -8,5 +8,8 @@
     "DEFAULT_RUNTIME": "",
     "DEFAULT_RUNTIME_DIR": "",
     "VERSION": ""
+  },
+  "yaml.schemas": {
+    "https://json.schemastore.org/github-action.json": "file:///home/kat/dev/zeus/.github/workflows/build.yaml"
   }
 }

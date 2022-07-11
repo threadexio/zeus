@@ -25,17 +25,17 @@ jobs:
 
       - name: Build
         run: |
-          make BUILD_TYPE=release PREFIX="/usr" package
+          ./scripts/make_package.sh
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
         with:
-          name: zeus-bin
+          name: zeus
           path: |
-            zeus-bin.tar.gz
+            zeus.tar.gz
 
       - name: Create release
         uses: softprops/action-gh-release@v1
         if: startsWith(github.ref, 'refs/tags/v')
         with:
-          files: zeus-bin.tar.gz
+          files: zeus.tar.gz
