@@ -16,12 +16,12 @@ pub use std::io::{Read, Write};
 pub mod constants {
 	use super::*;
 
-	/// Increase this number when making a breaking change in the runtime API bellow.
-	/// Removing or changing method signatures is considered a breaking change.
-	pub static SUPPORTED_RT_API_VERSION: u32 = 1;
+	/// Increasing this number means there has been a breaking change in the API.
+	/// Removing or changing method signatures is a breaking change.
+	pub const MAX_SUPPORTED_RT_API_VERSION: u32 = 1;
 
 	// These should never really be changed
-	pub static RUNTIME_CONSTRUCTOR_SYMBOL_NAME: &'static str =
+	pub const RUNTIME_CONSTRUCTOR_SYMBOL_NAME: &'static str =
 		"_runtime_create";
 	pub type RuntimeConstructorSymbol = unsafe fn() -> *mut Runtime;
 }
@@ -42,7 +42,8 @@ pub trait IRuntime {
 
 	/// A simplistic way to signal breaking changes in the API for runtimes.
 	///
-	/// If `runtime.rt_api_version()` != `constants::SUPPORTED_RT_API_VERSION`, then the runtime will be considered incompatible and not load.
+	/// If `runtime.rt_api_version()` != `constants::SUPPORTED_RT_API_VERSION`,
+	/// then the runtime will be considered incompatible and not load.
 	fn rt_api_version(&self) -> u32;
 
 	/// This will be ran on driver load.
