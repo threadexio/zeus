@@ -31,30 +31,6 @@ pub(crate) mod manager;
 pub type Error = String;
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[allow(dead_code)]
-pub type Image = dyn IImage;
-#[allow(dead_code)]
-pub type BoxedImage = Box<Image>;
-pub trait IImage {
-	/// Get the ID of the image
-	fn id(&self) -> &str;
-	/// Get the name of the image
-	fn name(&self) -> &str;
-}
-
-#[allow(dead_code)]
-pub type Machine = dyn IMachine;
-#[allow(dead_code)]
-pub type BoxedMachine = Box<Machine>;
-pub trait IMachine {
-	/// Get the ID of the machine
-	fn id(&self) -> &str;
-	/// Get the name of the machine
-	fn name(&self) -> &str;
-	/// Get the ID of the image used for the machine
-	fn image(&self) -> &str;
-}
-
 /// A trait specifying a common interface for all machine runtime drivers.
 pub type Runtime = dyn IRuntime;
 pub type BoxedRuntime = Box<Runtime>;
@@ -78,30 +54,10 @@ pub trait IRuntime {
 	fn exit(&mut self);
 
 	/// List images returning a vector containing their names.
-	fn list_images(&self) -> Result<Vec<BoxedImage>>;
+	fn list_images(&self) -> Result<Vec<String>>;
 
-	/// Create an image with all the necessary configuration.
-	///
-	/// If:
-	/// 	- the image already exists
-	///
-	/// Then:
-	///
-	/// An error should be returned.
-	fn create_image(
-		&mut self,
-		image_name: &str,
-	) -> Result<BoxedImage>;
-
-	/// Update an image.
-	///
-	/// If:
-	/// 	- the image does NOT exist
-	///
-	/// Then:
-	///
-	/// An error should be returned.
-	fn update_image(&mut self, image: &Image) -> Result<()>;
+	/// Create or update an image.
+	fn make_image(&mut self, image_name: &str) -> Result<()>;
 
 	/// Delete an image.
 	///
@@ -112,15 +68,15 @@ pub trait IRuntime {
 	/// Then:
 	///
 	/// An error should be returned.
-	fn delete_image(&mut self, image: BoxedImage) -> Result<()>;
+	fn delete_image(&mut self, image_name: &str) -> Result<()>;
 
 	/// List machines returning a vector containing their names.
-	fn list_machines(&self) -> Result<Vec<BoxedMachine>>;
+	fn list_machines(&self) -> Result<Vec<String>>;
 
 	/// Create a machine and apply the necessary configuration.
 	///
 	/// If:
-	/// 	- the image already exists
+	/// 	- the machine already exists
 	///
 	/// Then:
 	///
@@ -128,11 +84,12 @@ pub trait IRuntime {
 	fn create_machine(
 		&mut self,
 		machine_name: &str,
-		image: &Image,
+		image_name: &str,
 		config: &AppConfig,
-	) -> Result<BoxedMachine>;
+	) -> Result<()>;
 
-	/// Start a machine.
+	/// Start a machine and attach it to the terminal. The runtime is responsible for having
+	/// forwarded the communication socket to the machine.
 	///
 	/// If:
 	/// 	- the machine does NOT exist
@@ -140,7 +97,7 @@ pub trait IRuntime {
 	/// Then:
 	///
 	/// An error should be returned.
-	fn start_machine(&mut self, machine: &Machine) -> Result<()>;
+	fn start_machine(&mut self, machine_name: &str) -> Result<()>;
 
 	/// Stop a machine.
 	///
@@ -150,32 +107,7 @@ pub trait IRuntime {
 	/// Then:
 	///
 	/// An error should be returned.
-	fn stop_machine(&mut self, machine: &Machine) -> Result<()>;
-
-	/// Attach to a machine. The runtime is responsible for having
-	/// forwarded the communication socket to the machine.
-	///
-	/// If:
-	/// 	- the machines does NOT exist
-	///
-	/// Then:
-	///
-	/// An error should be returned.
-	fn attach_machine(&mut self, machine: &Machine) -> Result<()>;
-
-	/// Execute command in a machine and get its exit code.
-	///
-	/// If:
-	/// 	- the machine does NOT exist
-	///
-	/// Then:
-	///
-	/// An error should be returned.
-	fn execute_command(
-		&mut self,
-		machine: &Machine,
-		command: &str,
-	) -> Result<i32>;
+	fn stop_machine(&mut self, machine_name: &str) -> Result<()>;
 
 	/// Delete a machine completely.
 	///
@@ -185,8 +117,7 @@ pub trait IRuntime {
 	/// Then:
 	///
 	/// An error should be returned.
-	fn delete_machine(&mut self, machine: BoxedMachine)
-		-> Result<()>;
+	fn delete_machine(&mut self, machine_name: &str) -> Result<()>;
 }
 
 #[macro_export]

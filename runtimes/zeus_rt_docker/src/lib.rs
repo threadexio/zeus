@@ -13,10 +13,32 @@ mod command;
 mod models;
 
 macro_rules! handle {
+	($x:expr) => {
+		match $x {
+			Ok(v) => v,
+			Err(e) => {
+				return Err(format!(
+					"{}: {}",
+					"could not execute docker", e
+				))
+			},
+		}
+	};
 	($x:expr, $msg:tt) => {
 		match $x {
 			Ok(v) => v,
 			Err(e) => return Err(format!("{}: {}", $msg, e)),
+		}
+	};
+}
+
+macro_rules! check_exit {
+	($output:expr) => {
+		if !command::check_exit_ok($output.status) {
+			return Err(format!(
+				"{}",
+				String::from_utf8_lossy(&$output.stderr[..])
+			));
 		}
 	};
 }
@@ -50,164 +72,86 @@ impl IRuntime for DockerRuntime {
 
 	fn exit(&mut self) {}
 
-	fn list_images(&self) -> Result<Vec<BoxedImage>> {
-		let process::Output { status, stdout, stderr, .. } = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("image")
-				.arg("ls")
-				.arg("-a")
-				.arg("--format")
-				.arg(models::IMAGE_FMT)
-				.output(),
-			"could not execute docker"
-		);
+	fn list_images(&self) -> Result<Vec<String>> {
+		let child = handle!(process::Command::new(&self.docker_bin)
+			.args(["image", "ls"])
+			.args(["--format", models::IMAGE_FMT])
+			.output());
 
-		if !command::check_exit_ok(status) {
-			return Err(format!(
-				"docker exited with {}: {}",
-				status.code().unwrap_or_default(),
-				String::from_utf8_lossy(&stderr)
-			));
-		}
+		check_exit!(child);
 
-		let mut images: Vec<BoxedImage> = Vec::new();
+		let mut images: Vec<String> = Vec::new();
 
-		for line in stdout.lines() {
-			let line = handle!(line, "could not decode line");
+		for line in child.stdout.lines() {
+			let line = match line {
+				Ok(v) => v,
+				Err(_) => continue,
+			};
 
 			let image: models::Image = handle!(
 				serde_json::from_str(&line),
 				"could not decode docker output"
 			);
 
-			images.push(Box::new(image));
+			images.push(image.name);
 		}
 
 		Ok(images)
 	}
 
-	fn create_image(
-		&mut self,
-		image_name: &str,
-	) -> Result<BoxedImage> {
-		for image in self.list_images()? {
-			if image_name == image.name() {
-				return Err(format!("image already exists"));
-			}
-		}
-
+	fn make_image(&mut self, image_name: &str) -> Result<()> {
 		let build_context = String::from("./");
 
-		let status = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("build")
-				.arg("--pull")
-				.arg("--rm")
-				.arg("-t")
-				.arg(image_name)
-				.arg("--")
-				.arg(build_context)
-				.status(),
-			"could not execute docker"
-		);
+		let status = handle!(process::Command::new(&self.docker_bin)
+			.args(["build"])
+			.args(["--pull", "--rm"])
+			.args(["-t", image_name])
+			.arg("--")
+			.arg(build_context)
+			.status());
 
 		if !command::check_exit_ok(status) {
-			return Err(format!(
-				"docker exited with: {}",
-				status.code().unwrap_or_default()
-			));
-		}
-
-		for image in self.list_images()? {
-			if image_name == image.name() {
-				return Ok(Box::new(models::Image {
-					id: image.id().to_string(),
-					name: image_name.to_string(),
-				}));
-			}
-		}
-
-		return Err(format!("unknown error during build"));
-	}
-
-	fn update_image(&mut self, image: &Image) -> Result<()> {
-		let build_context = String::from("./");
-
-		let status = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("build")
-				.arg("--pull")
-				.arg("--rm")
-				.arg("-t")
-				.arg(image.name())
-				.arg("--")
-				.arg(build_context)
-				.status(),
-			"could not execute docker"
-		);
-
-		if !command::check_exit_ok(status) {
-			return Err(format!(
-				"docker exited with: {}",
-				status.code().unwrap_or_default()
-			));
+			return Err(format!("error during image build"));
 		}
 
 		Ok(())
 	}
 
-	fn delete_image(&mut self, image: BoxedImage) -> Result<()> {
-		let process::Output { status, .. } = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("image")
-				.arg("rm")
-				.arg("--")
-				.arg(image.id())
-				.output(),
-			"could not execute docker"
-		);
+	fn delete_image(&mut self, image_name: &str) -> Result<()> {
+		let child = handle!(process::Command::new(&self.docker_bin)
+			.args(["image", "rm"])
+			.arg("--")
+			.arg(image_name)
+			.output());
 
-		if !command::check_exit_ok(status) {
-			return Err(format!(
-				"docker exited with: {}",
-				status.code().unwrap_or_default()
-			));
-		}
+		check_exit!(child);
 
 		Ok(())
 	}
 
-	fn list_machines(&self) -> Result<Vec<BoxedMachine>> {
-		let process::Output { status, stdout, stderr, .. } = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("container")
-				.arg("ls")
-				.arg("-a")
-				.arg("--format")
-				.arg(models::CONTAINER_FMT)
-				.output(),
-			"could not execute docker"
-		);
+	fn list_machines(&self) -> Result<Vec<String>> {
+		let child = handle!(process::Command::new(&self.docker_bin)
+			.args(["container", "ls"])
+			.args(["-a"])
+			.args(["--format", models::CONTAINER_FMT])
+			.output());
 
-		if !command::check_exit_ok(status) {
-			return Err(format!(
-				"docker exited with {}: {}",
-				status.code().unwrap_or_default(),
-				String::from_utf8_lossy(&stderr)
-			));
-		}
+		check_exit!(child);
 
-		let mut containers: Vec<BoxedMachine> = Vec::new();
+		let mut containers: Vec<String> = Vec::new();
 
-		for line in stdout.lines() {
-			let line = handle!(line, "could not decode line");
+		for line in child.stdout.lines() {
+			let line = match line {
+				Ok(v) => v,
+				Err(_) => continue,
+			};
 
 			let container: models::Container = handle!(
 				serde_json::from_str(&line),
 				"could not decode docker output"
 			);
 
-			containers.push(Box::new(container));
+			containers.push(container.name);
 		}
 
 		Ok(containers)
@@ -216,147 +160,73 @@ impl IRuntime for DockerRuntime {
 	fn create_machine(
 		&mut self,
 		machine_name: &str,
-		image: &Image,
+		image_name: &str,
 		config: &AppConfig,
-	) -> Result<BoxedMachine> {
-		let process::Output { status, stdout, .. } = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("container")
-				.arg("create")
-				//.arg("-t")
-				.arg("-i")
-				.arg("--name")
-				.arg(machine_name)
-				.arg("-v")
-				.arg("/var/cache/pacman/pkg:/var/cache/pacman/pkg:rw")
-				.arg("-v")
-				.arg(format!("{}:/build:rw", config.build_dir))
-				.arg("--cap-drop=all")
-				.arg("--cap-add=CAP_SETUID")
-				.arg("--cap-add=CAP_SETGID")
-				.arg("--")
-				.arg(image.id())
-				.output(),
-			"could not execute docker"
-		);
-
-		if !command::check_exit_ok(status) {
-			return Err(format!(
-				"docker exited with: {}",
-				status.code().unwrap_or_default(),
-			));
-		}
-
-		let container_id = &String::from_utf8_lossy(&stdout)[..10];
-
-		Ok(Box::new(models::Container {
-			id: container_id.to_string(),
-			name: machine_name.to_string(),
-			image: image.id().to_string(),
-		}))
-	}
-
-	fn start_machine(&mut self, machine: &Machine) -> Result<()> {
-		let process::Output { status, .. } = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("container")
-				.arg("start")
-				.arg("--")
-				.arg(machine.id())
-				.output(),
-			"could not execute docker"
-		);
-
-		if !command::check_exit_ok(status) {
-			return Err(format!(
-				"docker exited with: {}",
-				status.code().unwrap_or_default()
-			));
-		}
-
-		Ok(())
-	}
-
-	fn stop_machine(&mut self, machine: &Machine) -> Result<()> {
-		let process::Output { status, .. } = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("container")
-				.arg("kill")
-				.arg("--")
-				.arg(machine.id())
-				.output(),
-			"could not execute docker"
-		);
-
-		if !command::check_exit_ok(status) {
-			return Err(format!(
-				"docker exited with: {}",
-				status.code().unwrap_or_default()
-			));
-		}
-
-		Ok(())
-	}
-
-	fn attach_machine(&mut self, machine: &Machine) -> Result<()> {
-		// todo: attach container to a pty for pretty colors
-
-		handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("container")
-				.arg("attach")
-				.arg("--")
-				.arg(machine.id())
-				.spawn(),
-			"could not execute docker"
-		);
-
-		Ok(())
-	}
-
-	fn execute_command(
-		&mut self,
-		machine: &Machine,
-		command: &str,
-	) -> Result<i32> {
-		let process::Output { status, .. } = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("container")
-				.arg("exec")
-				.arg("-i")
-				//.arg("-t")
-				.arg("--")
-				.arg(machine.id())
-				.arg(command)
-				.output(),
-			"could not execute docker"
-		);
-
-		Ok(status.code().unwrap_or_default())
-	}
-
-	fn delete_machine(
-		&mut self,
-		machine: BoxedMachine,
 	) -> Result<()> {
-		let process::Output { status, .. } = handle!(
-			process::Command::new(&self.docker_bin)
-				.arg("container")
-				.arg("rm")
-				.arg("-f")
-				.arg("-v")
-				.arg("--")
-				.arg(machine.id())
-				.output(),
-			"could not execute docker"
-		);
+		let child = handle!(process::Command::new(&self.docker_bin)
+			.args(["container", "create"])
+			.args(["-i" /* "-t" */,])	// ISSUE: Allocating a pseudo terminal with -t gives pretty colors to
+			                        	// the container output but sets some terminal settings with stty and
+										// screws up output and user input.
+			.args(["--name", machine_name])
+			.args([
+				"-v",
+				"/var/cache/pacman/pkg:/var/cache/pacman/pkg:rw"
+			])
+			.args(["-v", &format!("{}:/build:rw", config.build_dir)])
+			.args([
+				"--cap-drop=all",
+				"--cap-add=CAP_SETUID",
+				"--cap-add=CAP_SETGID"
+			])
+			.arg("--")
+			.arg(image_name)
+			.output());
 
-		if !command::check_exit_ok(status) {
-			return Err(format!(
-				"docker exited with: {}",
-				status.code().unwrap_or_default()
-			));
-		}
+		check_exit!(child);
+
+		Ok(())
+	}
+
+	fn start_machine(&mut self, machine_name: &str) -> Result<()> {
+		let child = handle!(process::Command::new(&self.docker_bin)
+			.args(["container", "start"])
+			.arg("--")
+			.arg(machine_name)
+			.output());
+
+		check_exit!(child);
+
+		handle!(process::Command::new(&self.docker_bin)
+			.args(["container", "attach"])
+			.arg("--")
+			.arg(machine_name)
+			.spawn());
+
+		Ok(())
+	}
+
+	fn stop_machine(&mut self, machine_name: &str) -> Result<()> {
+		let child = handle!(process::Command::new(&self.docker_bin)
+			.args(["container", "kill"])
+			.arg("--")
+			.arg(machine_name)
+			.output());
+
+		check_exit!(child);
+
+		Ok(())
+	}
+
+	fn delete_machine(&mut self, machine_name: &str) -> Result<()> {
+		let child = handle!(process::Command::new(&self.docker_bin)
+			.args(["container", "rm"])
+			.args(["-f", "-v"])
+			.arg("--")
+			.arg(machine_name)
+			.output());
+
+		check_exit!(child);
 
 		Ok(())
 	}

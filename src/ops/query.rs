@@ -59,7 +59,7 @@ fn print_pretty_package(package: &aur::Package) {
 }
 
 pub fn query(
-	term: &mut Terminal,
+	_term: &mut Terminal,
 	mut cfg: AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
@@ -75,8 +75,6 @@ pub fn query(
 			"No keywords specified".to_owned(),
 		));
 	}
-
-	debug!(term.log, "post-op config", "{:?}", &cfg);
 
 	let by = args.value_of_t::<aur::By>("by").unwrap();
 

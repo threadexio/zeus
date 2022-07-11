@@ -1,9 +1,9 @@
-use crate::machine::BoxedMachine;
-use crate::message::Message;
-use crate::ops::prelude::*;
-use crate::unix::LocalListener;
-
+use std::collections::HashSet;
 use std::path::Path;
+
+use crate::ops::prelude::*;
+
+use super::start_builder;
 
 pub fn remove(
 	term: &mut Terminal,
@@ -26,7 +26,40 @@ pub fn remove(
 		));
 	}
 
-	debug!(term.log, "post-op config", "{:?}", &cfg);
+	let mut valid_packages: HashSet<String> = HashSet::new();
+	let mut invalid_packages: HashSet<String> = HashSet::new();
+
+	for pkg in cfg.packages {
+		let pkg_path = Path::new(&cfg.build_dir).join(&pkg);
+
+		if !pkg_path.exists()
+			|| !pkg_path.is_dir()
+			|| !pkg_path.join("PKGBUILD").exists()
+		{
+			invalid_packages.insert(pkg);
+		} else {
+			valid_packages.insert(pkg);
+		}
+	}
+	cfg.packages = valid_packages;
+
+	if !invalid_packages.is_empty() {
+		term.list(
+			format!(
+				"The following packages have {} been synced:",
+				"NOT".bold()
+			),
+			invalid_packages.iter(),
+			4,
+		)?;
+	}
+
+	if cfg.packages.is_empty() {
+		return Err(ZeusError::new(
+			"zeus".to_owned(),
+			"No valid packages specified.".to_owned(),
+		));
+	}
 
 	term.list(
 		format!(
@@ -45,67 +78,9 @@ pub fn remove(
 		return Ok(());
 	}
 
-	let mut machine: Option<BoxedMachine> = None;
-	for m in runtime.list_machines()? {
-		if m.name() == cfg.machine {
-			machine = Some(m);
-			break;
-		}
-	}
+	let removed_packages = start_builder(term, runtime, cfg)?;
 
-	if machine.is_none() {
-		return Err(ZeusError::new(
-			"zeus".to_owned(),
-			format!("Cannot find builder machine {}", cfg.machine),
-		));
-	}
+	term.list("Synced packages:", removed_packages.iter(), 1)?;
 
-	let socket_path = format!("{}/zeus.sock", &cfg.build_dir);
-	let listener = zerr!(
-		LocalListener::new(Path::new(&socket_path), 0o666),
-		"unix",
-		"Cannot listen on socket {}",
-		&socket_path
-	);
-
-	info!(term.log, "zeus", "Starting builder...");
-
-	runtime.start_machine(machine.as_ref().unwrap().as_ref())?;
-
-	debug!(term.log, "MachineManager", "Attaching to builder...");
-
-	runtime.attach_machine(machine.as_ref().unwrap().as_ref())?;
-
-	debug!(term.log, "unix", "Waiting for builder to connect...");
-
-	let (mut channel, _) = zerr!(
-		listener.accept(),
-		"unix",
-		"Cannot open communication stream with builder"
-	);
-
-	debug!(term.log, "zeus", "Sending config to builder...");
-
-	channel.send(Message::Config(cfg))?;
-
-	debug!(term.log, "zeus", "Entering main event loop...");
-
-	loop {
-		match channel.recv()? {
-			Message::Success(pkgs) => {
-				println!("{} Removed packages:", "=>".green().bold(),);
-				for pkg in pkgs {
-					println!("    {}", pkg.bold())
-				}
-				return Ok(());
-			},
-			Message::Failure(error) => {
-				return Err(ZeusError::new(
-					"builder".to_string(),
-					error,
-				))
-			},
-			_ => {},
-		}
-	}
+	Ok(())
 }

@@ -1,9 +1,11 @@
 use std::env;
-use std::path;
+use std::path::Path;
 
 use crate::config::Operation;
 use crate::lock::Lockfile;
 use crate::machine::manager::RuntimeManager;
+use crate::message::Message;
+use crate::unix::LocalListener;
 
 mod build;
 mod completions;
@@ -32,6 +34,56 @@ mod prelude {
 
 use prelude::*;
 
+pub fn start_builder(
+	term: &mut Terminal,
+	runtime: &mut Runtime,
+	cfg: AppConfig,
+) -> Result<Vec<String>> {
+	if !runtime.list_machines()?.iter().any(|x| x == &cfg.machine) {
+		return Err(ZeusError::new(
+			"zeus".to_owned(),
+			"No builder machine found.".to_owned(),
+		));
+	}
+
+	let socket_path = format!("{}/zeus.sock", &cfg.build_dir);
+	let listener = zerr!(
+		LocalListener::new(Path::new(&socket_path), 0o666),
+		"unix",
+		"Cannot listen on socket {}",
+		&socket_path
+	);
+
+	info!(term.log, "zeus", "Starting builder...");
+	runtime.start_machine(&cfg.machine)?;
+
+	debug!(term.log, "unix", "Waiting for builder to connect...");
+	let (mut channel, _) = zerr!(
+		listener.accept(),
+		"unix",
+		"Cannot open communication stream with builder"
+	);
+
+	debug!(term.log, "zeus", "Sending config to builder...");
+	channel.send(Message::Config(cfg))?;
+
+	debug!(term.log, "zeus", "Entering main event loop...");
+	loop {
+		match channel.recv()? {
+			Message::Success(pkgs) => {
+				return Ok(pkgs);
+			},
+			Message::Failure(error) => {
+				return Err(ZeusError::new(
+					"builder".to_string(),
+					error,
+				))
+			},
+			_ => {},
+		}
+	}
+}
+
 fn get_runtime<'a>(
 	cfg: &AppConfig,
 	rt_manager: &'a mut RuntimeManager,
@@ -52,7 +104,7 @@ fn get_runtime<'a>(
 }
 
 fn get_lock(lockfile: &Lockfile) -> Result<()> {
-	Ok(zerr!(lockfile.lock(), "system", "Cannot obtain lock"))
+	Ok(zerr!(lockfile.try_lock(), "system", "Cannot obtain lock"))
 }
 
 pub fn run_operation(
@@ -61,8 +113,8 @@ pub fn run_operation(
 	args: &ArgMatches,
 ) -> Result<()> {
 	let lockfile = zerr!(
-		Lockfile::new(path::Path::new(&format!(
-			"{}/zeus.lock",
+		Lockfile::new(Path::new(&format!(
+			"{}/.zeus.lock",
 			&cfg.build_dir
 		))),
 		"system",

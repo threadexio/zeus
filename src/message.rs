@@ -8,5 +8,3 @@ pub enum Message {
 	Success(Vec<String>),
 	Failure(String),
 }
-
-unsafe impl Sync for Message {}
