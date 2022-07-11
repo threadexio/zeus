@@ -103,8 +103,26 @@ fn get_runtime<'a>(
 		.as_mut())
 }
 
-fn get_lock(lockfile: &Lockfile) -> Result<()> {
-	Ok(zerr!(lockfile.try_lock(), "system", "Cannot obtain lock"))
+fn get_lock(
+	lockfile: &mut Option<Lockfile>,
+	cfg: &AppConfig,
+) -> Result<()> {
+	if lockfile.is_none() {
+		*lockfile = Some(zerr!(
+			Lockfile::new(Path::new(&format!(
+				"{}/.zeus.lock",
+				&cfg.build_dir
+			))),
+			"system",
+			"Cannot create lock"
+		));
+	}
+
+	Ok(zerr!(
+		lockfile.as_ref().unwrap().try_lock(),
+		"system",
+		"Cannot obtain lock"
+	))
 }
 
 pub fn run_operation(
@@ -112,14 +130,7 @@ pub fn run_operation(
 	mut cfg: AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
-	let lockfile = zerr!(
-		Lockfile::new(Path::new(&format!(
-			"{}/.zeus.lock",
-			&cfg.build_dir
-		))),
-		"system",
-		"Cannot create lock"
-	);
+	let mut lockfile: Option<Lockfile> = None;
 
 	let mut rt_manager = RuntimeManager::new();
 
@@ -127,7 +138,7 @@ pub fn run_operation(
 
 	match cfg.operation {
 		Operation::Build => {
-			get_lock(&lockfile)?;
+			get_lock(&mut lockfile, &cfg)?;
 			build::build(
 				term,
 				get_runtime(&cfg, &mut rt_manager)?,
@@ -136,7 +147,7 @@ pub fn run_operation(
 			)
 		},
 		Operation::Remove => {
-			get_lock(&lockfile)?;
+			get_lock(&mut lockfile, &cfg)?;
 			cfg.operation = Operation::Remove;
 			remove::remove(
 				term,
@@ -146,7 +157,7 @@ pub fn run_operation(
 			)
 		},
 		Operation::Sync => {
-			get_lock(&lockfile)?;
+			get_lock(&mut lockfile, &cfg)?;
 			cfg.operation = Operation::Sync;
 			sync::sync(
 				term,
