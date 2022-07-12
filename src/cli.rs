@@ -146,13 +146,7 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 					.long("list")
 					.help("List all available runtimes")
 					.takes_value(false)
-					.conflicts_with_all(&[]),
-			)
-			.arg(
-				Arg::new("check")
-					.short('c')
-					.long("c")
-					.help("Check that the specified runtime works"),
+					.exclusive(true),
 			),
 		////////////////////////////////////////////////////
 	]

@@ -1,7 +1,7 @@
 use std::io::stdout;
 
+use super::prelude::*;
 use crate::aur;
-use crate::ops::prelude::*;
 
 macro_rules! print_if_some {
 	($a:expr,$b:expr) => {{

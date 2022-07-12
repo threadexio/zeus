@@ -11,6 +11,7 @@ mod build;
 mod completions;
 mod query;
 mod remove;
+mod runtime;
 mod sync;
 
 mod prelude {
@@ -30,6 +31,8 @@ mod prelude {
 	pub use crate::machine::Runtime;
 	pub use clap::ArgMatches;
 	pub use colored::Colorize;
+
+	pub use super::start_builder;
 }
 
 use prelude::*;
@@ -127,7 +130,7 @@ fn get_lock(
 
 pub fn run_operation(
 	term: &mut Terminal,
-	mut cfg: AppConfig,
+	cfg: AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
 	let mut lockfile: Option<Lockfile> = None;
@@ -148,7 +151,6 @@ pub fn run_operation(
 		},
 		Operation::Remove => {
 			get_lock(&mut lockfile, &cfg)?;
-			cfg.operation = Operation::Remove;
 			remove::remove(
 				term,
 				get_runtime(&cfg, &mut rt_manager)?,
@@ -158,7 +160,6 @@ pub fn run_operation(
 		},
 		Operation::Sync => {
 			get_lock(&mut lockfile, &cfg)?;
-			cfg.operation = Operation::Sync;
 			sync::sync(
 				term,
 				get_runtime(&cfg, &mut rt_manager)?,
@@ -166,9 +167,13 @@ pub fn run_operation(
 				args,
 			)
 		},
+		Operation::Runtime => {
+			get_lock(&mut lockfile, &cfg)?;
+			runtime::runtime(term, &mut rt_manager, cfg, args)
+		},
 		Operation::Query => query::query(term, cfg, args),
 		Operation::Completions => completions::completions(args),
-		_ => Err(ZeusError::new(
+		Operation::None => Err(ZeusError::new(
 			"zeus".to_owned(),
 			"No such operation".to_owned(),
 		)),

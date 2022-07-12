@@ -1,9 +1,7 @@
 use std::collections::HashSet;
 use std::path::Path;
 
-use crate::ops::prelude::*;
-
-use super::start_builder;
+use super::prelude::*;
 
 pub fn remove(
 	term: &mut Terminal,

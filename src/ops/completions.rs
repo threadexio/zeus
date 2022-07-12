@@ -2,7 +2,7 @@ use std::io::stdout;
 
 use crate::cli;
 
-use crate::ops::prelude::*;
+use super::prelude::*;
 
 pub fn completions(args: &ArgMatches) -> Result<()> {
 	if args.is_present("shell") {

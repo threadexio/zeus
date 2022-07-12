@@ -56,8 +56,8 @@ impl From<Error> for ZeusError {
 
 #[allow(dead_code)]
 pub struct RuntimeLibrary {
-	runtime: BoxedRuntime,
-	library: Library,
+	pub runtime: BoxedRuntime,
+	pub library: Library,
 }
 
 impl std::fmt::Debug for RuntimeLibrary {
@@ -89,33 +89,43 @@ impl RuntimeManager {
 		Self::default()
 	}
 
-	pub fn load<P: AsRef<OsStr>>(
+	pub(crate) unsafe fn _load_unchecked<P: AsRef<OsStr>>(
 		&mut self,
 		path: P,
-	) -> Result<&mut BoxedRuntime, Error> {
-		unsafe {
-			let library = match Library::new(path) {
-				Ok(lib) => lib,
-				Err(e) => return Err(Error::Unloadable(e)),
-			};
+	) -> Result<RuntimeLibrary, Error> {
+		let library = match Library::new(path) {
+			Ok(lib) => lib,
+			Err(e) => return Err(Error::Unloadable(e)),
+		};
 
-			let constructor: Symbol<
-				constants::RuntimeConstructorSymbol,
-			> = match library.get(
+		let constructor: Symbol<constants::RuntimeConstructorSymbol> =
+			match library.get(
 				constants::RUNTIME_CONSTRUCTOR_SYMBOL_NAME.as_bytes(),
 			) {
 				Ok(symbol) => symbol,
 				Err(e) => return Err(Error::SymbolLookup(e)),
 			};
 
-			let mut runtime = Box::from_raw(constructor());
-			let runtime_name = runtime.name();
+		let runtime = Box::from_raw(constructor());
 
-			if runtime.rt_api_version()
-				> constants::MAX_SUPPORTED_RT_API_VERSION
-			{
-				return Err(Error::IncompatibleRuntimeApi);
-			}
+		if runtime.rt_api_version()
+			> constants::MAX_SUPPORTED_RT_API_VERSION
+		{
+			return Err(Error::IncompatibleRuntimeApi);
+		}
+
+		Ok(RuntimeLibrary { library, runtime })
+	}
+
+	pub fn load<P: AsRef<OsStr>>(
+		&mut self,
+		path: P,
+	) -> Result<&mut BoxedRuntime, Error> {
+		unsafe {
+			let mut rtlib = self._load_unchecked(path)?;
+			let runtime = &mut rtlib.runtime;
+
+			let runtime_name = runtime.name();
 
 			if self.is_loaded(runtime_name) {
 				return Err(Error::RuntimeAlreadyLoaded);
@@ -126,10 +136,7 @@ impl RuntimeManager {
 				Err(e) => return Err(Error::RuntimeInitError(e)),
 			};
 
-			self.runtimes.insert(
-				runtime_name,
-				RuntimeLibrary { runtime, library },
-			);
+			self.runtimes.insert(runtime_name, rtlib);
 
 			let runtime = &mut self
 				.runtimes

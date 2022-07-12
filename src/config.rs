@@ -33,6 +33,7 @@ pub enum Operation {
 	Build,
 	Query,
 	Completions,
+	Runtime,
 	None,
 }
 
@@ -50,6 +51,7 @@ impl From<&str> for Operation {
 			"remove" => Remove,
 			"build" => Build,
 			"query" => Query,
+			"runtime" => Runtime,
 			"completions" => Completions,
 			_ => Default::default(),
 		}
