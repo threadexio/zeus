@@ -65,7 +65,9 @@
 	- [Removing a package](#removing-a-package)
 	- [Querying the AUR](#querying-the-aur)
 	- [Buidler images](#buidler-images)
-	- [Please read](#please-read)
+	- [Security](#security)
+		- [Packages](#packages)
+		- [Runtimes](#runtimes)
 - [Installing](#installing)
 - [Building](#building)
 	- [Not installing locally](#not-installing-locally)
@@ -147,12 +149,22 @@ $ zeus -B
 
 It is recommended to do this every time you update your normal system
 
-### Please read
+### Security
+
+#### Packages
 
 `zeus` does not execute `pacman` commands automatically for 2 reasons:
 
 1. It gives more control to the user and helps package developers
 2. It allows auditing `PKGBUILD`s and install scriptlets manually before installing
+
+#### Runtimes
+
+With the introduction of runtimes, loadable code that runs in the package manager, there now exists a whole new attack vector. The problem resides in the fact that this code cannot be sandboxed without limiting the runtime as it may need to communicate with system services, like `docker`. The situation gets worse when you factor in that many containers backends may require root privileges to work, like `docker` (rootless containers are not yet supported but they may work). So the runtime code is also running as root.
+
+**TL;DR**
+
+Don't use runtimes provided by anyone. Make sure the source is trusted and/or audit the code. `zeus` cannot help you if you use it's features unsafely. Stay safe fellow archers.
 
 <br>
 
