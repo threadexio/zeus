@@ -91,6 +91,13 @@ fn get_runtime<'a>(
 	cfg: &AppConfig,
 	rt_manager: &'a mut RuntimeManager,
 ) -> Result<&'a mut Runtime> {
+	let runtime = rt_manager
+		.load(format!(
+			"{}/librt_{}.so",
+			cfg.runtime_dir, cfg.runtime
+		))?
+		.as_mut();
+
 	zerr!(
 		env::set_current_dir(crate::config::DATA_DIR),
 		"system",
@@ -98,12 +105,7 @@ fn get_runtime<'a>(
 		crate::config::DATA_DIR
 	);
 
-	Ok(rt_manager
-		.load(format!(
-			"{}/librt_{}.so",
-			cfg.runtime_dir, cfg.runtime
-		))?
-		.as_mut())
+	Ok(runtime)
 }
 
 fn get_lock(
