@@ -32,16 +32,20 @@ impl Colors {
 		self.debug = c;
 		self
 	}
-}
 
-impl Default for Colors {
-	fn default() -> Self {
+	pub(self) const fn _default() -> Self {
 		Self {
 			error: Color::Red,
 			warn: Color::Yellow,
 			info: Color::Green,
 			debug: Color::Blue,
 		}
+	}
+}
+
+impl Default for Colors {
+	fn default() -> Self {
+		Self::_default()
 	}
 }
 
@@ -120,27 +124,44 @@ impl Logger {
 	}
 }
 
-#[macro_export]
-macro_rules! error {
-	($logger:expr, $caller:expr, $($arg:tt)*) => ({
-		$logger.e($caller, format!($($arg)*))
-	});
-}
-#[macro_export]
-macro_rules! warn {
-	($logger:expr, $caller:expr, $($arg:tt)*) => ({
-		$logger.w($caller, format!($($arg)*))
-	});
-}
-#[macro_export]
-macro_rules! info {
-	($logger:expr, $caller:expr, $($arg:tt)*) => ({
-		$logger.i($caller, format!($($arg)*))
-	});
-}
-#[macro_export]
-macro_rules! debug {
-	($logger:expr, $caller:expr, $($arg:tt)*) => ({
-		$logger.d($caller, format!($($arg)*))
-	});
+pub static mut LOGGER: Logger =
+	Logger { debug: false, colors: Colors::_default() };
+
+pub mod macros {
+	#[macro_export]
+	macro_rules! error {
+		($caller:expr, $($arg:tt)*) => ({
+			#[allow(unused_unsafe)]
+			unsafe {
+				$crate::log::LOGGER.e($caller, format!($($arg)*))
+			}
+		});
+	}
+	#[macro_export]
+	macro_rules! warning {
+		($caller:expr, $($arg:tt)*) => ({
+			#[allow(unused_unsafe)]
+			unsafe {
+				$crate::log::LOGGER.w($caller, format!($($arg)*))
+			}
+		});
+	}
+	#[macro_export]
+	macro_rules! info {
+		($caller:expr, $($arg:tt)*) => ({
+			#[allow(unused_unsafe)]
+			unsafe {
+				$crate::log::LOGGER.i($caller, format!($($arg)*))
+			}
+		});
+	}
+	#[macro_export]
+	macro_rules! debug {
+		($caller:expr, $($arg:tt)*) => ({
+			#[allow(unused_unsafe)]
+			unsafe {
+				$crate::log::LOGGER.d($caller, format!($($arg)*))
+			}
+		});
+	}
 }

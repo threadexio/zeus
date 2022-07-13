@@ -5,26 +5,17 @@ use std::io::prelude::*;
 
 pub use colored::{control, Color, ColoredString, Colorize};
 
-use crate::log::Logger;
-
 #[derive(Debug)]
 pub struct Terminal {
 	pub input: io::Stdin,
 	pub output: io::Stdout,
 	pub error: io::Stderr,
-
-	pub log: Logger,
 }
 
 #[allow(dead_code)]
 impl Terminal {
-	pub fn new(log: Logger) -> Self {
-		Self {
-			input: io::stdin(),
-			output: io::stdout(),
-			error: io::stderr(),
-			log,
-		}
+	pub fn new() -> Self {
+		Self::default()
 	}
 
 	pub fn color(&mut self, enabled: bool) {
@@ -185,7 +176,6 @@ impl Default for Terminal {
 			input: io::stdin(),
 			output: io::stdout(),
 			error: io::stderr(),
-			log: Default::default(),
 		}
 	}
 }

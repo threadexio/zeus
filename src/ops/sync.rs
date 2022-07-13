@@ -121,11 +121,11 @@ pub fn sync(
 	if !term
 		.yes_no_question("Are you sure you want to continue?", true)?
 	{
-		error!(term.log, "zeus", "Aborting...");
+		error!("zeus", "Aborting...");
 		return Ok(());
 	}
 
-	let synced_packages = start_builder(term, runtime, cfg)?;
+	let synced_packages = start_builder(runtime, cfg)?;
 
 	term.list("Synced packages:", synced_packages.iter(), 1)?;
 

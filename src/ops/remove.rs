@@ -72,11 +72,11 @@ pub fn remove(
 		"Are you sure you want to remove these packages?",
 		true,
 	)? {
-		error!(term.log, "zeus", "Aborting...");
+		error!("zeus", "Aborting...");
 		return Ok(());
 	}
 
-	let removed_packages = start_builder(term, runtime, cfg)?;
+	let removed_packages = start_builder(runtime, cfg)?;
 
 	term.list("Synced packages:", removed_packages.iter(), 1)?;
 

@@ -1,7 +1,6 @@
 use super::prelude::*;
 
 pub fn build(
-	term: &mut Terminal,
 	runtime: &mut Runtime,
 	mut cfg: AppConfig,
 	args: &ArgMatches,
@@ -12,22 +11,17 @@ pub fn build(
 	for machine in runtime.list_machines()? {
 		if machine == cfg.machine {
 			debug!(
-				term.log,
 				"MachineManager",
-				"Removing old machine {}",
-				cfg.machine
+				"Removing old machine {}", cfg.machine
 			);
 			runtime.delete_machine(&machine)?;
 		}
 	}
 
-	debug!(term.log, "ImageManager", "Updating image {}", cfg.image);
+	debug!("ImageManager", "Updating image {}", cfg.image);
 	runtime.make_image(&cfg.image)?;
 
-	debug!(
-		term.log,
-		"MachineManager", "Creating new machine {}", cfg.machine
-	);
+	debug!("MachineManager", "Creating new machine {}", cfg.machine);
 	runtime.create_machine(&cfg.machine, &cfg.image, &cfg)?;
 
 	Ok(())

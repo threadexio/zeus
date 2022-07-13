@@ -94,7 +94,6 @@ fn build_packages<'a>(
 }
 
 fn remove_packages<'a>(
-	logger: &log::Logger,
 	cfg: &'a config::AppConfig,
 ) -> Result<Vec<&'a str>> {
 	let mut removed_packages: Vec<&str> = Vec::new();
@@ -108,8 +107,7 @@ fn remove_packages<'a>(
 					removed_packages.push(package);
 				},
 				Err(e) => {
-					warn!(
-						logger,
+					warning!(
 						"fs",
 						"Cannot remove package directory {}: {}",
 						pkg_path.display(),
@@ -118,7 +116,7 @@ fn remove_packages<'a>(
 				},
 			}
 		} else {
-			warn!(logger, "zeus", "Package has not been synced");
+			warning!("zeus", "Package has not been synced");
 		}
 	}
 
@@ -126,34 +124,24 @@ fn remove_packages<'a>(
 }
 
 fn main() {
-	let mut logger = log::Logger::default();
-
-	info!(
-		logger,
-		"builder",
-		"Version: {}",
-		config::PROGRAM_VERSION.bright_blue()
-	);
+	info!("builder", "Version: {}", config::VERSION.bright_blue());
 
 	match env::set_current_dir("/build") {
 		Ok(_) => {},
 		Err(e) => {
 			error!(
-				logger,
 				"builder",
-				"Cannot change directory to {}: {}",
-				"/build",
-				e
+				"Cannot change directory to {}: {}", "/build", e
 			);
 			exit(1);
 		},
 	}
 
-	let socket_path = format!("{}.sock", config::PROGRAM_NAME);
+	let socket_path = format!("{}.sock", config::NAME);
 	let mut channel = match unix::connect::<Message, _>(socket_path) {
 		Ok(v) => v,
 		Err(e) => {
-			error!(logger, "unix", "Cannot connect to host: {}", e);
+			error!("unix", "Cannot connect to host: {}", e);
 			exit(1);
 		},
 	};
@@ -162,33 +150,27 @@ fn main() {
 		Ok(v) => match v {
 			Message::Config(c) => c,
 			m => {
-				error!(
-					logger,
-					"builder", "Expected config, got {:?}", m
-				);
+				error!("builder", "Expected config, got {:?}", m);
 				exit(1);
 			},
 		},
 		Err(e) => {
-			error!(
-				logger,
-				"builder", "Cannot deserialize config: {}", e
-			);
+			error!("builder", "Cannot deserialize config: {}", e);
 			exit(1);
 		},
 	};
 
-	logger.debug = cfg.debug;
+	unsafe {
+		log::LOGGER.debug = cfg.debug;
+	}
 
 	let op_res = match cfg.operation {
 		Operation::Sync => build_packages(&cfg),
-		Operation::Remove => remove_packages(&logger, &cfg),
+		Operation::Remove => remove_packages(&cfg),
 		_ => {
 			error!(
-				logger,
 				"builder",
-				"Unexpected operation: {:?}",
-				cfg.operation
+				"Unexpected operation: {:?}", cfg.operation
 			);
 			exit(1);
 		},

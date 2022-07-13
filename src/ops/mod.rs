@@ -25,7 +25,7 @@ mod prelude {
 
 	// Logging
 	pub use crate::log::Logger;
-	pub use crate::{debug, error, info, warn};
+	pub use crate::{debug, error, info, warning};
 
 	// Extras
 	pub use crate::machine::Runtime;
@@ -38,7 +38,6 @@ mod prelude {
 use prelude::*;
 
 pub fn start_builder(
-	term: &mut Terminal,
 	runtime: &mut Runtime,
 	cfg: AppConfig,
 ) -> Result<Vec<String>> {
@@ -57,20 +56,20 @@ pub fn start_builder(
 		&socket_path
 	);
 
-	info!(term.log, "zeus", "Starting builder...");
+	info!("zeus", "Starting builder...");
 	runtime.start_machine(&cfg.machine)?;
 
-	debug!(term.log, "unix", "Waiting for builder to connect...");
+	debug!("unix", "Waiting for builder to connect...");
 	let (mut channel, _) = zerr!(
 		listener.accept(),
 		"unix",
 		"Cannot open communication stream with builder"
 	);
 
-	debug!(term.log, "zeus", "Sending config to builder...");
+	debug!("zeus", "Sending config to builder...");
 	channel.send(Message::Config(cfg))?;
 
-	debug!(term.log, "zeus", "Entering main event loop...");
+	debug!("zeus", "Entering main event loop...");
 	loop {
 		match channel.recv()? {
 			Message::Success(pkgs) => {
@@ -99,10 +98,10 @@ fn get_runtime<'a>(
 		.as_mut();
 
 	zerr!(
-		env::set_current_dir(crate::config::DATA_DIR),
+		env::set_current_dir(crate::config::defaults::DATA_DIR),
 		"system",
 		"Cannot change directory to {}:",
-		crate::config::DATA_DIR
+		crate::config::defaults::DATA_DIR
 	);
 
 	Ok(runtime)
@@ -139,13 +138,12 @@ pub fn run_operation(
 
 	let mut rt_manager = RuntimeManager::new();
 
-	debug!(term.log, "pre-op config", "{:?}", cfg);
+	debug!("pre-op config", "{:?}", cfg);
 
 	match cfg.operation {
 		Operation::Build => {
 			get_lock(&mut lockfile, &cfg)?;
 			build::build(
-				term,
 				get_runtime(&cfg, &mut rt_manager)?,
 				cfg,
 				args,

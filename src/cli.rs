@@ -1,4 +1,4 @@
-use crate::config::{PROGRAM_DESC, PROGRAM_NAME, PROGRAM_VERSION};
+use crate::config::{self, defaults};
 
 use clap::{Arg, Command};
 
@@ -33,10 +33,7 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 				Arg::new("name")
 					.long("name")
 					.help("Builder machine name")
-					.default_value(env!(
-						"DEFAULT_NAME",
-						"DEFAULT_NAME not set"
-					)),
+					.default_value(defaults::BUILDER_NAME),
 			)
 			.arg(
 				Arg::new("packages")
@@ -52,10 +49,7 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 				Arg::new("name")
 					.long("name")
 					.help("Builder machine name")
-					.default_value(env!(
-						"DEFAULT_NAME",
-						"DEFAULT_NAME not set"
-					)),
+					.default_value(defaults::BUILDER_NAME),
 			)
 			.arg(
 				Arg::new("packages")
@@ -71,19 +65,13 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 				Arg::new("image")
 					.long("image")
 					.help("Builder image name")
-					.default_value(env!(
-						"DEFAULT_IMAGE",
-						"DEFAULT_IMAGE not set"
-					)),
+					.default_value(defaults::BUILDER_IMAGE),
 			)
 			.arg(
 				Arg::new("name")
 					.long("name")
 					.help("Builder machine name")
-					.default_value(env!(
-						"DEFAULT_NAME",
-						"DEFAULT_NAME not set"
-					)),
+					.default_value(defaults::BUILDER_NAME),
 			),
 		////////////////////////////////////////////////////
 		Command::new("query")
@@ -153,21 +141,38 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 }
 
 pub fn build() -> Command<'static> {
-	Command::new(PROGRAM_NAME)
-		.version(PROGRAM_VERSION)
-		.about(PROGRAM_DESC)
+	Command::new(config::NAME)
+		.version(config::VERSION)
+		.about(config::DESCRIPTION)
 		.long_version(formatcp!(
 			r#"{}
 
-     _oo
-  >-(_  \    Copyright lololol (C) 2022 1337 threadexio
-    / _/
-   / /       This program may be freely distributed under
-  / (        the terms of the GNU General Public License v3.0.
- (   `-.
+     _oo     Copyright lololol (C) 2022 {}
+  >-(_  \
+    / _/     This program may be freely distributed under
+   / /       the terms of the GNU General Public License v3.0.
+  / (
+ (   `-.     {}
   `--.._)
+             Defaults:
+               DATA_DIR      | {}
+               BUILDER_NAME  | {}
+               BUILDER_IMAGE | {}
+               BUILD_DIR     | {}
+               AUR_HOST      | {}
+               RUNTIME       | {}
+               RUNTIME_DIR   | {}
 "#,
-			PROGRAM_VERSION
+			config::VERSION,
+			config::AUTHORS,
+			config::HOMEPAGE,
+			defaults::DATA_DIR,
+			defaults::BUILDER_NAME,
+			defaults::BUILDER_IMAGE,
+			defaults::BUILD_DIR,
+			defaults::AUR_HOST,
+			defaults::RUNTIME,
+			defaults::RUNTIME_DIR,
 		))
 		.arg(
 			Arg::new("color")
@@ -195,42 +200,30 @@ pub fn build() -> Command<'static> {
 			Arg::new("builddir")
 				.long("builddir")
 				.help("Package build directory")
-				.default_value(env!(
-					"DEFAULT_BUILDDIR",
-					"DEFAULT_BUILDDIR not set"
-				)),
+				.default_value(defaults::BUILD_DIR),
 		)
 		.arg(
 			Arg::new("aur")
 				.long("aur")
 				.help("AUR host")
-				.default_value(env!(
-					"DEFAULT_AUR_HOST",
-					"DEFAULT_AUR_HOST not set"
-				)),
+				.default_value(defaults::AUR_HOST),
 		)
 		.arg(
 			Arg::new("rt")
 				.long("rt")
 				.help("Specify runtime to use")
-				.default_value(env!(
-					"DEFAULT_RUNTIME",
-					"DEFAULT_RUNTIME not set"
-				)),
+				.default_value(defaults::RUNTIME),
 		)
 		.arg(
 			Arg::new("rtdir")
 				.long("rtdir")
 				.help("Specify directory to search for runtimes")
-				.default_value(env!(
-					"DEFAULT_RUNTIME_DIR",
-					"DEFAULT_RUNTIME_DIR not set"
-				)),
+				.default_value(defaults::RUNTIME_DIR),
 		)
 		.subcommand_required(true)
 		.subcommands(build_subcommands())
 }
 
 pub fn make_completions(s: Shell, buf: &mut dyn Write) {
-	generate(s, &mut build(), PROGRAM_NAME, buf);
+	generate(s, &mut build(), config::NAME, buf);
 }

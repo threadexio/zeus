@@ -101,11 +101,7 @@ pub struct AurResponse {
 
 fn make_req_client() -> Client {
 	ClientBuilder::new()
-		.user_agent(formatcp!(
-			"{}-{}",
-			config::PROGRAM_NAME,
-			config::PROGRAM_VERSION
-		))
+		.user_agent(formatcp!("{}-{}", config::NAME, config::VERSION))
 		.build()
 		.unwrap()
 }

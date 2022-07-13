@@ -39,18 +39,15 @@ pub fn runtime(
 			}
 
 			debug!(
-				term.log,
 				"RuntimeManager",
-				"Test-loading runtime {}",
-				entry_name
+				"Test-loading runtime {}", entry_name
 			);
 			unsafe {
 				let rtlib =
 					match rt_manager._load_unchecked(entry.path()) {
 						Ok(v) => v,
 						Err(e) => {
-							warn!(
-								term.log,
+							warning!(
 								"RuntimeManager",
 								"Runtime {} cannot be loaded: {}",
 								entry_name,

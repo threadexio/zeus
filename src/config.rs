@@ -6,11 +6,13 @@ use const_format::formatcp;
 
 use std::collections::HashSet;
 
-#[allow(dead_code)]
-pub const PROGRAM_NAME: &'static str = "zeus";
-
-#[allow(dead_code)]
-pub const PROGRAM_DESC: &'static str = env!("CARGO_PKG_DESCRIPTION");
+macro_rules! from_env {
+	($varname:tt, $envvar:tt) => {
+		#[allow(dead_code)]
+		pub const $varname: &'static str =
+			env!($envvar, concat!($envvar, " not set"));
+	};
+}
 
 #[cfg(debug_assertions)]
 const BUILD_TYPE: &'static str = "dbg";
@@ -18,12 +20,26 @@ const BUILD_TYPE: &'static str = "dbg";
 #[cfg(not(debug_assertions))]
 const BUILD_TYPE: &'static str = "rls";
 
-pub const PROGRAM_VERSION: &'static str =
+pub const VERSION: &'static str =
 	formatcp!("{}-{BUILD_TYPE}", env!("VERSION", "VERSION not set"));
 
+from_env!(NAME, "CARGO_CRATE_NAME");
+from_env!(DESCRIPTION, "CARGO_PKG_DESCRIPTION");
+from_env!(HOMEPAGE, "CARGO_PKG_HOMEPAGE");
+from_env!(REPOSITORY, "CARGO_PKG_REPOSITORY");
+from_env!(LICENSE, "CARGO_PKG_LICENSE");
+from_env!(AUTHORS, "CARGO_PKG_AUTHORS");
+
 #[allow(dead_code)]
-pub const DATA_DIR: &'static str =
-	env!("DEFAULT_DATA_DIR", "DEFAULT_DATA_DIR not set");
+pub mod defaults {
+	from_env!(DATA_DIR, "DEFAULT_DATA_DIR");
+	from_env!(BUILDER_NAME, "DEFAULT_NAME");
+	from_env!(BUILDER_IMAGE, "DEFAULT_IMAGE");
+	from_env!(BUILD_DIR, "DEFAULT_BUILDDIR");
+	from_env!(AUR_HOST, "DEFAULT_AUR_HOST");
+	from_env!(RUNTIME, "DEFAULT_RUNTIME");
+	from_env!(RUNTIME_DIR, "DEFAULT_RUNTIME_DIR");
+}
 
 // Operations that are handled inside the machine
 #[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]

@@ -17,10 +17,11 @@ use std::process::exit;
 fn main() {
 	let args = cli::build().get_matches();
 
-	let mut term = term::Terminal::new(log::Logger {
-		debug: args.is_present("debug"),
-		..Default::default()
-	});
+	let mut term = term::Terminal::new();
+
+	unsafe {
+		log::LOGGER.debug = args.is_present("debug");
+	}
 
 	match args.value_of("color") {
 		Some("always") => {
@@ -37,7 +38,7 @@ fn main() {
 	let mut cfg = config::AppConfig {
 		operation: config::Operation::from(command_name),
 
-		debug: term.log.debug,
+		debug: args.is_present("debug"),
 		force: args.is_present("force"),
 
 		// this should never fail, we set the default value in cli.rs
@@ -63,7 +64,7 @@ fn main() {
 	match res {
 		Ok(_) => exit(0),
 		Err(e) => {
-			error!(term.log, &e.caller, "{}", e.message);
+			error!(&e.caller, "{}", e.message);
 			exit(1);
 		},
 	}
