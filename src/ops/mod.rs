@@ -60,29 +60,42 @@ pub fn start_builder(
 	runtime.start_machine(&cfg.machine)?;
 
 	debug!("unix", "Waiting for builder to connect...");
-	let (mut channel, _) = zerr!(
+	let (mut tx, mut rx) = zerr!(
 		listener.accept(),
 		"unix",
 		"Cannot open communication stream with builder"
 	);
 
 	debug!("zeus", "Sending config to builder...");
-	channel.send(Message::Config(cfg))?;
+	tx.send(Message::Config(cfg))?;
 
 	debug!("zeus", "Entering main event loop...");
 	loop {
-		match channel.recv()? {
-			Message::Success(pkgs) => {
-				return Ok(pkgs);
-			},
-			Message::Failure(error) => {
+		use std::io::ErrorKind;
+		match rx.recv() {
+			Err(e) if e.kind() == ErrorKind::WouldBlock => continue,
+			Err(e) => {
 				return Err(ZeusError::new(
-					"builder".to_string(),
-					error,
+					"zeus".to_string(),
+					format!(
+						"Cannot receive message from builder: {}",
+						e
+					),
 				))
 			},
-			_ => {},
-		}
+			Ok(v) => match v {
+				Message::Success(pkgs) => {
+					return Ok(pkgs);
+				},
+				Message::Failure(error) => {
+					return Err(ZeusError::new(
+						"builder".to_string(),
+						error,
+					))
+				},
+				_ => {},
+			},
+		};
 	}
 }
 

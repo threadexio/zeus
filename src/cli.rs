@@ -122,7 +122,7 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 				Arg::new("shell")
 					.long("shell")
 					.help("Specify shell to generate completions for")
-					.possible_values(Shell::possible_values()),
+					.takes_value(true),
 			),
 		////////////////////////////////////////////////////
 		Command::new("runtime")
@@ -178,9 +178,11 @@ pub fn build() -> Command<'static> {
 			Arg::new("color")
 				.long("color")
 				.help("Colorize the output")
-				.possible_value("auto")
-				.possible_value("always")
-				.possible_value("never")
+				.value_parser(
+					clap::builder::PossibleValuesParser::new([
+						"always", "auto", "never",
+					]),
+				)
 				.default_value("auto"),
 		)
 		.arg(

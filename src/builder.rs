@@ -4,6 +4,8 @@ use std::path;
 use std::process::exit;
 use std::process::Command;
 
+use std::os::unix::net::UnixStream;
+
 mod aur;
 mod config;
 mod error;
@@ -135,18 +137,23 @@ fn main() {
 			);
 			exit(1);
 		},
-	}
+	};
 
-	let socket_path = format!("{}.sock", config::NAME);
-	let mut channel = match unix::connect::<Message, _>(socket_path) {
+	let socket_path = ".zeus.sock";
+	let stream = match UnixStream::connect(&socket_path) {
 		Ok(v) => v,
 		Err(e) => {
-			error!("unix", "Cannot connect to host: {}", e);
+			error!(
+				"builder",
+				"Cannot connect to socket {}: {}", socket_path, e
+			);
 			exit(1);
 		},
 	};
 
-	let cfg: config::AppConfig = match channel.recv() {
+	let (mut tx, mut rx) = channels::channel::<Message, _>(stream);
+
+	let cfg: config::AppConfig = match rx.recv() {
 		Ok(v) => match v {
 			Message::Config(c) => c,
 			m => {
@@ -177,10 +184,10 @@ fn main() {
 	};
 
 	match op_res {
-		Ok(v) => channel.send(Message::Success(
+		Ok(v) => tx.send(Message::Success(
 			v.iter().map(|x| -> String { x.to_string() }).collect(),
 		)),
-		Err(e) => channel.send(Message::Failure(e.to_string())),
+		Err(e) => tx.send(Message::Failure(e.to_string())),
 	}
 	.unwrap();
 }
