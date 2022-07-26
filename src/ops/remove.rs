@@ -78,7 +78,7 @@ pub fn remove(
 
 	let removed_packages = start_builder(runtime, cfg)?;
 
-	term.list("Synced packages:", removed_packages.iter(), 1)?;
+	term.list("Removed packages:", removed_packages.iter(), 1)?;
 
 	Ok(())
 }
