@@ -9,7 +9,6 @@ use std::env;
 use std::io::BufRead;
 use std::process;
 
-mod command;
 mod models;
 
 macro_rules! handle {
@@ -34,7 +33,7 @@ macro_rules! handle {
 
 macro_rules! check_exit {
 	($output:expr) => {
-		if !command::check_exit_ok($output.status) {
+		if !$output.status.success() {
 			return Err(format!(
 				"{}",
 				String::from_utf8_lossy(&$output.stderr[..])
@@ -110,7 +109,7 @@ impl IRuntime for DockerRuntime {
 			.arg(build_context)
 			.status());
 
-		if !command::check_exit_ok(status) {
+		if !status.success() {
 			return Err(format!("error during image build"));
 		}
 
@@ -177,7 +176,8 @@ impl IRuntime for DockerRuntime {
 			.args([
 				"--cap-drop=all",
 				"--cap-add=CAP_SETUID",
-				"--cap-add=CAP_SETGID"
+				"--cap-add=CAP_SETGID",
+				"--cap-add=CAP_SYS_CHROOT",
 			])
 			.arg("--")
 			.arg(image_name)
@@ -197,11 +197,15 @@ impl IRuntime for DockerRuntime {
 
 		check_exit!(child);
 
-		handle!(process::Command::new(&self.docker_bin)
+		let status = handle!(process::Command::new(&self.docker_bin)
 			.args(["container", "attach"])
 			.arg("--")
 			.arg(machine_name)
-			.spawn());
+			.status());
+
+		if !status.success() {
+			return Err(format!("failed to attach to machine"));
+		}
 
 		Ok(())
 	}

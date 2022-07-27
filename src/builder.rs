@@ -43,17 +43,15 @@ fn run_command(arg0: &str, args: &[&str]) -> Result<ExitStatus> {
 
 fn update_package() -> Result<()> {
 	let r = run_command("git", &["pull", "-f"])?;
-	if r.success() {
-		Ok(())
-	} else {
-		Err(ZeusError::new(
+
+	if !r.success() {
+		return Err(ZeusError::new(
 			"builder".to_owned(),
-			format!(
-				"\"git\" failed with: {}",
-				r.code().unwrap_or(-1)
-			),
-		))
+			format!("git failed with: {}", r.code().unwrap_or(-1)),
+		));
 	}
+
+	Ok(())
 }
 
 fn clone_package(cfg: &AppConfig, package_name: &str) -> Result<()> {
@@ -66,17 +64,17 @@ fn clone_package(cfg: &AppConfig, package_name: &str) -> Result<()> {
 		],
 	)?;
 
-	if status.success() {
-		Ok(())
-	} else {
-		Err(ZeusError::new(
+	if !status.success() {
+		return Err(ZeusError::new(
 			"builder".to_owned(),
 			format!(
 				"git failed with: {}",
 				status.code().unwrap_or(-1)
 			),
-		))
+		));
 	}
+
+	Ok(())
 }
 
 fn make_package(cfg: &AppConfig) -> Result<()> {
@@ -98,7 +96,7 @@ fn make_package(cfg: &AppConfig) -> Result<()> {
 		.concat(),
 	)?;
 
-	if status.success() {
+	if !status.success() {
 		return Err(ZeusError::new(
 			"builder".to_owned(),
 			format!(

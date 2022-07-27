@@ -1,5 +1,6 @@
 use std::env;
 use std::path::Path;
+use std::thread;
 
 use crate::config::Operation;
 use crate::lock::Lockfile;
@@ -48,55 +49,79 @@ pub fn start_builder(
 		));
 	}
 
-	let socket_path = format!("{}/zeus.sock", &cfg.build_dir);
-	let listener = zerr!(
-		LocalListener::new(Path::new(&socket_path), 0o666),
-		"unix",
-		"Cannot listen on socket {}",
-		&socket_path
-	);
+	use std::sync::mpsc;
+	let (local_tx, local_rx) = mpsc::channel::<()>();
+
+	let cfg1 = cfg.clone();
+	let manager_thread =
+		thread::spawn(move || -> Result<Vec<String>> {
+			let socket_path =
+				format!("{}/.zeus.sock", &cfg.build_dir);
+			let listener = zerr!(
+				LocalListener::new(Path::new(&socket_path), 0o666),
+				"unix",
+				"Cannot listen on socket {}",
+				&socket_path
+			);
+
+			// let the main thread continue and start the machine
+			local_tx.send(()).unwrap();
+
+			debug!("unix", "Waiting for builder to connect...");
+			let (mut tx, mut rx) = zerr!(
+				listener.accept(),
+				"unix",
+				"Cannot open communication stream with builder"
+			);
+
+			debug!("zeus", "Sending config to builder...");
+			tx.send(Message::Config(cfg1))?;
+
+			debug!("zeus", "Entering main event loop...");
+			loop {
+				use std::io::ErrorKind;
+				match rx.recv() {
+					Err(e) if e.kind() == ErrorKind::WouldBlock => {
+						continue
+					},
+					Err(e) => {
+						return Err(ZeusError::new(
+							"zeus".to_string(),
+							format!(
+							"Cannot receive message from builder: {}",
+							e
+						),
+						))
+					},
+					Ok(v) => match v {
+						Message::Success(pkgs) => {
+							return Ok(pkgs);
+						},
+						Message::Failure(error) => {
+							return Err(ZeusError::new(
+								"builder".to_string(),
+								error,
+							))
+						},
+						_ => {},
+					},
+				};
+			}
+		});
+
+	// block until the manager thread is ready
+	match local_rx.recv() {
+		// this is a RecvErr, which means the manager exited prematurely
+		Err(_) => {
+			return manager_thread.join().unwrap();
+		},
+		_ => {},
+	}
 
 	info!("zeus", "Starting builder...");
 	runtime.start_machine(&cfg.machine)?;
 
-	debug!("unix", "Waiting for builder to connect...");
-	let (mut tx, mut rx) = zerr!(
-		listener.accept(),
-		"unix",
-		"Cannot open communication stream with builder"
-	);
-
-	debug!("zeus", "Sending config to builder...");
-	tx.send(Message::Config(cfg))?;
-
-	debug!("zeus", "Entering main event loop...");
-	loop {
-		use std::io::ErrorKind;
-		match rx.recv() {
-			Err(e) if e.kind() == ErrorKind::WouldBlock => continue,
-			Err(e) => {
-				return Err(ZeusError::new(
-					"zeus".to_string(),
-					format!(
-						"Cannot receive message from builder: {}",
-						e
-					),
-				))
-			},
-			Ok(v) => match v {
-				Message::Success(pkgs) => {
-					return Ok(pkgs);
-				},
-				Message::Failure(error) => {
-					return Err(ZeusError::new(
-						"builder".to_string(),
-						error,
-					))
-				},
-				_ => {},
-			},
-		};
-	}
+	return manager_thread.join().unwrap();
 }
 
 fn get_runtime<'a>(

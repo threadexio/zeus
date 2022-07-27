@@ -48,14 +48,18 @@ pub struct AurBuilder {
 }
 
 /// Structure representing an AUR instance
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(
+	Debug, Default, PartialEq, Clone, Serialize, Deserialize,
+)]
 pub struct Aur {
 	base_url: String,
 	rpc_url: String,
 }
 
 #[allow(non_snake_case)]
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(
+	Debug, Default, PartialEq, Clone, Serialize, Deserialize,
+)]
 pub struct Package {
 	pub ID: Option<Id>,
 	pub Name: Option<String>,

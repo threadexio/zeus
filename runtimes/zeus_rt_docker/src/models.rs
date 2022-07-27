@@ -1,10 +1,10 @@
 use serde::Deserialize;
 
-pub const IMAGE_FMT: &'static str = "{\"name\":\"{{.Repository}}\"}";
+pub const IMAGE_FMT: &'static str =
+	"{\"name\":\"{{.Repository}}:{{.Tag}}\"}";
 
 #[derive(Deserialize)]
 pub struct Image {
-	pub id: String,
 	pub name: String,
 }
 

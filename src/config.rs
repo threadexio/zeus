@@ -42,7 +42,7 @@ pub mod defaults {
 }
 
 // Operations that are handled inside the machine
-#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub enum Operation {
 	Sync,
 	Remove,
@@ -74,7 +74,9 @@ impl From<&str> for Operation {
 	}
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
+#[derive(
+	Debug, Default, PartialEq, Clone, Serialize, Deserialize,
+)]
 pub struct AppConfig {
 	pub operation: Operation,
 
