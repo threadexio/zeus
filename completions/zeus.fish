@@ -1,4 +1,4 @@
-complete -c zeus -n "__fish_use_subcommand" -l color -d 'Colorize the output' -r -f -a "{auto	,always	,never	}"
+complete -c zeus -n "__fish_use_subcommand" -l color -d 'Colorize the output' -r -f -a "{always	,auto	,never	}"
 complete -c zeus -n "__fish_use_subcommand" -l builddir -d 'Package build directory' -r
 complete -c zeus -n "__fish_use_subcommand" -l aur -d 'AUR host' -r
 complete -c zeus -n "__fish_use_subcommand" -l rt -d 'Specify runtime to use' -r
@@ -27,8 +27,7 @@ complete -c zeus -n "__fish_seen_subcommand_from query" -l by -d 'Query AUR pack
 complete -c zeus -n "__fish_seen_subcommand_from query" -l output -d 'Output format' -r -f -a "{pretty	,json	}"
 complete -c zeus -n "__fish_seen_subcommand_from query" -s i -l info -d 'Display additional information on results'
 complete -c zeus -n "__fish_seen_subcommand_from query" -s h -l help -d 'Print help information'
-complete -c zeus -n "__fish_seen_subcommand_from completions" -l shell -d 'Specify shell to generate completions for' -r -f -a "{bash	,elvish	,fish	,powershell	,zsh	}"
+complete -c zeus -n "__fish_seen_subcommand_from completions" -l shell -d 'Specify shell to generate completions for' -r
 complete -c zeus -n "__fish_seen_subcommand_from completions" -s h -l help -d 'Print help information'
 complete -c zeus -n "__fish_seen_subcommand_from runtime" -s l -l list -d 'List all available runtimes'
-complete -c zeus -n "__fish_seen_subcommand_from runtime" -s c -l c -d 'Check that the specified runtime works'
 complete -c zeus -n "__fish_seen_subcommand_from runtime" -s h -l help -d 'Print help information'

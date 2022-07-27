@@ -47,7 +47,7 @@ _zeus() {
             fi
             case "${prev}" in
                 --color)
-                    COMPREPLY=($(compgen -W "" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "always auto never" -- "${cur}"))
                     return 0
                     ;;
                 --builddir)
@@ -103,7 +103,7 @@ _zeus() {
             fi
             case "${prev}" in
                 --shell)
-                    COMPREPLY=($(compgen -W "" -- "${cur}"))
+                    COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
                 *)
@@ -135,11 +135,11 @@ _zeus() {
             fi
             case "${prev}" in
                 --by)
-                    COMPREPLY=($(compgen -W "" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "name description maintainer depends makedepends optdepends checkdepends" -- "${cur}"))
                     return 0
                     ;;
                 --output)
-                    COMPREPLY=($(compgen -W "" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "pretty json" -- "${cur}"))
                     return 0
                     ;;
                 *)
@@ -168,7 +168,7 @@ _zeus() {
             return 0
             ;;
         zeus__runtime)
-            opts="-l -c -h --list --c --help"
+            opts="-l -h --list --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

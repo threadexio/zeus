@@ -24,7 +24,7 @@
 
 <div align="center">
 
-<img src="assets/logo.optimized.svg" width=250/>
+<img src="assets/logo.optimized.svg" width="25%"/>
 
 <h1>
 	<b>zeus</b>

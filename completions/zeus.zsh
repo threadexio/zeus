@@ -15,7 +15,7 @@ _zeus() {
 
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" \
-'--color=[Colorize the output]: :(auto always never)' \
+'--color=[Colorize the output]: :(always auto never)' \
 '--builddir=[Package build directory]: : ' \
 '--aur=[AUR host]: : ' \
 '--rt=[Specify runtime to use]: : ' \
@@ -76,7 +76,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (completions)
 _arguments "${_arguments_options[@]}" \
-'--shell=[Specify shell to generate completions for]: :(bash elvish fish powershell zsh)' \
+'--shell=[Specify shell to generate completions for]: : ' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 && ret=0
@@ -85,8 +85,6 @@ _arguments "${_arguments_options[@]}" \
 _arguments "${_arguments_options[@]}" \
 '-l[List all available runtimes]' \
 '--list[List all available runtimes]' \
-'-c[Check that the specified runtime works]' \
-'--c[Check that the specified runtime works]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 && ret=0
