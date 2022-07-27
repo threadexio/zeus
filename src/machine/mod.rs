@@ -18,7 +18,7 @@ pub mod constants {
 
 	/// Increasing this number means there has been a breaking change in the API.
 	/// Removing or changing method signatures is a breaking change.
-	pub const MAX_SUPPORTED_RT_API_VERSION: u32 = 1;
+	pub const SUPPORTED_RT_API_VERSION: u32 = 1;
 
 	// These should never really be changed
 	pub const RUNTIME_CONSTRUCTOR_SYMBOL_NAME: &'static str =

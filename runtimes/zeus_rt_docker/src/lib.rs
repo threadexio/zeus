@@ -187,22 +187,17 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn start_machine(&mut self, machine_name: &str) -> Result<()> {
-		let child = handle!(process::Command::new(&self.docker_bin)
-			.args(["container", "start"])
-			.arg("--")
-			.arg(machine_name)
-			.output());
-
-		check_exit!(child);
-
 		let status = handle!(process::Command::new(&self.docker_bin)
-			.args(["container", "attach"])
+			.args(["container", "start"])
+			.args(["-a", "-i"])
 			.arg("--")
 			.arg(machine_name)
 			.status());
 
 		if !status.success() {
-			return Err(format!("failed to attach to machine"));
+			return Err(format!(
+				"failed to start and attach to machine"
+			));
 		}
 
 		Ok(())

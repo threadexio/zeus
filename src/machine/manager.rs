@@ -109,7 +109,7 @@ impl RuntimeManager {
 		let runtime = Box::from_raw(constructor());
 
 		if runtime.rt_api_version()
-			> constants::MAX_SUPPORTED_RT_API_VERSION
+			!= constants::SUPPORTED_RT_API_VERSION
 		{
 			return Err(Error::IncompatibleRuntimeApi);
 		}
