@@ -164,9 +164,7 @@ impl IRuntime for DockerRuntime {
 	) -> Result<()> {
 		let child = handle!(process::Command::new(&self.docker_bin)
 			.args(["container", "create"])
-			.args(["-i" /* "-t" */,])	// ISSUE: Allocating a pseudo terminal with -t gives pretty colors to
-			                        	// the container output but sets some terminal settings with stty and
-										// screws up output and user input.
+			.args(["-i", "-t",])
 			.args(["--name", machine_name])
 			.args([
 				"-v",
