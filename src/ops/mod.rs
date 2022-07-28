@@ -67,17 +67,14 @@ pub fn start_builder(
 			// let the main thread continue and start the machine
 			local_tx.send(()).unwrap();
 
-			debug!("unix", "Waiting for builder to connect...");
 			let (mut tx, mut rx) = zerr!(
 				listener.accept(),
 				"unix",
 				"Cannot open communication stream with builder"
 			);
 
-			debug!("zeus", "Sending config to builder...");
 			tx.send(Message::Config(cfg1))?;
 
-			debug!("zeus", "Entering main event loop...");
 			loop {
 				use std::io::ErrorKind;
 				match rx.recv() {
