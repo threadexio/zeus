@@ -41,7 +41,7 @@
 
 **<kbd>[Wiki][wiki]</kbd>** &nbsp; &nbsp;
 **<kbd>[Install][installing]</kbd>** &nbsp; &nbsp;
-**<kbd>[Usage][wiki]</kbd>** &nbsp; &nbsp;
+**<kbd>[Usage][usage]</kbd>** &nbsp; &nbsp;
 **<kbd>[FAQ][faq]</kbd>** &nbsp; &nbsp;
 **<kbd>[Releases][releases]</kbd>** &nbsp; &nbsp;
 **<kbd>[Issues][issues]</kbd>** &nbsp; &nbsp;
