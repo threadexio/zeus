@@ -5,6 +5,7 @@ on: [push]
 jobs:
   build:
     runs-on: ubuntu-latest
+    if: "!startsWith(github.event.head_commit.message, '[no-ci]')"
 
     steps:
       - name: Checkout
