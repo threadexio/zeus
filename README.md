@@ -31,10 +31,13 @@
 	<b>zeus</b>
 </h1>
 
-**<kbd>[Wiki][wiki]</kbd>** &nbsp; &nbsp; &nbsp;
-**<kbd>[Releases][releases]</kbd>** &nbsp; &nbsp; &nbsp;
-**<kbd>[CI][actions]</kbd>** &nbsp; &nbsp; &nbsp;
-**<kbd>[Issues][issues]</kbd>** &nbsp; &nbsp; &nbsp;
+
+**<kbd>[Wiki][wiki]</kbd>** &nbsp; &nbsp;
+**<kbd>[Install](#installing)</kbd>** &nbsp; &nbsp;
+**<kbd>[Usage][wiki]</kbd>** &nbsp; &nbsp;
+**<kbd>[Releases][releases]</kbd>** &nbsp; &nbsp;
+**<kbd>[Issues][issues]</kbd>** &nbsp; &nbsp;
+**<kbd>[CI][actions]</kbd>** &nbsp; &nbsp;
 
 ---
 
