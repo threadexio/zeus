@@ -1,4 +1,3 @@
-use std::collections::HashSet;
 use std::path::Path;
 
 use super::prelude::*;
@@ -14,48 +13,34 @@ pub fn remove(
 	cfg.packages = args
 		.values_of("packages")
 		.unwrap_or_default()
-		.map(|x| x.to_owned())
+		.map(|x| Package {
+			Name: Some(x.to_owned()),
+			..Default::default()
+		})
+		.filter(|x| {
+			let pkg_path = Path::new(&cfg.build_dir)
+				.join(x.Name.as_ref().unwrap());
+
+			if pkg_path.exists()
+				&& pkg_path.is_dir()
+				&& pkg_path.join("PKGBUILD").exists()
+			{
+				true
+			} else {
+				warning!(
+					"zeus",
+					"Package {} was not found",
+					x.Name.as_ref().unwrap()
+				);
+				false
+			}
+		})
 		.collect();
 
 	if cfg.packages.is_empty() {
 		return Err(ZeusError::new(
 			"zeus".to_owned(),
-			"No packages specified.".to_owned(),
-		));
-	}
-
-	let mut valid_packages: HashSet<String> = HashSet::new();
-	let mut invalid_packages: HashSet<String> = HashSet::new();
-
-	for pkg in cfg.packages {
-		let pkg_path = Path::new(&cfg.build_dir).join(&pkg);
-
-		if !pkg_path.exists()
-			|| !pkg_path.is_dir()
-			|| !pkg_path.join("PKGBUILD").exists()
-		{
-			invalid_packages.insert(pkg);
-		} else {
-			valid_packages.insert(pkg);
-		}
-	}
-	cfg.packages = valid_packages;
-
-	if !invalid_packages.is_empty() {
-		term.list(
-			format!(
-				"The following packages have {} been synced:",
-				"NOT".bold()
-			),
-			invalid_packages.iter(),
-			4,
-		)?;
-	}
-
-	if cfg.packages.is_empty() {
-		return Err(ZeusError::new(
-			"zeus".to_owned(),
-			"No valid packages specified.".to_owned(),
+			"No packages found.".to_owned(),
 		));
 	}
 
@@ -64,7 +49,7 @@ pub fn remove(
 			"The following packages will be {}:",
 			"REMOVED".bold()
 		),
-		cfg.packages.iter(),
+		cfg.packages.iter().filter_map(|x| x.Name.as_ref()),
 		4,
 	)?;
 
@@ -78,7 +63,11 @@ pub fn remove(
 
 	let removed_packages = start_builder(runtime, cfg)?;
 
-	term.list("Removed packages:", removed_packages.iter(), 1)?;
+	term.list(
+		"Removed packages:",
+		removed_packages.iter().filter_map(|x| x.Name.as_ref()),
+		1,
+	)?;
 
 	Ok(())
 }

@@ -1,8 +1,6 @@
-use std::collections::HashSet;
 use std::fs;
 
 use super::prelude::*;
-
 use super::start_builder;
 
 pub fn sync(
@@ -25,83 +23,81 @@ pub fn sync(
 	cfg.packages = args
 		.values_of("packages")
 		.unwrap_or_default()
-		.map(|x| x.to_owned())
+		.map(|x| Package {
+			Name: Some(x.to_owned()),
+			..Default::default()
+		})
 		.collect();
 
 	if cfg.packages.is_empty() && cfg.upgrade {
-		for pkg in args.values_of("packages").unwrap_or_default() {
-			cfg.packages.insert(pkg.to_owned());
-		}
+		// CHANGELOG: Simplify code
 
-		let packages: Vec<String> = zerr!(
+		let dir = zerr!(
 			fs::read_dir(&cfg.build_dir),
 			"fs",
 			"Cannot list {}",
 			&cfg.build_dir
-		)
-		.filter_map(|x| x.ok())
-		.filter(|x| x.path().is_dir())
-		.map(|x| x.file_name().into_string())
-		.filter_map(|x| x.ok())
-		.collect();
+		);
 
-		match term.question(
-			"Choose which packages to upgrade:",
-			packages.iter().map(|x| x.as_str()).collect(),
-			"all",
-			4,
-		)? {
-			None => {
-				for package in packages {
-					cfg.packages.insert(package);
-				}
-			},
-			Some(answer) => {
-				for package in answer {
-					cfg.packages.insert(package.to_owned());
-				}
-			},
+		for entry in dir {
+			let entry = match entry {
+				Err(e) => {
+					warning!(
+						"fs",
+						"Cannot read package directory: {}",
+						e
+					);
+					continue;
+				},
+				Ok(v) => v,
+			};
+
+			if entry.path().is_dir() {
+				match entry.file_name().into_string() {
+					Ok(v) => cfg.packages.push(Package {
+						Name: Some(v),
+						..Default::default()
+					}),
+					Err(e) => {
+						warning!(
+							"fs",
+							"Found invalid package directory: {}",
+							e.to_string_lossy()
+						);
+						continue;
+					},
+				};
+			}
 		}
+
+		// CHANGELOG: dont ask what to upgrade
 	}
 
 	if cfg.packages.is_empty() {
 		return Err(ZeusError::new(
 			"zeus".to_owned(),
-			"No packages specified.".to_owned(),
+			"No packages found.".to_owned(),
 		));
 	}
 
-	let pkg_info = zerr!(
-		cfg.aur.info(&cfg.packages),
+	// CHANGELOG: remove invalid packages
+
+	cfg.packages = zerr!(
+		cfg.aur.info(
+			&cfg.packages
+				.iter()
+				.filter_map(|x| x.Name.as_ref())
+				.collect()
+		),
 		"AUR",
 		"Cannot request info for packages"
-	);
-
-	let mut valid_packages: HashSet<String> = HashSet::new();
-	for pkg in pkg_info.results {
-		if let Some(name) = pkg.Name {
-			valid_packages.insert(name);
-		}
-	}
-
-	let invalid_packages: Vec<&String> =
-		cfg.packages.difference(&valid_packages).collect();
-	if !invalid_packages.is_empty() {
-		term.list(
-			format!(
-				"The following packages do {} exist in the AUR:",
-				"NOT".bold()
-			),
-			invalid_packages.iter(),
-			4,
-		)?;
-	}
-	cfg.packages = valid_packages;
+	)
+	.results;
 
 	if cfg.packages.is_empty() {
 		return Err(ZeusError::new(
 			"zeus".to_owned(),
-			"No valid packages specified.".to_owned(),
+			"No valid packages found.".to_owned(),
 		));
 	}
 
@@ -114,20 +110,25 @@ pub fn sync(
 			}
 			.bold()
 		),
-		cfg.packages.iter(),
+		cfg.packages.iter().filter_map(|x| x.Name.as_ref()),
 		4,
 	)?;
 
-	if !term
-		.yes_no_question("Are you sure you want to continue?", true)?
-	{
+	if !term.yes_no_question(
+		"Are you sure you want to sync these packages?",
+		true,
+	)? {
 		error!("zeus", "Aborting...");
 		return Ok(());
 	}
 
 	let synced_packages = start_builder(runtime, cfg)?;
 
-	term.list("Synced packages:", synced_packages.iter(), 1)?;
+	term.list(
+		"Synced packages:",
+		synced_packages.iter().filter_map(|x| x.Name.as_ref()),
+		1,
+	)?;
 
 	Ok(())
 }

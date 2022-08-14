@@ -1,10 +1,8 @@
-use crate::aur::Aur;
+use crate::aur::{Aur, Package};
 
 use serde::{Deserialize, Serialize};
 
 use const_format::formatcp;
-
-use std::collections::HashSet;
 
 macro_rules! from_env {
 	($varname:tt, $envvar:tt) => {
@@ -109,8 +107,8 @@ pub struct AppConfig {
 	pub image: String,
 
 	/// Packages for an operation
-	pub packages: HashSet<String>,
+	pub packages: Vec<Package>,
 
 	/// Keywords for the query operation
-	pub keywords: HashSet<String>,
+	pub keywords: Vec<String>,
 }

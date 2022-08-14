@@ -1,12 +1,9 @@
-use std::collections::HashSet;
 use std::fmt;
 use std::str::FromStr;
 
 use const_format::formatcp;
 use reqwest::blocking::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize};
-
-use crate::config;
 
 /// Type alias for timestamps
 pub type Timestamp = u64;
@@ -104,6 +101,7 @@ pub struct AurResponse {
 }
 
 fn make_req_client() -> Client {
+	use crate::config;
 	ClientBuilder::new()
 		.user_agent(formatcp!("{}-{}", config::NAME, config::VERSION))
 		.build()
@@ -259,11 +257,7 @@ impl Aur {
 	///
 	/// let response = aur_instance.search(aur::By::Name, &keywords);
 	/// ```
-	pub fn search<T>(
-		&self,
-		by: By,
-		keywords: &HashSet<T>,
-	) -> AurResult
+	pub fn search<T>(&self, by: By, keywords: &Vec<T>) -> AurResult
 	where
 		T: fmt::Display,
 	{
@@ -295,7 +289,7 @@ impl Aur {
 	///
 	/// let response = aur_instance.info(&packages);
 	/// ```
-	pub fn info<T>(&self, packages: &HashSet<T>) -> AurResult
+	pub fn info<T>(&self, packages: &Vec<T>) -> AurResult
 	where
 		T: fmt::Display,
 	{

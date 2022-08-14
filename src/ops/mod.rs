@@ -18,6 +18,8 @@ mod sync;
 mod prelude {
 	pub use crate::config::AppConfig;
 
+	pub use crate::aur::Package;
+
 	// Error handling
 	pub use crate::error::{Result, ZeusError};
 	pub use crate::zerr;
@@ -41,7 +43,7 @@ use prelude::*;
 pub fn start_builder(
 	runtime: &mut Runtime,
 	cfg: AppConfig,
-) -> Result<Vec<String>> {
+) -> Result<Vec<Package>> {
 	if !runtime.list_machines()?.iter().any(|x| x == &cfg.machine) {
 		return Err(ZeusError::new(
 			"zeus".to_owned(),
@@ -54,7 +56,7 @@ pub fn start_builder(
 
 	let cfg1 = cfg.clone();
 	let manager_thread =
-		thread::spawn(move || -> Result<Vec<String>> {
+		thread::spawn(move || -> Result<Vec<Package>> {
 			let socket_path =
 				format!("{}/.zeus.sock", &cfg.build_dir);
 			let listener = zerr!(

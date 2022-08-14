@@ -8,5 +8,6 @@
     "DEFAULT_RUNTIME": "",
     "DEFAULT_RUNTIME_DIR": "",
     "VERSION": ""
-  }
+  },
+  "rust-analyzer.runnables.extraArgs": ["--bin=zeus"]
 }
