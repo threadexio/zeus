@@ -150,7 +150,7 @@ _zeus() {
             return 0
             ;;
         zeus__remove)
-            opts="-h --name --help <packages>..."
+            opts="-h --uninstall --name --help <packages>..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -182,7 +182,7 @@ _zeus() {
             return 0
             ;;
         zeus__sync)
-            opts="-u -h --upgrade --buildargs --name --help <packages>..."
+            opts="-u -h --upgrade --install --buildargs --name --help <packages>..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0

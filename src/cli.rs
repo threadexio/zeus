@@ -24,6 +24,12 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 					.takes_value(false),
 			)
 			.arg(
+				Arg::new("install")
+					.long("install")
+					.help("Install packages after build")
+					.takes_value(false),
+			)
+			.arg(
 				Arg::new("buildargs")
 					.long("buildargs")
 					.help("Extra arguments for makepkg")
@@ -45,6 +51,12 @@ pub fn build_subcommands() -> Vec<Command<'static>> {
 			.short_flag('R')
 			.long_flag("remove")
 			.about("Remove packages")
+			.arg(
+				Arg::new("uninstall")
+					.long("uninstall")
+					.help("Uninstall packages after remove")
+					.takes_value(false),
+			)
 			.arg(
 				Arg::new("name")
 					.long("name")

@@ -111,6 +111,18 @@ fn make_package(cfg: &AppConfig) -> Result<bool> {
 	Ok(true)
 }
 
+fn get_package_files() -> Result<Vec<String>> {
+	use std::process::Command;
+
+	let output =
+		Command::new("makepkg").arg("--packagelist").output()?;
+
+	Ok(String::from_utf8_lossy(&output.stdout)
+		.lines()
+		.map(|x| x.to_owned())
+		.collect())
+}
+
 fn build_package(
 	cfg: &AppConfig,
 	package_name: &str,
@@ -140,16 +152,32 @@ fn build_packages(
 
 			chdir(build_root)?;
 
-			match build_package(&cfg, pkg_name) {
+			let mut pkg = package.clone();
+
+			let pkg_built = match build_package(&cfg, pkg_name) {
 				Err(e) => {
 					warning!("builder", "{}", e);
 					continue;
 				},
-				Ok(v) => {
-					if v {
-						packages.push(package.clone());
-					}
-				},
+				Ok(v) => v,
+			};
+
+			if cfg.install {
+				pkg.package_files = Some(match get_package_files() {
+					Ok(v) => v,
+					Err(e) => {
+						warning!(
+							"builder",
+							"Could not get package files: {}",
+							e
+						);
+						vec![]
+					},
+				})
+			}
+
+			if pkg_built {
+				packages.push(pkg);
 			}
 		}
 	}
@@ -172,10 +200,12 @@ fn remove_packages(
 
 			let pkg_path = Path::new(pkg_name);
 
+			let pkg = package.clone();
+
 			if pkg_path.exists() && pkg_path.is_dir() {
 				match fs::remove_dir_all(pkg_path) {
 					Ok(_) => {
-						removed_packages.push(package.clone());
+						removed_packages.push(pkg);
 					},
 					Err(e) => {
 						warning!(
@@ -187,7 +217,11 @@ fn remove_packages(
 					},
 				}
 			} else {
-				warning!("zeus", "Package has not been synced");
+				warning!(
+					"zeus",
+					"Package {} has not been synced",
+					pkg_name
+				);
 			}
 		}
 	}

@@ -17,8 +17,10 @@ complete -c zeus -n "__fish_use_subcommand" -f -a "help" -d 'Print this message 
 complete -c zeus -n "__fish_seen_subcommand_from sync" -l buildargs -d 'Extra arguments for makepkg' -r
 complete -c zeus -n "__fish_seen_subcommand_from sync" -l name -d 'Builder machine name' -r
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s u -l upgrade -d 'Upgrade packages'
+complete -c zeus -n "__fish_seen_subcommand_from sync" -l install -d 'Install packages after build'
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s h -l help -d 'Print help information'
 complete -c zeus -n "__fish_seen_subcommand_from remove" -l name -d 'Builder machine name' -r
+complete -c zeus -n "__fish_seen_subcommand_from remove" -l uninstall -d 'Uninstall packages after remove'
 complete -c zeus -n "__fish_seen_subcommand_from remove" -s h -l help -d 'Print help information'
 complete -c zeus -n "__fish_seen_subcommand_from build" -l image -d 'Builder image name' -r
 complete -c zeus -n "__fish_seen_subcommand_from build" -l name -d 'Builder machine name' -r

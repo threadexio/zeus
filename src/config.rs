@@ -99,6 +99,12 @@ pub struct AppConfig {
 	pub upgrade: bool,
 	pub build_args: Vec<String>,
 
+	// Should we install the packages to the host?
+	pub install: bool,
+
+	// Should we uninstall the packages from the host?
+	pub uninstall: bool,
+
 	// Machine
 	/// Machine name
 	pub machine: String,

@@ -10,6 +10,7 @@ pub fn sync(
 	args: &ArgMatches,
 ) -> Result<()> {
 	cfg.upgrade = args.is_present("upgrade");
+	cfg.install = args.is_present("install");
 
 	cfg.build_args = args
 		.value_of("buildargs")
@@ -122,13 +123,54 @@ pub fn sync(
 		return Ok(());
 	}
 
-	let synced_packages = start_builder(runtime, cfg)?;
+	let mut synced_packages = start_builder(runtime, &cfg)?;
 
-	term.list(
-		"Synced packages:",
-		synced_packages.iter().filter_map(|x| x.Name.as_ref()),
-		1,
-	)?;
+	if cfg.install {
+		use std::process::Command;
+
+		let mut package_files: Vec<String> = vec![];
+
+		for p in &mut synced_packages {
+			if let Some(pkg_files) = &mut p.package_files {
+				package_files.append(
+					&mut pkg_files
+						.iter()
+						.filter_map(|x| {
+							if let Some(s) = x.strip_prefix("/build")
+							{
+								Some(format!(
+									"{}/{}",
+									&cfg.build_dir, s
+								))
+							} else {
+								None
+							}
+						})
+						.collect(),
+				);
+			}
+		}
+
+		if package_files.is_empty() {
+			info!("zeus", "Nothing to install");
+			return Ok(());
+		}
+
+		zerr!(
+			Command::new("sudo")
+				.args(["pacman", "-U"])
+				.args(package_files)
+				.status(),
+			"zeus",
+			"Failed to execute pacman"
+		);
+	} else {
+		term.list(
+			"Synced packages:",
+			synced_packages.iter().filter_map(|x| x.Name.as_ref()),
+			1,
+		)?;
+	}
 
 	Ok(())
 }

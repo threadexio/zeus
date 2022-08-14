@@ -42,7 +42,7 @@ use prelude::*;
 
 pub fn start_builder(
 	runtime: &mut Runtime,
-	cfg: AppConfig,
+	cfg: &AppConfig,
 ) -> Result<Vec<Package>> {
 	if !runtime.list_machines()?.iter().any(|x| x == &cfg.machine) {
 		return Err(ZeusError::new(
@@ -58,7 +58,7 @@ pub fn start_builder(
 	let manager_thread =
 		thread::spawn(move || -> Result<Vec<Package>> {
 			let socket_path =
-				format!("{}/.zeus.sock", &cfg.build_dir);
+				format!("{}/.zeus.sock", &cfg1.build_dir);
 			let listener = zerr!(
 				LocalListener::new(Path::new(&socket_path), 0o666),
 				"unix",

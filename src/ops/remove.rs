@@ -8,6 +8,8 @@ pub fn remove(
 	mut cfg: AppConfig,
 	args: &ArgMatches,
 ) -> Result<()> {
+	cfg.uninstall = args.is_present("uninstall");
+
 	cfg.machine = args.value_of("name").unwrap().to_owned();
 
 	cfg.packages = args
@@ -61,13 +63,34 @@ pub fn remove(
 		return Ok(());
 	}
 
-	let removed_packages = start_builder(runtime, cfg)?;
+	let removed_packages = start_builder(runtime, &cfg)?;
 
-	term.list(
-		"Removed packages:",
-		removed_packages.iter().filter_map(|x| x.Name.as_ref()),
-		1,
-	)?;
+	if cfg.uninstall {
+		use std::process::Command;
+
+		let mut packages = vec![];
+
+		for p in &removed_packages {
+			if let Some(pkg) = &p.Name {
+				packages.push(pkg);
+			}
+		}
+
+		zerr!(
+			Command::new("sudo")
+				.args(["pacman", "-R", "-c", "-s", "-n"])
+				.args(packages)
+				.status(),
+			"zeus",
+			"Failed to execute pacman"
+		);
+	} else {
+		term.list(
+			"Removed packages:",
+			removed_packages.iter().filter_map(|x| x.Name.as_ref()),
+			1,
+		)?;
+	}
 
 	Ok(())
 }

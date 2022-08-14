@@ -42,6 +42,7 @@ _arguments "${_arguments_options[@]}" \
 '--name=[Builder machine name]: : ' \
 '-u[Upgrade packages]' \
 '--upgrade[Upgrade packages]' \
+'--install[Install packages after build]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 '*::packages -- Packages to sync:' \
@@ -50,6 +51,7 @@ _arguments "${_arguments_options[@]}" \
 (remove)
 _arguments "${_arguments_options[@]}" \
 '--name=[Builder machine name]: : ' \
+'--uninstall[Uninstall packages after remove]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 '*::packages -- Packages to remove:' \

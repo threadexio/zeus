@@ -83,6 +83,8 @@ pub struct Package {
 	pub Groups: Option<Vec<String>>,
 	pub License: Option<Vec<String>>,
 	pub Keywords: Option<Vec<String>>,
+
+	pub package_files: Option<Vec<String>>,
 }
 
 /// Structure representing the responses
