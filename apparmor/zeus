@@ -3,22 +3,17 @@
 # Auther: threadexio
 # Copyright lololol (C) 1337 threadexio
 
-#include <tunables/global>
+abi <abi/3.0>,
+
+include <tunables/global>
 
 profile zeus "/{usr,usr/local}/bin/zeus" {
-	#include <abstractions/base>
-	#include <abstractions/nameservice>
-	#include <abstractions/openssl>
-
-	# I do not like this but it is needed for some reason for the lock file.
-	# It really shouldn't be much of a problem if the rest of the profile is written using `owner` when needed
-	capability dac_override,
+	include <abstractions/base>
+	include <abstractions/nameservice>
+	include <abstractions/openssl>
 
 	/proc/self/cgroup r,
 	/proc/@{pid}/cgroup r,
-
-	# Docker socket, duh?
-	/{run,var/run}/docker.sock rw,
 
 	# Read-only data
 	/{usr,usr/local}/share/zeus/** r,
@@ -27,5 +22,13 @@ profile zeus "/{usr,usr/local}/bin/zeus" {
 	/var/cache/aur/ r,
 
 	# Runtime socket & locking
-	/var/cache/aur/* rwk,
+	/var/cache/aur/.zeus* rwk,
+
+	# Automatic install/uninstall
+	/usr/bin/sudo Ux,
+
+	# AUR requests
+	network tcp,
+
+	include <zeus.d>
 }

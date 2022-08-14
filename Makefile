@@ -59,6 +59,11 @@ install:
 
 	install -Dm644 -t "$(DESTDIR)/etc/apparmor.d" apparmor/zeus
 
+	mkdir -p "$(DESTDIR)/etc/apparmor.d/zeus.d"
+	for i in apparmor/zeus.d/*; do
+		install -Dm644 -t "$(DESTDIR)/etc/apparmor.d/zeus.d" "$$i"
+	done
+
 	install -Dm644 completions/zeus.bash "$(DESTDIR)/usr/share/bash-completion/completions/zeus"
 	install -Dm644 completions/zeus.zsh "$(DESTDIR)/usr/share/zsh/site-functions/_zeus"
 	install -Dm644 completions/zeus.fish "$(DESTDIR)/usr/share/fish/vendor_completions.d/zeus.fish"
@@ -79,8 +84,8 @@ install:
 .PHONY:
 apparmor_test:
 	-apparmor_parser -R /etc/apparmor.d/zeus
-	-cp apparmor/zeus /etc/apparmor.d/zeus
-	-aa-enforce /etc/apparmor.d/zeus
+	-cp -r apparmor/* /etc/apparmor.d/
+	-aa-complain /etc/apparmor.d/zeus
 
 .PHONY:
 uninstall:
