@@ -1,11 +1,10 @@
 use std::collections::HashMap;
 use std::ffi::OsStr;
+use std::io;
 
 use libloading::{Library, Symbol};
 
 use super::{constants, BoxedRuntime, Runtime};
-
-use crate::error::ZeusError;
 
 #[derive(Debug)]
 #[allow(dead_code)]
@@ -45,12 +44,9 @@ impl std::fmt::Display for Error {
 
 impl std::error::Error for Error {}
 
-impl From<Error> for ZeusError {
+impl From<Error> for io::Error {
 	fn from(e: Error) -> Self {
-		Self {
-			caller: "RuntimeManager".to_string(),
-			message: e.to_string(),
-		}
+		io::Error::new(io::ErrorKind::Other, e)
 	}
 }
 

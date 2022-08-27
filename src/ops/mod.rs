@@ -2,10 +2,6 @@ use std::env;
 use std::path::Path;
 use std::thread;
 
-use crate::config::Operation;
-use crate::lock::Lockfile;
-use crate::machine::manager::RuntimeManager;
-use crate::message::Message;
 use crate::unix::LocalListener;
 
 mod build;
@@ -16,23 +12,31 @@ mod runtime;
 mod sync;
 
 mod prelude {
-	pub use crate::config::AppConfig;
+	pub use crate::term::Terminal;
+
+	pub use crate::cache::BuildCache;
 
 	pub use crate::aur::Package;
 
-	// Error handling
-	pub use crate::error::{Result, ZeusError};
-	pub use crate::zerr;
+	pub use crate::message::BuilderPackage;
 
-	pub use crate::term::Terminal;
+	pub use crate::machine::{manager::RuntimeManager, Runtime};
+
+	// Error handling
+	pub use crate::error::{Error, Result};
+	pub(crate) use error::{err, other};
+
+	pub use crate::config::{
+		constants, BuildOptions, CompletionOptions, Config,
+		Operation, QueryOptions, RemoveOptions, RuntimeOptions,
+		SyncOptions,
+	};
 
 	// Logging
 	pub use crate::log::Logger;
-	pub use crate::{debug, error, info, warning};
+	pub use crate::{debug, error, info, warn};
 
 	// Extras
-	pub use crate::machine::Runtime;
-	pub use clap::ArgMatches;
 	pub use colored::Colorize;
 
 	pub use super::start_builder;
@@ -40,73 +44,137 @@ mod prelude {
 
 use prelude::*;
 
+macro_rules! get_runtime {
+	($rt_manager:expr, $cfg:expr) => {{
+		err!(
+			env::set_current_dir(constants::defaults::DATA_DIR),
+			"Cannot change directory to {}",
+			constants::defaults::DATA_DIR
+		);
+
+		$rt_manager
+			.load(format!(
+				"{}/librt_{}.so",
+				$cfg.runtime_dir, $cfg.runtime
+			))?
+			.as_mut()
+	}};
+}
+
+pub fn run_operation(
+	term: &mut Terminal,
+	mut cfg: Config,
+) -> Result<()> {
+	let mut build_cache = BuildCache::new(&cfg.build_dir)?;
+
+	let mut rt_manager = RuntimeManager::new();
+
+	match cfg.operation.clone() {
+		Operation::Build(v) => {
+			build_cache.lock()?;
+			build::build(get_runtime!(rt_manager, cfg), &mut cfg, v)
+		},
+		Operation::Remove(ref mut v) => {
+			build_cache.lock()?;
+			remove::remove(
+				term,
+				get_runtime!(rt_manager, cfg),
+				&mut build_cache,
+				cfg,
+				v,
+			)
+		},
+		Operation::Sync(ref mut v) => {
+			build_cache.lock()?;
+			sync::sync(
+				term,
+				get_runtime!(rt_manager, cfg),
+				&mut build_cache,
+				cfg,
+				v,
+			)
+		},
+		Operation::Runtime(ref mut v) => {
+			build_cache.lock()?;
+			runtime::runtime(term, &mut rt_manager, cfg, v)
+		},
+		Operation::Query(ref mut v) => query::query(term, cfg, v),
+		Operation::Completions(ref mut v) => {
+			completions::completions(v)
+		},
+	}
+}
+
 pub fn start_builder(
 	runtime: &mut Runtime,
-	cfg: &AppConfig,
-) -> Result<Vec<Package>> {
-	if !runtime.list_machines()?.iter().any(|x| x == &cfg.machine) {
-		return Err(ZeusError::new(
-			"zeus".to_owned(),
-			"No builder machine found.".to_owned(),
-		));
+	build_cache: &BuildCache,
+	cfg: &Config,
+	machine_name: &str,
+) -> Result<Vec<BuilderPackage>> {
+	use crate::message::Message;
+
+	if !runtime
+		.list_machines()
+		.map_err(|x| other!("{}", x))?
+		.iter()
+		.any(|x| x == machine_name)
+	{
+		return Err(other!("No builder machine found."));
 	}
 
 	use std::sync::mpsc;
 	let (local_tx, local_rx) = mpsc::channel::<()>();
 
 	let cfg1 = cfg.clone();
-	let manager_thread =
-		thread::spawn(move || -> Result<Vec<Package>> {
-			let socket_path =
-				format!("{}/.zeus.sock", &cfg1.build_dir);
-			let listener = zerr!(
-				LocalListener::new(Path::new(&socket_path), 0o666),
-				"unix",
-				"Cannot listen on socket {}",
-				&socket_path
-			);
+	let build_dir = build_cache.path().display().to_string();
 
-			// let the main thread continue and start the machine
-			local_tx.send(()).unwrap();
+	let manager_thread = thread::spawn(move || {
+		let socket_path = format!("{}/.zeus.sock", build_dir);
+		let listener = err!(
+			LocalListener::new(Path::new(&socket_path), 0o666),
+			"Cannot listen on socket {}",
+			&socket_path
+		);
 
-			let (mut tx, mut rx) = zerr!(
-				listener.accept(),
-				"unix",
-				"Cannot open communication stream with builder"
-			);
+		// let the main thread continue and start the machine
+		local_tx.send(()).unwrap();
 
-			tx.send(Message::Config(cfg1))?;
+		let (mut tx, mut rx) = err!(
+			listener.accept(),
+			"Cannot open communication stream with builder"
+		);
 
-			loop {
-				use std::io::ErrorKind;
-				match rx.recv() {
-					Err(e) if e.kind() == ErrorKind::WouldBlock => {
-						continue
+		tx.send(Message::Config(cfg1))?;
+
+		let mut packages: Vec<BuilderPackage> = vec![];
+
+		loop {
+			use std::io::ErrorKind;
+			match rx.recv() {
+				Err(e) if e.kind() == ErrorKind::WouldBlock => {
+					continue
+				},
+				Err(e) => {
+					return Err(other!(
+						"Cannot receive message from builder: {}",
+						e
+					))
+				},
+				Ok(v) => match v {
+					Message::PackageBuilt(pkg) => packages.push(pkg),
+					Message::Success => {
+						return Ok(packages);
 					},
-					Err(e) => {
-						return Err(ZeusError::new(
-							"zeus".to_string(),
-							format!(
-							"Cannot receive message from builder: {}",
-							e
-						),
-						))
+					Message::Failure(error) => {
+						return Err(other!("{}", error))
 					},
-					Ok(v) => match v {
-						Message::Success(pkgs) => {
-							return Ok(pkgs);
-						},
-						Message::Failure(error) => {
-							return Err(ZeusError::new(
-								"builder".to_string(),
-								error,
-							))
-						},
-						_ => {},
+					_ => {
+						panic!("received unexpected message: {:?}", v)
 					},
-				};
-			}
-		});
+				},
+			};
+		}
+	});
 
 	// block until the manager thread is ready
 	match local_rx.recv() {
@@ -117,102 +185,10 @@ pub fn start_builder(
 		_ => {},
 	}
 
-	info!("zeus", "Starting builder...");
-	runtime.start_machine(&cfg.machine)?;
+	info!("Starting builder...");
+	runtime
+		.start_machine(machine_name)
+		.map_err(|x| other!("{}", x))?;
 
 	return manager_thread.join().unwrap();
-}
-
-fn get_runtime<'a>(
-	cfg: &AppConfig,
-	rt_manager: &'a mut RuntimeManager,
-) -> Result<&'a mut Runtime> {
-	let runtime = rt_manager
-		.load(format!(
-			"{}/librt_{}.so",
-			cfg.runtime_dir, cfg.runtime
-		))?
-		.as_mut();
-
-	zerr!(
-		env::set_current_dir(crate::config::defaults::DATA_DIR),
-		"system",
-		"Cannot change directory to {}:",
-		crate::config::defaults::DATA_DIR
-	);
-
-	Ok(runtime)
-}
-
-fn get_lock(
-	lockfile: &mut Option<Lockfile>,
-	cfg: &AppConfig,
-) -> Result<()> {
-	if lockfile.is_none() {
-		*lockfile = Some(zerr!(
-			Lockfile::new(Path::new(&format!(
-				"{}/.zeus.lock",
-				&cfg.build_dir
-			))),
-			"system",
-			"Cannot create lock"
-		));
-	}
-
-	Ok(zerr!(
-		lockfile.as_ref().unwrap().try_lock(),
-		"system",
-		"Cannot obtain lock"
-	))
-}
-
-pub fn run_operation(
-	term: &mut Terminal,
-	cfg: AppConfig,
-	args: &ArgMatches,
-) -> Result<()> {
-	let mut lockfile: Option<Lockfile> = None;
-
-	let mut rt_manager = RuntimeManager::new();
-
-	debug!("pre-op config", "{:?}", cfg);
-
-	match cfg.operation {
-		Operation::Build => {
-			get_lock(&mut lockfile, &cfg)?;
-			build::build(
-				get_runtime(&cfg, &mut rt_manager)?,
-				cfg,
-				args,
-			)
-		},
-		Operation::Remove => {
-			get_lock(&mut lockfile, &cfg)?;
-			remove::remove(
-				term,
-				get_runtime(&cfg, &mut rt_manager)?,
-				cfg,
-				args,
-			)
-		},
-		Operation::Sync => {
-			get_lock(&mut lockfile, &cfg)?;
-			sync::sync(
-				term,
-				get_runtime(&cfg, &mut rt_manager)?,
-				cfg,
-				args,
-			)
-		},
-		Operation::Runtime => {
-			get_lock(&mut lockfile, &cfg)?;
-			runtime::runtime(term, &mut rt_manager, cfg, args)
-		},
-		Operation::Query => query::query(term, cfg, args),
-		Operation::Completions => completions::completions(args),
-		Operation::None => Err(ZeusError::new(
-			"zeus".to_owned(),
-			"No such operation".to_owned(),
-		)),
-	}
 }
