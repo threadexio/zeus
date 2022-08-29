@@ -59,7 +59,7 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn rt_api_version(&self) -> u32 {
-		1
+		zeus::constants::SUPPORTED_RT_API_VERSION
 	}
 
 	fn init(&mut self) -> Result<()> {
