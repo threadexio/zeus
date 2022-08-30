@@ -1,20 +1,19 @@
 BUILD_TYPE ?= debug
 CARGO_ARGS ?=
 
-VERSION	?= $(shell git describe --tags --always --dirty --broken)
-BUILD_INFO ?= $(shell scripts/build_info.sh)
-
 PREFIX ?= /usr/local
 DESTDIR ?=
 
-DEFAULT_NAME ?= zeus-builder
-DEFAULT_IMAGE ?= zeus-builder
-DEFAULT_BUILDDIR ?= /var/cache/aur
-DEFAULT_AUR_HOST ?= https://aur.archlinux.org/
-DEFAULT_RUNTIME ?= docker
-DEFAULT_RUNTIME_DIR ?= $(PREFIX)/lib/zeus/runtimes
-DEFAULT_DATA_DIR ?= $(PREFIX)/share/zeus
-DEFAULT_LOG_LEVEL ?= info
+export DEFAULT_NAME ?= zeus-builder
+export DEFAULT_IMAGE ?= zeus-builder
+export DEFAULT_BUILDDIR ?= /var/cache/aur
+export DEFAULT_AUR_HOST ?= https://aur.archlinux.org/
+export DEFAULT_RUNTIME ?= docker
+export DEFAULT_RUNTIME_DIR ?= $(PREFIX)/lib/zeus/runtimes
+export DEFAULT_DATA_DIR ?= $(PREFIX)/share/zeus
+export DEFAULT_LOG_LEVEL ?= info
+export VERSION	?= $(shell git describe --tags --always --dirty --broken)
+export BUILD_INFO ?= $(shell scripts/build_info.sh)
 
 ifeq ($(BUILD_TYPE),debug)
 	CARGO_ARGS +=
@@ -31,17 +30,6 @@ FORCE: ;
 .PHONY:
 .ONESHELL:
 build: FORCE
-	export DEFAULT_NAME="$(DEFAULT_NAME)"
-	export DEFAULT_IMAGE="$(DEFAULT_IMAGE)"
-	export DEFAULT_BUILDDIR="$(DEFAULT_BUILDDIR)"
-	export DEFAULT_AUR_HOST="$(DEFAULT_AUR_HOST)"
-	export DEFAULT_RUNTIME="$(DEFAULT_RUNTIME)"
-	export DEFAULT_RUNTIME_DIR="$(DEFAULT_RUNTIME_DIR)"
-	export DEFAULT_DATA_DIR="$(DEFAULT_DATA_DIR)"
-	export DEFAULT_LOG_LEVEL="$(DEFAULT_LOG_LEVEL)"
-
-	export VERSION="$(VERSION)"
-	export BUILD_INFO="$(BUILD_INFO)"
 	cargo build --workspace $(CARGO_ARGS) --
 
 .PHONY:
@@ -50,9 +38,9 @@ clean: FORCE
 
 .PHONY:
 completions: FORCE
-	./target/$(BUILD_TYPE)/zeus completions --shell bash > completions/zeus.bash
-	./target/$(BUILD_TYPE)/zeus completions --shell zsh > completions/zeus.zsh
-	./target/$(BUILD_TYPE)/zeus completions --shell fish > completions/zeus.fish
+	cargo run $(CARGO_ARGS) --bin=zeus -- completions --shell bash > completions/zeus.bash
+	cargo run $(CARGO_ARGS) --bin=zeus -- completions --shell zsh > completions/zeus.zsh
+	cargo run $(CARGO_ARGS) --bin=zeus -- completions --shell fish > completions/zeus.fish
 
 .PHONY:
 install:
