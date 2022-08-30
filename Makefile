@@ -2,6 +2,7 @@ BUILD_TYPE ?= debug
 CARGO_ARGS ?=
 
 VERSION	?= $(shell git describe --tags --always --dirty --broken)
+BUILD_INFO ?= $(shell scripts/build_info.sh)
 
 PREFIX ?= /usr/local
 DESTDIR ?=
@@ -40,6 +41,7 @@ build: FORCE
 	export DEFAULT_LOG_LEVEL="$(DEFAULT_LOG_LEVEL)"
 
 	export VERSION="$(VERSION)"
+	export BUILD_INFO="$(BUILD_INFO)"
 	cargo build --workspace $(CARGO_ARGS) --
 
 .PHONY:

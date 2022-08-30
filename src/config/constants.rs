@@ -17,6 +17,8 @@ const BUILD_TYPE: &'static str = "rls";
 pub const VERSION: &'static str =
 	formatcp!("{}-{BUILD_TYPE}", env!("VERSION", "VERSION not set"));
 
+from_env!(BUILD_INFO, "BUILD_INFO");
+
 from_env!(NAME, "CARGO_CRATE_NAME");
 from_env!(DESCRIPTION, "CARGO_PKG_DESCRIPTION");
 from_env!(HOMEPAGE, "CARGO_PKG_HOMEPAGE");
@@ -25,7 +27,7 @@ from_env!(LICENSE, "CARGO_PKG_LICENSE");
 from_env!(AUTHORS, "CARGO_PKG_AUTHORS");
 
 pub const LONG_VERSION: &'static str = formatcp!(
-	r#"{}
+	r#"{} {}
 
     _oo     Copyright lololol (C) 2022 {}
  >-(_  \
@@ -45,6 +47,7 @@ pub const LONG_VERSION: &'static str = formatcp!(
 	   RUNTIME_DIR   | {}
 "#,
 	VERSION,
+	BUILD_INFO,
 	AUTHORS,
 	HOMEPAGE,
 	defaults::DATA_DIR,
