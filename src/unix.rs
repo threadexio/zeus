@@ -10,10 +10,6 @@ use serde::ser::Serialize;
 
 use channels::{Receiver, Sender};
 
-pub type UnixChannels<T> =
-	(Sender<T, UnixStream>, Receiver<T, UnixStream>);
-
-#[derive(Debug)]
 pub struct LocalListener {
 	listener: UnixListener,
 	path: PathBuf,
@@ -36,7 +32,8 @@ impl LocalListener {
 
 	pub fn accept<T: Serialize + DeserializeOwned>(
 		&self,
-	) -> io::Result<UnixChannels<T>> {
+	) -> io::Result<(Sender<T, UnixStream>, Receiver<T, UnixStream>)>
+	{
 		let (stream, _) = self.listener.accept()?;
 
 		Ok(channels::channel::<T, _>(stream))

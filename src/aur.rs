@@ -1,24 +1,23 @@
 use std::fmt;
+use std::str::FromStr;
 
 use const_format::formatcp;
 use reqwest::blocking::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize};
 
-use crate::config::constants;
-
-use clap::ValueEnum;
-
-const AUR_VERSION: usize = 5;
-const AUR_RPC: &'static str =
-	const_format::formatcp!("/rpc/?v={}", AUR_VERSION);
+/// Type alias for timestamps
+pub type Timestamp = u64;
+/// Type alias for id fields
+pub type Id = u64;
+/// Type alias for version number fields
+pub type Version = u8;
 
 /// Type alias for request results
 pub type AurResult = reqwest::Result<AurResponse>;
 
 /// Package search types
-#[derive(
-	Debug, Clone, PartialEq, Serialize, Deserialize, ValueEnum,
-)]
+#[allow(dead_code)]
+#[derive(Debug)]
 pub enum By {
 	/// Search by package name
 	Name,
@@ -34,6 +33,81 @@ pub enum By {
 	OptDepends,
 	/// Search by testing dependencies
 	CheckDepends,
+}
+
+#[derive(Debug)]
+pub struct AurBuilder {
+	host: String,
+	protocol: String,
+
+	version: Version,
+	rpc_path: String,
+}
+
+/// Structure representing an AUR instance
+#[derive(
+	Debug, Default, PartialEq, Clone, Serialize, Deserialize,
+)]
+pub struct Aur {
+	base_url: String,
+	rpc_url: String,
+}
+
+#[allow(non_snake_case)]
+#[derive(
+	Debug, Default, PartialEq, Clone, Serialize, Deserialize,
+)]
+pub struct Package {
+	pub ID: Option<Id>,
+	pub Name: Option<String>,
+	pub PackageBaseID: Option<Id>,
+	pub PackageBase: Option<String>,
+	pub Version: Option<String>,
+	pub Description: Option<String>,
+	pub URL: Option<String>,
+	pub NumVotes: Option<u64>,
+	pub Popularity: Option<f32>,
+	pub OutOfDate: Option<Timestamp>,
+	pub Maintainer: Option<String>,
+	pub FirstSubmitted: Option<Timestamp>,
+	pub LastModified: Option<Timestamp>,
+	pub URLPath: Option<String>,
+
+	pub Depends: Option<Vec<String>>,
+	pub MakeDepends: Option<Vec<String>>,
+	pub OptDepends: Option<Vec<String>>,
+	pub CheckDepends: Option<Vec<String>>,
+	pub Conflicts: Option<Vec<String>>,
+	pub Provides: Option<Vec<String>>,
+	pub Replaces: Option<Vec<String>>,
+	pub Groups: Option<Vec<String>>,
+	pub License: Option<Vec<String>>,
+	pub Keywords: Option<Vec<String>>,
+
+	pub package_files: Option<Vec<String>>,
+}
+
+/// Structure representing the responses
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AurResponse {
+	/// Number of returned packages
+	pub resultcount: usize,
+
+	/// Packages returned
+	pub results: Vec<Package>,
+
+	/// Query type
+	pub r#type: String,
+	/// AUR version
+	pub version: Version,
+}
+
+fn make_req_client() -> Client {
+	use crate::config;
+	ClientBuilder::new()
+		.user_agent(formatcp!("{}-{}", config::NAME, config::VERSION))
+		.build()
+		.unwrap()
 }
 
 impl fmt::Display for By {
@@ -54,96 +128,99 @@ impl fmt::Display for By {
 	}
 }
 
-#[derive(
-	Debug, Clone, PartialEq, Serialize, Deserialize, ValueEnum,
-)]
-pub enum Output {
-	Pretty,
-	Json,
-}
+impl FromStr for By {
+	type Err = String;
 
-#[derive(
-	Debug, Default, PartialEq, Clone, Serialize, Deserialize,
-)]
-pub struct Package {
-	#[serde(rename = "ID")]
-	pub id: u64,
-	#[serde(rename = "Name")]
-	pub name: String,
-	#[serde(rename = "PackageBaseID")]
-	pub package_base_id: u64,
-	#[serde(rename = "PackageBase")]
-	pub package_base: String,
-	#[serde(rename = "Version")]
-	pub version: String,
-	#[serde(rename = "Description")]
-	pub description: String,
-	#[serde(rename = "URL")]
-	pub url: String,
-	#[serde(rename = "NumVotes")]
-	pub num_votes: u64,
-	#[serde(rename = "Popularity")]
-	pub popularity: f32,
-	#[serde(rename = "OutOfDate")]
-	pub out_of_date: Option<u64>,
-	#[serde(rename = "Maintainer")]
-	pub maintainer: Option<String>,
-	#[serde(rename = "FirstSubmitted")]
-	pub first_submitted: u64,
-	#[serde(rename = "LastModified")]
-	pub last_modified: u64,
-	#[serde(rename = "URLPath")]
-	pub url_path: String,
-
-	#[serde(rename = "Depends")]
-	pub depends: Vec<String>,
-	#[serde(rename = "MakeDepends")]
-	pub make_depends: Vec<String>,
-	#[serde(rename = "OptDepends")]
-	pub opt_depends: Vec<String>,
-	#[serde(rename = "CheckDepends")]
-	pub check_depends: Vec<String>,
-	#[serde(rename = "Conflicts")]
-	pub conflicts: Vec<String>,
-	#[serde(rename = "Provides")]
-	pub provides: Vec<String>,
-	#[serde(rename = "Replaces")]
-	pub replaces: Vec<String>,
-	#[serde(rename = "Groups")]
-	pub groups: Vec<String>,
-	#[serde(rename = "License")]
-	pub license: Vec<String>,
-	#[serde(rename = "Keywords")]
-	pub keywords: Vec<String>,
-}
-
-impl From<String> for Package {
-	fn from(name: String) -> Self {
-		Self { name, ..Default::default() }
+	fn from_str(s: &str) -> Result<Self, Self::Err> {
+		match s {
+			"name" => Ok(Self::Name),
+			"description" => Ok(Self::NameDesc),
+			"maintainer" => Ok(Self::Maintainer),
+			"depends" => Ok(Self::Depends),
+			"makedepends" => Ok(Self::MakeDepends),
+			"optdepends" => Ok(Self::OptDepends),
+			"checkdepends" => Ok(Self::CheckDepends),
+			_ => unreachable!(),
+		}
 	}
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct AurResponse {
-	#[serde(rename = "resultcount")]
-	pub result_count: usize,
+#[allow(dead_code)]
+impl AurBuilder {
+	/// Create a new AUR instance
+	pub fn build(self) -> Aur {
+		Aur {
+			base_url: format!("{}://{}/", self.protocol, self.host),
+			rpc_url: format!(
+				"{}://{}/{}/?v={}",
+				self.protocol, self.host, self.rpc_path, self.version
+			),
+		}
+	}
 
-	pub results: Vec<Package>,
+	/// Set AUR host
+	///
+	/// # Example:
+	/// ```
+	/// let aur_instance = aur::Aur::new()
+	///						.host("aur.example.com")
+	///						.build();
+	/// ```
+	pub fn host(mut self, host: String) -> Self {
+		self.host = host;
+		self
+	}
 
-	#[serde(rename = "type")]
-	pub query_type: String,
+	/// Set AUR protocol
+	///
+	/// # Example:
+	/// ```
+	/// let aur_instance = aur::Aur::new()
+	///						.protocol("https")
+	///						.build();
+	/// ```
+	pub fn protocol(mut self, protocol: String) -> Self {
+		self.protocol = protocol;
+		self
+	}
 
-	pub version: u8,
+	/// Set AUR RPC version
+	///
+	/// # Example:
+	/// ```
+	/// let aur_instance = aur::Aur::new()
+	///						.version(5)
+	///						.build();
+	/// ```
+	pub fn version(mut self, version: u8) -> Self {
+		self.version = version;
+		self
+	}
+
+	/// Set AUR RPC endpoint path from /
+	///
+	/// # Example:
+	/// ```
+	/// let aur_instance = aur::Aur::new()
+	///						.rpc_path("rpc/")
+	///						.build();
+	/// ```
+	pub fn rpc_path(mut self, rpc_path: String) -> Self {
+		self.rpc_path = rpc_path;
+		self
+	}
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
-pub struct Aur {
-	url: String,
-}
-
+#[allow(dead_code)]
 impl Aur {
-	pub fn new(url: String) -> Self {
-		Self { url }
+	/// Create a new AurBuilder
+	pub fn new() -> AurBuilder {
+		AurBuilder {
+			host: "aur.archlinux.org".to_owned(),
+			protocol: "https".to_owned(),
+			rpc_path: "rpc".to_owned(),
+			version: 5,
+		}
 	}
 
 	/// Get full URL of AUR instance
@@ -155,7 +232,19 @@ impl Aur {
 	/// let url = aur_instance.get_url();
 	/// ```
 	pub fn get_url(&self) -> &str {
-		&self.url
+		&self.base_url
+	}
+
+	/// Get full URL of AUR RPC endpoint
+	///
+	/// # Example:
+	/// ```
+	/// let aur_instance = aur::Aur::new().build();
+	///
+	/// let url = aur_instance.get_rpc_url();
+	/// ```
+	pub fn get_rpc_url(&self) -> &str {
+		&self.rpc_url
 	}
 
 	/// Search for packages.
@@ -170,18 +259,13 @@ impl Aur {
 	///
 	/// let response = aur_instance.search(aur::By::Name, &keywords);
 	/// ```
-	pub fn search<T>(
-		&self,
-		by: By,
-		keywords: impl IntoIterator<Item = T>,
-	) -> AurResult
+	pub fn search<T>(&self, by: By, keywords: &Vec<T>) -> AurResult
 	where
 		T: fmt::Display,
 	{
 		let mut url = format!(
-			"{}/{}&type=search&by={}",
-			&self.url,
-			AUR_RPC,
+			"{}&type=search&by={}",
+			&self.rpc_url,
 			by.to_string().to_lowercase()
 		);
 
@@ -207,14 +291,11 @@ impl Aur {
 	///
 	/// let response = aur_instance.info(&packages);
 	/// ```
-	pub fn info<T>(
-		&self,
-		packages: impl IntoIterator<Item = T>,
-	) -> AurResult
+	pub fn info<T>(&self, packages: &Vec<T>) -> AurResult
 	where
 		T: fmt::Display,
 	{
-		let mut url = format!("{}/{}&type=info", &self.url, AUR_RPC,);
+		let mut url = format!("{}&type=info", &self.rpc_url);
 
 		for package in packages {
 			url.push_str(&format!("&arg[]={}", package));
@@ -224,34 +305,5 @@ impl Aur {
 			make_req_client().get(url).send()?.json()?;
 
 		Ok(res)
-	}
-}
-
-fn make_req_client() -> Client {
-	ClientBuilder::new()
-		.user_agent(formatcp!(
-			"{}-{}",
-			constants::NAME,
-			constants::VERSION
-		))
-		.build()
-		.unwrap()
-}
-
-#[derive(Debug, Clone)]
-pub struct AurValueParser;
-impl clap::builder::TypedValueParser for AurValueParser {
-	type Value = Aur;
-
-	fn parse_ref(
-		&self,
-		cmd: &clap::Command,
-		arg: Option<&clap::Arg>,
-		value: &std::ffi::OsStr,
-	) -> Result<Self::Value, clap::Error> {
-		let inner = clap::builder::StringValueParser::new();
-		let val = inner.parse_ref(cmd, arg, value)?;
-
-		Ok(Aur::new(val))
 	}
 }

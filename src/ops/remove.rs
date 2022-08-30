@@ -1,36 +1,57 @@
+use std::path::Path;
+
 use super::prelude::*;
 
 pub fn remove(
 	term: &mut Terminal,
 	runtime: &mut Runtime,
-	build_cache: &mut BuildCache,
-	cfg: Config,
-	opts: &mut RemoveOptions,
+	mut cfg: AppConfig,
+	args: &ArgMatches,
 ) -> Result<()> {
-	let mut valid_packages: Vec<Package> = Vec::new();
+	cfg.uninstall = args.is_present("uninstall");
 
-	let synced_packages = build_cache.list_packages()?;
-	for p in opts.packages.iter().map(|x| &x.name) {
-		if synced_packages.contains(&p) {
-			valid_packages.push(Package {
-				name: p.to_owned(),
-				..Default::default()
-			})
-		}
+	cfg.machine = args.value_of("name").unwrap().to_owned();
+
+	cfg.packages = args
+		.values_of("packages")
+		.unwrap_or_default()
+		.map(|x| Package {
+			Name: Some(x.to_owned()),
+			..Default::default()
+		})
+		.filter(|x| {
+			let pkg_path = Path::new(&cfg.build_dir)
+				.join(x.Name.as_ref().unwrap());
+
+			if pkg_path.exists()
+				&& pkg_path.is_dir()
+				&& pkg_path.join("PKGBUILD").exists()
+			{
+				true
+			} else {
+				warning!(
+					"zeus",
+					"Package {} was not found",
+					x.Name.as_ref().unwrap()
+				);
+				false
+			}
+		})
+		.collect();
+
+	if cfg.packages.is_empty() {
+		return Err(ZeusError::new(
+			"zeus".to_owned(),
+			"No packages found.".to_owned(),
+		));
 	}
-
-	if valid_packages.is_empty() {
-		return Err(other!("No packages found"));
-	}
-
-	opts.packages = valid_packages;
 
 	term.list(
 		format!(
 			"The following packages will be {}:",
 			"REMOVED".bold()
 		),
-		opts.packages.iter().map(|x| &x.name),
+		cfg.packages.iter().filter_map(|x| x.Name.as_ref()),
 		4,
 	)?;
 
@@ -38,33 +59,35 @@ pub fn remove(
 		"Are you sure you want to remove these packages?",
 		true,
 	)? {
-		error!("Aborting...");
+		error!("zeus", "Aborting...");
 		return Ok(());
 	}
 
-	let removed_packages = start_builder(
-		runtime,
-		build_cache,
-		&cfg,
-		&opts.machine_name,
-	)?;
+	let removed_packages = start_builder(runtime, &cfg)?;
 
-	if opts.uninstall {
+	if cfg.uninstall {
 		use std::process::Command;
 
-		err!(
+		let mut packages = vec![];
+
+		for p in &removed_packages {
+			if let Some(pkg) = &p.Name {
+				packages.push(pkg);
+			}
+		}
+
+		zerr!(
 			Command::new("sudo")
 				.args(["pacman", "-R", "-c", "-s", "-n"])
-				.args(
-					removed_packages.iter().map(|x| &x.package.name)
-				)
+				.args(packages)
 				.status(),
+			"zeus",
 			"Failed to execute pacman"
 		);
 	} else {
 		term.list(
 			"Removed packages:",
-			removed_packages.iter().map(|x| &x.package.name),
+			removed_packages.iter().filter_map(|x| x.Name.as_ref()),
 			1,
 		)?;
 	}

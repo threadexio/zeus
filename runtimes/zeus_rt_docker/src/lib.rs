@@ -3,7 +3,7 @@
 //! following environment variables:
 //! - `DOCKER_BIN` - This must point to the docker cli tool. (default: `/usr/bin/docker`)
 
-use zeus::*;
+use zeus::{machine::*, *};
 
 use std::env;
 use std::io::BufRead;
@@ -160,7 +160,7 @@ impl IRuntime for DockerRuntime {
 		&mut self,
 		machine_name: &str,
 		image_name: &str,
-		config: &Config,
+		config: &AppConfig,
 	) -> Result<()> {
 		let child = handle!(process::Command::new(&self.docker_bin)
 			.args(["container", "create"])

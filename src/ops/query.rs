@@ -1,81 +1,98 @@
+use std::io::stdout;
+
 use super::prelude::*;
 use crate::aur;
-
-macro_rules! print_info {
-	($a:expr, $b:expr) => {
-		println!("{0: <16}: {1}", $a, $b);
-	};
-}
 
 macro_rules! print_if_some {
 	($a:expr,$b:expr) => {{
 		match $b {
 			None => {},
 			Some(v) => {
-				print_info!($a, v);
+				println!("{0: <16}: {1}", $a, v);
 			},
 		}
 	}};
 }
 
-macro_rules! print_vec_if_nonempty {
+macro_rules! print_vec_if_some {
 	($a:expr,$b:expr) => {{
-		if !$b.is_empty() {
-			print_info!($a, $b.join(" "));
+		match $b {
+			None => {},
+			Some(v) => {
+				println!("{0: <16}: {1}", $a, v.join(" "));
+			},
 		}
 	}};
 }
 
 fn print_pretty_package(package: &aur::Package) {
-	print_info!("Name", &package.name);
-	print_info!("Version", &package.version);
-	print_info!("Description", &package.description);
-	print_info!("URL", &package.url);
-	print_info!("Last Modified", &package.last_modified);
-	print_info!("First Submitted", &package.first_submitted);
-	print_info!("Popularity", &package.popularity);
-	print_info!("Votes", &package.num_votes);
+	print_if_some!("Name", &package.Name);
+	print_if_some!("Version", &package.Version);
+	print_if_some!("Description", &package.Description);
+	print_if_some!("URL", &package.URL);
 
-	print_vec_if_nonempty!("License", &package.license);
-	print_vec_if_nonempty!("Groups", &package.groups);
-	print_vec_if_nonempty!("Provides", &package.provides);
-	print_vec_if_nonempty!("Depends On", &package.depends);
-	print_vec_if_nonempty!("Optional Deps", &package.opt_depends);
-	print_vec_if_nonempty!("Conflicts", &package.conflicts);
-	print_vec_if_nonempty!("Replaces", &package.replaces);
+	print_vec_if_some!("License", &package.License);
+	print_vec_if_some!("Groups", &package.Groups);
+	print_vec_if_some!("Provides", &package.Provides);
+	print_vec_if_some!("Depends On", &package.Depends);
+	print_vec_if_some!("Optional Deps", &package.OptDepends);
+	print_vec_if_some!("Conflicts", &package.Conflicts);
+	print_vec_if_some!("Replaces", &package.Replaces);
 
-	print_if_some!("Maintainer", &package.maintainer);
-	print_if_some!("Out Of Date", &package.out_of_date);
+	println!(
+		"{0: <16}: {1}",
+		"Maintainer",
+		&package.Maintainer.as_ref().unwrap_or(&"none".to_owned())
+	);
+
+	print_if_some!("Last Modified", &package.LastModified);
+	print_if_some!("First Submitted", &package.FirstSubmitted);
+
+	println!(
+		"{0: <16}: {1}",
+		"Out of date",
+		&package.OutOfDate.unwrap_or(0)
+	);
+
+	print_if_some!("Popularity", &package.Popularity);
+	print_if_some!("Votes", &package.NumVotes);
 }
 
 pub fn query(
 	_term: &mut Terminal,
-	cfg: Config,
-	opts: &mut QueryOptions,
+	mut cfg: AppConfig,
+	args: &ArgMatches,
 ) -> Result<()> {
-	if opts.keywords.is_empty() {
-		return Err(other!("No keywords specified"));
+	cfg.keywords = args
+		.values_of("keywords")
+		.unwrap_or_default()
+		.map(|x| x.to_owned())
+		.collect();
+
+	if cfg.keywords.is_empty() {
+		return Err(ZeusError::new(
+			"zeus".to_owned(),
+			"No keywords specified".to_owned(),
+		));
 	}
 
-	let res = match opts.info {
-		true => cfg.aur.info(opts.keywords.iter()),
-		false => {
-			cfg.aur.search(opts.by.clone(), opts.keywords.iter())
-		},
+	let by = args.value_of_t::<aur::By>("by").unwrap();
+
+	let res = match args.is_present("info") {
+		true => cfg.aur.info(&cfg.keywords),
+		false => cfg.aur.search(by, &cfg.keywords),
 	};
 
-	let data = err!(res, "Error");
+	let data = zerr!(res, "aur", "Error: ");
 
-	debug!("Raw response: {:?}", data);
-
-	use aur::Output;
-	match opts.output {
-		Output::Json => err!(
-			serde_json::to_writer(std::io::stdout(), &data.results),
-			"Cannot serialize JSON"
+	match args.value_of("output").unwrap() {
+		"json" => zerr!(
+			serde_json::to_writer(stdout(), &data.results),
+			"zeus",
+			"Cannot serialize JSON: "
 		),
-		Output::Pretty => {
-			if opts.info {
+		_ => {
+			if args.is_present("info") {
 				for package in &data.results {
 					print_pretty_package(package);
 				}
@@ -84,9 +101,20 @@ pub fn query(
 					println!(
 						"{} {} - {}\n    {}",
 						"=>".green(),
-						package.name.bold(),
-						package.version.bright_blue(),
-						package.description
+						package
+							.Name
+							.as_ref()
+							.unwrap_or(&"".to_owned())
+							.bold(),
+						package
+							.Version
+							.as_ref()
+							.unwrap_or(&"".to_owned())
+							.bright_blue(),
+						package
+							.Description
+							.as_ref()
+							.unwrap_or(&"".to_owned()),
 					);
 				}
 			}

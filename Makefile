@@ -9,11 +9,10 @@ DESTDIR ?=
 DEFAULT_NAME ?= zeus-builder
 DEFAULT_IMAGE ?= zeus-builder
 DEFAULT_BUILDDIR ?= /var/cache/aur
-DEFAULT_AUR_HOST ?= https://aur.archlinux.org/
+DEFAULT_AUR_HOST ?= aur.archlinux.org
 DEFAULT_RUNTIME ?= docker
 DEFAULT_RUNTIME_DIR ?= $(PREFIX)/lib/zeus/runtimes
 DEFAULT_DATA_DIR ?= $(PREFIX)/share/zeus
-DEFAULT_LOG_LEVEL ?= info
 
 ifeq ($(BUILD_TYPE),debug)
 	CARGO_ARGS +=
@@ -37,7 +36,6 @@ build: FORCE
 	export DEFAULT_RUNTIME="$(DEFAULT_RUNTIME)"
 	export DEFAULT_RUNTIME_DIR="$(DEFAULT_RUNTIME_DIR)"
 	export DEFAULT_DATA_DIR="$(DEFAULT_DATA_DIR)"
-	export DEFAULT_LOG_LEVEL="$(DEFAULT_LOG_LEVEL)"
 
 	export VERSION="$(VERSION)"
 	cargo build --workspace $(CARGO_ARGS) --

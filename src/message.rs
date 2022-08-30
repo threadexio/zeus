@@ -1,18 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 use crate::aur::Package;
-use crate::config::Config;
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BuilderPackage {
-	pub package: Package,
-	pub files: Vec<String>,
-}
+use crate::config::AppConfig;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Message {
-	Config(Config),
-	PackageBuilt(BuilderPackage),
-	Success,
+	Config(AppConfig),
+	Success(Vec<Package>),
 	Failure(String),
 }
