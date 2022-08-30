@@ -2,27 +2,33 @@ use super::prelude::*;
 
 pub fn build(
 	runtime: &mut Runtime,
-	mut cfg: AppConfig,
-	args: &ArgMatches,
+	gopts: &mut GlobalOptions,
+	opts: BuildOptions,
 ) -> Result<()> {
-	cfg.image = args.value_of("image").unwrap().to_owned();
-	cfg.machine = args.value_of("name").unwrap().to_owned();
-
-	for machine in runtime.list_machines()? {
-		if machine == cfg.machine {
-			debug!(
-				"MachineManager",
-				"Removing old machine {}", cfg.machine
-			);
-			runtime.delete_machine(&machine)?;
+	for machine in
+		runtime.list_machines().map_err(|x| other!("{}", x))?
+	{
+		if machine == opts.machine_name {
+			debug!("Removing old machine {}", &opts.machine_name);
+			runtime
+				.delete_machine(&machine)
+				.map_err(|x| other!("{}", x))?;
 		}
 	}
 
-	debug!("ImageManager", "Updating image {}", cfg.image);
-	runtime.make_image(&cfg.image)?;
+	debug!("Updating image {}", &opts.machine_image);
+	runtime
+		.make_image(&opts.machine_image)
+		.map_err(|x| other!("{}", x))?;
 
-	debug!("MachineManager", "Creating new machine {}", cfg.machine);
-	runtime.create_machine(&cfg.machine, &cfg.image, &cfg)?;
+	debug!("Creating new machine {}", &opts.machine_name);
+	runtime
+		.create_machine(
+			&opts.machine_name,
+			&opts.machine_image,
+			gopts,
+		)
+		.map_err(|x| other!("{}", x))?;
 
 	Ok(())
 }

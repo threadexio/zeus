@@ -2,166 +2,121 @@ use std::fmt::Display;
 
 use colored::{Color, Colorize};
 
-#[derive(Debug, Clone, Copy)]
-pub struct Colors {
-	pub error: Color,
-	pub warn: Color,
-	pub info: Color,
-	pub debug: Color,
+use clap::ValueEnum;
+use serde::{Deserialize, Serialize};
+
+#[derive(
+	Debug,
+	Clone,
+	PartialEq,
+	Eq,
+	PartialOrd,
+	Ord,
+	Serialize,
+	Deserialize,
+	ValueEnum,
+)]
+pub enum LogLevel {
+	Error,
+	Warn,
+	Info,
+	Debug,
 }
 
-#[allow(dead_code)]
-impl Colors {
-	pub fn new() -> Self {
-		Self { ..Default::default() }
-	}
-
-	pub fn error(mut self, c: Color) -> Self {
-		self.error = c;
-		self
-	}
-	pub fn warn(mut self, c: Color) -> Self {
-		self.warn = c;
-		self
-	}
-	pub fn info(mut self, c: Color) -> Self {
-		self.info = c;
-		self
-	}
-	pub fn debug(mut self, c: Color) -> Self {
-		self.debug = c;
-		self
-	}
-
-	pub(self) const fn _default() -> Self {
-		Self {
-			error: Color::Red,
-			warn: Color::Yellow,
-			info: Color::Green,
-			debug: Color::Blue,
+impl From<LogLevel> for Color {
+	fn from(v: LogLevel) -> Self {
+		use LogLevel::*;
+		match v {
+			Error => Color::Red,
+			Warn => Color::Yellow,
+			Info => Color::Green,
+			Debug => Color::Blue,
 		}
 	}
 }
 
-impl Default for Colors {
+impl Default for LogLevel {
 	fn default() -> Self {
-		Self::_default()
+		LogLevel::Info
 	}
 }
 
-#[derive(Debug, Default, Clone, Copy)]
+#[derive(Debug, Default)]
 pub struct Logger {
-	pub colors: Colors,
-	pub debug: bool,
+	pub level: LogLevel,
 }
 
 #[allow(dead_code)]
 impl Logger {
-	fn log_impl(
-		&self,
-		level: &str,
-		c: Color,
-		caller: &str,
-		data: &str,
-	) {
-		eprintln!(
-			"{}{} {}{} {}",
-			"[".bright_black(),
-			level.color(c).bold(),
-			caller.bold(),
-			"]".bright_black(),
-			data
-		);
-	}
-
-	pub fn e<T>(&self, caller: &str, message: T)
-	where
-		T: Display,
-	{
-		self.log_impl(
-			"ERROR",
-			self.colors.error,
-			caller,
-			&message.to_string(),
-		);
-	}
-	pub fn w<T>(&self, caller: &str, message: T)
-	where
-		T: Display,
-	{
-		self.log_impl(
-			"WARN",
-			self.colors.warn,
-			caller,
-			&message.to_string(),
-		);
-	}
-	pub fn i<T>(&self, caller: &str, message: T)
-	where
-		T: Display,
-	{
-		self.log_impl(
-			"INFO",
-			self.colors.info,
-			caller,
-			&message.to_string(),
-		);
-	}
-	pub fn d<T>(&self, caller: &str, message: T)
-	where
-		T: Display,
-	{
-		if !self.debug {
+	pub(crate) fn log_impl(&self, level: LogLevel, data: String) {
+		if level > self.level {
 			return;
 		}
 
-		self.log_impl(
-			"DEBUG",
-			self.colors.debug,
-			caller,
-			&message.to_string(),
+		eprintln!(
+			"{}{}{} {}",
+			"[".bright_black(),
+			level.to_string().color(level).bold(),
+			"]".bright_black(),
+			data.bright_white().bold()
 		);
 	}
 }
 
-pub static mut LOGGER: Logger =
-	Logger { debug: false, colors: Colors::_default() };
+pub static mut LOGGER: Logger = Logger { level: LogLevel::Info };
 
-pub mod macros {
-	#[macro_export]
-	macro_rules! error {
-		($caller:expr, $($arg:tt)*) => ({
+#[macro_export]
+macro_rules! error {
+		($($arg:tt)*) => ({
 			#[allow(unused_unsafe)]
 			unsafe {
-				$crate::log::LOGGER.e($caller, format!($($arg)*))
+				$crate::log::LOGGER.log_impl($crate::log::LogLevel::Error, format!($($arg)*))
 			}
 		});
 	}
-	#[macro_export]
-	macro_rules! warning {
-		($caller:expr, $($arg:tt)*) => ({
+#[macro_export]
+macro_rules! warn {
+		($($arg:tt)*) => ({
 			#[allow(unused_unsafe)]
 			unsafe {
-				$crate::log::LOGGER.w($caller, format!($($arg)*))
+				$crate::log::LOGGER.log_impl($crate::log::LogLevel::Warn, format!($($arg)*))
 			}
 		});
 	}
-	#[macro_export]
-	macro_rules! info {
-		($caller:expr, $($arg:tt)*) => ({
+#[macro_export]
+macro_rules! info {
+		($($arg:tt)*) => ({
 			#[allow(unused_unsafe)]
 			unsafe {
-				$crate::log::LOGGER.i($caller, format!($($arg)*))
+				$crate::log::LOGGER.log_impl($crate::log::LogLevel::Info,format!($($arg)*))
 			}
 		});
 	}
-	#[macro_export]
-	macro_rules! debug {
-		($caller:expr, $($arg:tt)*) => ({
+#[macro_export]
+macro_rules! debug {
+		($($arg:tt)*) => ({
 			#[allow(unused_unsafe)]
 			unsafe {
-				$crate::log::LOGGER.d($caller, format!($($arg)*))
+				$crate::log::LOGGER.log_impl($crate::log::LogLevel::Debug,format!($($arg)*))
 			}
 		});
+	}
+
+impl Display for LogLevel {
+	fn fmt(
+		&self,
+		f: &mut std::fmt::Formatter<'_>,
+	) -> std::fmt::Result {
+		use LogLevel::*;
+		write!(
+			f,
+			"{}",
+			match self {
+				Error => "ERROR",
+				Warn => "WARNING",
+				Info => "INFO",
+				Debug => "DEBUG",
+			}
+		)
 	}
 }

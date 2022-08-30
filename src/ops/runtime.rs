@@ -1,17 +1,15 @@
 use super::prelude::*;
 
-use crate::machine::manager::RuntimeManager;
-
 use std::fs::read_dir;
 
 pub fn runtime(
 	term: &mut Terminal,
 	rt_manager: &mut RuntimeManager,
-	cfg: AppConfig,
-	args: &ArgMatches,
+	gopts: &mut GlobalOptions,
+	opts: RuntimeOptions,
 ) -> Result<()> {
-	if args.is_present("list") {
-		let runtime_dir = read_dir(&cfg.runtime_dir)?;
+	if opts.list {
+		let runtime_dir = read_dir(&gopts.runtime_dir)?;
 
 		let mut working_runtimes: Vec<String> = Vec::new();
 
@@ -38,20 +36,15 @@ pub fn runtime(
 				continue;
 			}
 
-			debug!(
-				"RuntimeManager",
-				"Test-loading runtime {}", entry_name
-			);
+			debug!("Test-loading runtime {}", entry_name);
 			unsafe {
 				let rtlib =
 					match rt_manager._load_unchecked(entry.path()) {
 						Ok(v) => v,
 						Err(e) => {
-							warning!(
-								"RuntimeManager",
+							warn!(
 								"Runtime {} cannot be loaded: {}",
-								entry_name,
-								e
+								entry_name, e
 							);
 							continue;
 						},

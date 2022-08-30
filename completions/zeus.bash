@@ -40,14 +40,22 @@ _zeus() {
 
     case "${cmd}" in
         zeus)
-            opts="-h -V -d --help --version --color --debug --force --builddir --aur --rt --rtdir sync remove build query completions runtime help"
+            opts="-h -V -l --help --version --color --level --builddir --aur --rt --rtdir sync remove build query completions runtime help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --color)
-                    COMPREPLY=($(compgen -W "always auto never" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "auto never always" -- "${cur}"))
+                    return 0
+                    ;;
+                --level)
+                    COMPREPLY=($(compgen -W "error warn info debug" -- "${cur}"))
+                    return 0
+                    ;;
+                -l)
+                    COMPREPLY=($(compgen -W "error warn info debug" -- "${cur}"))
                     return 0
                     ;;
                 --builddir)
@@ -74,17 +82,17 @@ _zeus() {
             return 0
             ;;
         zeus__build)
-            opts="-h --image --name --help"
+            opts="-h --name --image --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
-                --image)
+                --name)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --name)
+                --image)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
@@ -96,14 +104,18 @@ _zeus() {
             return 0
             ;;
         zeus__completions)
-            opts="-h --shell --help"
+            opts="-s -h --shell --help"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --shell)
-                    COMPREPLY=($(compgen -f "${cur}"))
+                    COMPREPLY=($(compgen -W "bash fish zsh" -- "${cur}"))
+                    return 0
+                    ;;
+                -s)
+                    COMPREPLY=($(compgen -W "bash fish zsh" -- "${cur}"))
                     return 0
                     ;;
                 *)
@@ -128,17 +140,21 @@ _zeus() {
             return 0
             ;;
         zeus__query)
-            opts="-i -h --info --by --output --help <keywords>..."
+            opts="-i -o -h --info --by --output --help <KEYWORDS>..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
                 --by)
-                    COMPREPLY=($(compgen -W "name description maintainer depends makedepends optdepends checkdepends" -- "${cur}"))
+                    COMPREPLY=($(compgen -W "name name-desc maintainer depends make-depends opt-depends check-depends" -- "${cur}"))
                     return 0
                     ;;
                 --output)
+                    COMPREPLY=($(compgen -W "pretty json" -- "${cur}"))
+                    return 0
+                    ;;
+                -o)
                     COMPREPLY=($(compgen -W "pretty json" -- "${cur}"))
                     return 0
                     ;;
@@ -150,7 +166,7 @@ _zeus() {
             return 0
             ;;
         zeus__remove)
-            opts="-h --uninstall --name --help <packages>..."
+            opts="-h --uninstall --name --help <PACKAGES>..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -182,13 +198,13 @@ _zeus() {
             return 0
             ;;
         zeus__sync)
-            opts="-u -h --upgrade --install --buildargs --name --help <packages>..."
+            opts="-u -h --upgrade --install --build-args --name --help <PACKAGES>..."
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
             fi
             case "${prev}" in
-                --buildargs)
+                --build-args)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

@@ -7,6 +7,7 @@
     "DEFAULT_AUR_HOST": "",
     "DEFAULT_RUNTIME": "",
     "DEFAULT_RUNTIME_DIR": "",
+    "DEFAULT_LOG_LEVEL": "",
     "VERSION": ""
   },
   "rust-analyzer.runnables.extraArgs": ["--bin=zeus"]

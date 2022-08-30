@@ -22,16 +22,16 @@ name = "builder"
 path = "src/builder.rs"
 
 [dependencies]
-clap = { version = "^3.1", features = ["cargo"] }
-clap_complete = "^3.1"
-serde = { version = "^1.0", features = ["derive"] }
-serde_json = "^1.0"
-channels = "0.1.1"
-fs4 = { version = "^0.5", features = ["sync"] }
-const_format = "^0.2"
-reqwest = { version = "^0.11", features = ["json", "blocking"] }
-colored = "^2.0"
-libloading = "^0.7"
+clap = { version = "3.*", features = ["cargo", "derive"] }
+clap_complete = "3.*"
+serde = { version = "1.0.*", features = ["derive"] }
+serde_json = "1.0.*"
+channels = "0.2.0"
+fs4 = { version = "0.6.*", features = ["sync"] }
+const_format = "0.2.*"
+reqwest = { version = "0.11.*", features = ["json", "blocking"] }
+colored = "2.*"
+libloading = "0.7.*"
 
 [workspace]
 members = ["runtimes/zeus_rt_docker"]

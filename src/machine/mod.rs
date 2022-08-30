@@ -6,11 +6,10 @@
 //! handled by an external daemon. The runtime is only allowed to access resources
 //! outside that path the current user has access to. It can't just read `/etc/shadow`,
 //! unless of course `zeus` is running as root. This can be mitigated by modifying
-//! the Apparmor rules to allow or disallow access. This requires the runtime
-//! developers to work together with the maintainers and developers of `zeus` or
-//! issue a patch for the Apparmor profile that each user has to apply.
+//! the Apparmor rules to allow or disallow access. This requires the runtime developers
+//! to install their policy inside /etc/apparmor.d/zeus.d.
 
-pub use crate::config::AppConfig;
+pub use crate::config::GlobalOptions;
 pub use std::io::{Read, Write};
 
 pub mod constants {
@@ -18,7 +17,7 @@ pub mod constants {
 
 	/// Increasing this number means there has been a breaking change in the API.
 	/// Removing or changing method signatures is a breaking change.
-	pub const SUPPORTED_RT_API_VERSION: u32 = 1;
+	pub const SUPPORTED_RT_API_VERSION: u32 = 3;
 
 	// These should never really be changed
 	pub const RUNTIME_CONSTRUCTOR_SYMBOL_NAME: &'static str =
@@ -86,7 +85,7 @@ pub trait IRuntime {
 		&mut self,
 		machine_name: &str,
 		image_name: &str,
-		config: &AppConfig,
+		config: &GlobalOptions,
 	) -> Result<()>;
 
 	/// Start a machine and attach it to the terminal. The runtime is responsible for having
@@ -125,8 +124,7 @@ pub trait IRuntime {
 macro_rules! declare_runtime {
 	($plugin:ty, $constructor:path) => {
 		#[no_mangle]
-		pub extern "C" fn _runtime_create(
-		) -> *mut $crate::machine::Runtime {
+		pub extern "C" fn _runtime_create() -> *mut $crate::Runtime {
 			let constructor: fn() -> $plugin = $constructor;
 			let boxed = Box::new(constructor());
 			Box::into_raw(boxed)

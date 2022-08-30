@@ -15,18 +15,17 @@ _zeus() {
 
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" \
-'--color=[Colorize the output]: :(always auto never)' \
-'--builddir=[Package build directory]: : ' \
-'--aur=[AUR host]: : ' \
-'--rt=[Specify runtime to use]: : ' \
-'--rtdir=[Specify directory to search for runtimes]: : ' \
+'*--color=[Colorize the output]:COLOR:(auto never always)' \
+'*-l+[Set log level]:LOG_LEVEL:(error warn info debug)' \
+'*--level=[Set log level]:LOG_LEVEL:(error warn info debug)' \
+'*--builddir=[Package build directory]:BUILD_DIR: ' \
+'*--aur=[AUR URL]:AUR: ' \
+'*--rt=[Specify runtime to use]:RUNTIME: ' \
+'*--rtdir=[Specify directory to search for runtimes]:RUNTIME_DIR: ' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 '-V[Print version information]' \
 '--version[Print version information]' \
-'-d[Show debug logs]' \
-'--debug[Show debug logs]' \
-'--force[Ignore all warnings]' \
 ":: :_zeus_commands" \
 "*::: :->zeus" \
 && ret=0
@@ -38,47 +37,55 @@ _zeus() {
         case $line[1] in
             (sync)
 _arguments "${_arguments_options[@]}" \
-'--buildargs=[Extra arguments for makepkg]: : ' \
-'--name=[Builder machine name]: : ' \
+'*--build-args=[Extra arguments for makepkg]:BUILD_ARGS: ' \
+'*--name=[Builder machine name]:MACHINE_NAME: ' \
 '-u[Upgrade packages]' \
 '--upgrade[Upgrade packages]' \
 '--install[Install packages after build]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
-'*::packages -- Packages to sync:' \
+'*::packages:' \
 && ret=0
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" \
-'--name=[Builder machine name]: : ' \
+'*--name=[Builder machine name]:MACHINE_NAME: ' \
 '--uninstall[Uninstall packages after remove]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
-'*::packages -- Packages to remove:' \
+'*::packages:' \
 && ret=0
 ;;
 (build)
 _arguments "${_arguments_options[@]}" \
-'--image=[Builder image name]: : ' \
-'--name=[Builder machine name]: : ' \
+'*--name=[Builder machine name]:MACHINE_NAME: ' \
+'*--image=[Builder machine image]:MACHINE_IMAGE: ' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 && ret=0
 ;;
 (query)
 _arguments "${_arguments_options[@]}" \
-'(-i --info)--by=[Query AUR packages by]: :(name description maintainer depends makedepends optdepends checkdepends)' \
-'--output=[Output format]: :(pretty json)' \
+'(-i --info)*--by=[Query AUR packages by]:BY:((name\:"Search by package name"
+name-desc\:"Search by package name and description"
+maintainer\:"Search by maintainer"
+depends\:"Search by dependencies"
+make-depends\:"Search by dev dependencies"
+opt-depends\:"Search by optional dependencies"
+check-depends\:"Search by testing dependencies"))' \
+'*-o+[Output format]:OUTPUT:(pretty json)' \
+'*--output=[Output format]:OUTPUT:(pretty json)' \
 '(--by)-i[Display additional information on results]' \
 '(--by)--info[Display additional information on results]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
-'*::keywords -- Keywords to use:' \
+'*::keywords:' \
 && ret=0
 ;;
 (completions)
 _arguments "${_arguments_options[@]}" \
-'--shell=[Specify shell to generate completions for]: : ' \
+'*-s+[Specify shell to generate completions for]:SHELL:(bash fish zsh)' \
+'*--shell=[Specify shell to generate completions for]:SHELL:(bash fish zsh)' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 && ret=0
@@ -106,9 +113,9 @@ _zeus_commands() {
     local commands; commands=(
 'sync:Sync packages' \
 'remove:Remove packages' \
-'build:Build/Update builder image' \
+'build:Build/Update builder' \
 'query:Query the AUR' \
-'completions:Generate shell completions & others' \
+'completions:Generate shell completions' \
 'runtime:Various runtime operations' \
 'help:Print this message or the help of the given subcommand(s)' \
     )
