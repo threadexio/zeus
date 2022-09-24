@@ -22,11 +22,11 @@ jobs:
 
       - name: Format
         run: |
-          cargo fmt --check
+          cargo fmt --check --workspace
 
       - name: Build
         run: |
-          ./scripts/make_package.sh
+          make BUILD_TYPE=release tar
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
