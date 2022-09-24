@@ -47,9 +47,9 @@ use prelude::*;
 macro_rules! get_runtime {
 	($rt_manager:expr, $c:expr) => {{
 		err!(
-			env::set_current_dir(constants::defaults::DATA_DIR),
+			env::set_current_dir(constants::DATA_DIR),
 			"Cannot change directory to {}",
-			constants::defaults::DATA_DIR
+			constants::DATA_DIR
 		);
 
 		$rt_manager

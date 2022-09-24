@@ -45,7 +45,7 @@ pub struct SyncOptions {
 		long = "name",
 		help = "Builder machine name",
 		value_parser,
-		default_value = defaults::BUILDER_NAME
+		default_value = BUILDER_NAME
 	)]
 	pub machine_name: String,
 
@@ -62,7 +62,7 @@ pub struct RemoveOptions {
 		long = "name",
 		help = "Builder machine name",
 		value_parser,
-		default_value = defaults::BUILDER_NAME
+		default_value = BUILDER_NAME
 	)]
 	pub machine_name: String,
 
@@ -76,7 +76,7 @@ pub struct BuildOptions {
 		long = "name",
 		help = "Builder machine name",
 		value_parser,
-		default_value = defaults::BUILDER_NAME
+		default_value = BUILDER_NAME
 	)]
 	pub machine_name: String,
 
@@ -84,7 +84,7 @@ pub struct BuildOptions {
 		long = "image",
 		help = "Builder machine image",
 		value_parser,
-		default_value = defaults::BUILDER_IMAGE
+		default_value = BUILDER_IMAGE
 	)]
 	pub machine_image: String,
 }
@@ -188,19 +188,19 @@ pub struct GlobalOptions {
 	)]
 	pub log_level: crate::log::LogLevel,
 
-	#[clap(long = "builddir", help = "Package build directory", value_parser, default_value = defaults::BUILD_DIR)]
+	#[clap(long = "builddir", help = "Package build directory", value_parser, default_value = BUILD_DIR)]
 	pub build_dir: String,
 
 	/// Instance to communicate with the AUR RPC interface
-	#[clap(long, help = "AUR URL", value_parser = aur::AurValueParser, default_value = defaults::AUR_HOST)]
+	#[clap(long, help = "AUR URL", value_parser = aur::AurValueParser, default_value = AUR_URL)]
 	pub aur: aur::Aur,
 
 	/// Name of the runtime to load
-	#[clap(long = "rt", help = "Specify runtime to use", value_parser, default_value = defaults::RUNTIME)]
+	#[clap(long = "rt", help = "Specify runtime to use", value_parser, default_value = RUNTIME)]
 	pub runtime: String,
 
 	/// Directory to search for runtimes
-	#[clap(long = "rtdir", help = "Specify directory to search for runtimes", value_parser, default_value = defaults::RUNTIME_DIR)]
+	#[clap(long = "rtdir", help = "Specify directory to search for runtimes", value_parser, default_value = RUNTIME_DIR)]
 	pub runtime_dir: String,
 }
 

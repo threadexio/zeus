@@ -1,15 +1,17 @@
 {
+  "rust-analyzer.runnables.extraArgs": [
+    "--bin=zeus"
+  ],
   "rust-analyzer.server.extraEnv": {
-    "DEFAULT_DATA_DIR": "",
-    "DEFAULT_NAME": "",
-    "DEFAULT_IMAGE": "",
-    "DEFAULT_BUILDDIR": "",
-    "DEFAULT_AUR_HOST": "",
-    "DEFAULT_RUNTIME": "",
-    "DEFAULT_RUNTIME_DIR": "",
-    "DEFAULT_LOG_LEVEL": "",
+    "BUILDER_NAME": "",
+    "BUILDER_IMAGE": "",
+    "BUILD_DIR": "",
+    "AUR_URL": "",
+    "RUNTIME": "",
+    "RUNTIME_DIR": "",
+    "DATA_DIR": "",
+    "LOG_LEVEL": "",
     "VERSION": "",
-    "BUILD_INFO": ""
+    "BUILD_INFO": "",
   },
-  "rust-analyzer.runnables.extraArgs": ["--bin=zeus"]
 }

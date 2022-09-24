@@ -1,0 +1,27 @@
+#!/bin/sh
+set -e
+
+fatal() {
+	printf "\e[0;31m[x]\e[0m %s\n" "$*"
+	exit 1
+}
+
+export BUILD_TYPE=release
+
+if ! cargo fmt --check --all -q; then
+	fatal "Incorrectly formatted code."
+fi
+
+if grep -Rn \
+	-e 'TODO:' \
+	-e 'BUG:' \
+	-e 'FIXME:' \
+	-e 'ISSUE:' \
+	src/; then
+	fatal "Incompleted work :|"
+fi
+
+if ! make tar; then
+	fatal "Packaging failed."
+fi
+

@@ -10,8 +10,9 @@ Vagrant.configure("2") do |config|
   type: "sshfs"
 
   config.vm.provision "shell", inline: <<-SHELL
+     pacman -Sy archlinux-keyring
      pacman --needed --noconfirm -Syu base-devel docker
      gpasswd -a vagrant docker
-     sudo systemctl enable docker.service
+     sudo systemctl enable --now docker.service
   SHELL
 end
