@@ -32,9 +32,9 @@ clean:
 	$(CARGO) clean --
 
 completions:
-	"./target/$(BUILD_PROFILE)/zeus" completions --shell=bash > "$(COMPLETIONS_BASH)/zeus"
-	"./target/$(BUILD_PROFILE)/zeus" completions --shell=zsh > "$(COMPLETIONS_ZSH)/_zeus"
-	"./target/$(BUILD_PROFILE)/zeus" completions --shell=fish > "$(COMPLETIONS_FISH)/zeus.fish"
+	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=bash > "$(COMPLETIONS_BASH)/zeus"
+	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=zsh > "$(COMPLETIONS_ZSH)/_zeus"
+	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=fish > "$(COMPLETIONS_FISH)/zeus.fish"
 
 install:
 	./scripts/install.sh
