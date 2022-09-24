@@ -22,7 +22,7 @@ jobs:
 
       - name: Format
         run: |
-          cargo fmt --check --workspace
+          cargo fmt --check --all
 
       - name: Build
         run: |
