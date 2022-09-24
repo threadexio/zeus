@@ -16,7 +16,7 @@ endif
 
 MAKEFLAGS += --warn-undefined-variables --no-keep-going --no-print-directory
 
-REQUIRED_CARGO_ARGS := --frozen --locked -j$(shell nproc)
+REQUIRED_CARGO_ARGS := -j$(shell nproc)
 CARGO_ARGS += $(REQUIRED_CARGO_ARGS)
 
 COMPLETIONS_BASH := rootdir/usr/share/bash-completion/completions
