@@ -11,7 +11,7 @@ export DESTDIR
 mkdir -p "$DESTDIR"
 
 make \
-	build completions install
+	build install
 
 tar -acvpf "${2:-zeus.tar.gz}" \
 	-C "$DESTDIR/" \
