@@ -1,4 +1,3 @@
-[repo]: https://github.com/threadexio/zeus
 
 [latest-release]: https://github.com/threadexio/zeus/releases/latest
 [release-badge]: https://img.shields.io/github/v/release/threadexio/zeus?style=for-the-badge&display_name=release
@@ -32,11 +31,9 @@
 
 <div align="center">
 
-<img src="assets/logo.optimized.svg" width="25%"/>
+<img src="assets/logo.optimized.svg?width=3" width="30%"/>
 
-<h1>
-	<b>zeus</b>
-</h1>
+# **zeus**
 
 
 **<kbd>[Wiki][wiki]</kbd>** &nbsp; &nbsp;
@@ -59,10 +56,7 @@
 
 ---
 
-<br>
-
 **Zeus**. A simple AUR helper which utilizes containers allowing developers and users alike to benefit from it's reproducible, clean and flexible builds. To get started with `zeus` follow the [install instructions][installing] or [build it yourself][building]. Be sure to check out the [wiki][wiki] for anything else.
-
 
 <br>
 
@@ -70,8 +64,8 @@
 
 Currently there are 2 packages in the AUR.
 
--   `zeus` - Which builds from the [latest release][latest-release]
--   `zeus-bin` - Which unpacks prebuilt binaries from the [latest release][latest-release].
+- `zeus` - Which builds from the [latest release][latest-release]
+- `zeus-bin` - Which unpacks prebuilt binaries from the [latest release][latest-release].
 
 |  Package   |               Version               |
 | :--------: | :---------------------------------: |
@@ -85,7 +79,7 @@ After installing one of the 2 packages, there is one final step towards getting 
 Building the actual builder container.
 
 ```shell
-$ zeus -B
+zeus -B
 ```
 
 > If your user does _**not**_ have access to the docker socket, you will have to run the previous command as root and subsequently every time you want to use the program.
@@ -97,14 +91,14 @@ $ zeus -B
 After cloning the repository, use the `build` target in the `Makefile` to build everything.
 
 ```shell
-$ make build
+make build
 ```
 
 > By default the `build` target builds the debug version, if you wish to build the release version set `BUILD_TYPE=release`.
 
 ```shell
-$ export BUILD_TYPE=release
-$ make build
+export BUILD_TYPE=release
+make build
 ```
 
 Testing local changes can be done in 2 ways.
@@ -118,7 +112,7 @@ This method involves no extra steps.
 Running the built binary is as simple as:
 
 ```shell
-$ ./target/$BUILD_TYPE/zeus
+./target/$BUILD_TYPE/zeus
 ```
 
 <br>
@@ -136,5 +130,5 @@ Installing locally for easier testing is possible with the `install` target.
 After all this you should be able to just run `zeus` directly in the terminal.
 
 ```shell
-$ zeus
+zeus
 ```

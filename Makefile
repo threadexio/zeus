@@ -19,9 +19,9 @@ MAKEFLAGS += --warn-undefined-variables --no-keep-going --no-print-directory
 REQUIRED_CARGO_ARGS := -j$(shell nproc)
 CARGO_ARGS += $(REQUIRED_CARGO_ARGS)
 
-COMPLETIONS_BASH := rootdir/usr/share/bash-completion/completions
-COMPLETIONS_FISH := rootdir/usr/share/fish/vendor_completions.d
-COMPLETIONS_ZSH  := rootdir/usr/share/zsh/site-functions
+COMPLETIONS_BASH := rootdir/usr/share/bash-completion/completions/zeus
+COMPLETIONS_ZSH  := rootdir/usr/share/zsh/site-functions/_zeus
+COMPLETIONS_FISH := rootdir/usr/share/fish/vendor_completions.d/zeus.fish
 
 all: build
 
@@ -32,9 +32,9 @@ clean:
 	$(CARGO) clean --
 
 completions:
-	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=bash > "$(COMPLETIONS_BASH)/zeus"
-	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=zsh > "$(COMPLETIONS_ZSH)/_zeus"
-	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=fish > "$(COMPLETIONS_FISH)/zeus.fish"
+	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=bash > "$(COMPLETIONS_BASH)"
+	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=zsh > "$(COMPLETIONS_ZSH)"
+	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=fish > "$(COMPLETIONS_FISH)"
 
 install:
 	./scripts/install.sh
@@ -42,25 +42,4 @@ install:
 tar:
 	./scripts/tar.sh
 
-assets:
-	scour \
-		-i assets/logo.inkscape.svg \
-		-o assets/logo.optimized.svg \
-		--enable-id-stripping \
-		--strip-xml-space \
-		--no-line-breaks \
-		--enable-comment-stripping \
-		--shorten-ids \
-		--remove-descriptive-elements \
-		--create-groups
-
-	inkscape -C -w $(WIDTH) -h $(HEIGHT) \
-		-o assets/logo.$(WIDTH)x$(HEIGHT).png \
-		--export-type=png \
-		assets/logo.inkscape.svg
-
-assets_clean:
-	-rm assets/logo.optimized.svg
-	-rm assets/*.png
-
-.PHONY: all build clean completions install assets assets_clean
+.PHONY: all build clean completions install

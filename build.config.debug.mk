@@ -1,4 +1,7 @@
+# cargo's build type (debug or release)
 export BUILD_PROFILE := debug
+
+# Defaults
 export LOG_LEVEL	 := info
 export RUNTIME		 := docker
 export BUILDER_NAME	 := zeus-builder

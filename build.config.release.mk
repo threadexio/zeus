@@ -1,4 +1,8 @@
+# cargo's build type (debug or release)
 export BUILD_PROFILE := release
+CARGO_ARGS += --release
+
+# Defaults
 export LOG_LEVEL	 := info
 export RUNTIME		 := docker
 export BUILDER_NAME	 := zeus-builder
@@ -10,5 +14,3 @@ export RUNTIME_DIR	 := $(PREFIX)/lib/zeus/runtimes
 export DATA_DIR		 := $(PREFIX)/share/zeus
 export VERSION		 := $(shell scripts/version.sh)
 export BUILD_INFO	 := $(shell scripts/build_info.sh)
-
-CARGO_ARGS += --release
