@@ -149,3 +149,6 @@ If you do not wish to create your own GPG key, unsigned commits are also accepta
 Open a pull request here on GitHub and mark it ready for review when you are done with your changes, another contributor will then review your code and merge it if it works correctly.
 
 But before you go and open the pull request, check that another one wanting to make the changes you want does not already exist. This avoids duplicating work and generally informing other people on what you are currently working on is generally a good idea.
+
+> You might also want to join the rest of the community on Matrix: https://matrix.to/#/#zeus-project:matrix.org
+
