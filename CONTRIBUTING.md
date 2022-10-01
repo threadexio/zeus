@@ -150,5 +150,5 @@ Open a pull request here on GitHub and mark it ready for review when you are don
 
 But before you go and open the pull request, check that another one wanting to make the changes you want does not already exist. This avoids duplicating work and generally informing other people on what you are currently working on is generally a good idea.
 
-> You might also want to join the rest of the community on Matrix: https://matrix.to/#/#zeus-project:matrix.org
+> You might also want to join the rest of the community on Matrix: <https://matrix.to/#/#zeus-project:matrix.org>
 
