@@ -76,7 +76,7 @@ pub struct Package {
 	#[serde(rename = "Version")]
 	pub version: String,
 	#[serde(rename = "Description")]
-	pub description: String,
+	pub description: Option<String>,
 	#[serde(rename = "URL")]
 	pub url: Option<String>,
 	#[serde(rename = "NumVotes")]
@@ -140,6 +140,7 @@ pub struct Aur {
 	url: String,
 }
 
+#[allow(dead_code)]
 impl Aur {
 	pub fn new(mut url: String) -> Self {
 		if !url.ends_with('/') {

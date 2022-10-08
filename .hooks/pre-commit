@@ -12,15 +12,6 @@ if ! cargo fmt --check --all -q; then
 	fatal "Incorrectly formatted code."
 fi
 
-if grep -Rn \
-	-e 'TODO:' \
-	-e 'BUG:' \
-	-e 'FIXME:' \
-	-e 'ISSUE:' \
-	src/; then
-	fatal "Incompleted work :|"
-fi
-
 if ! make tar; then
 	fatal "Packaging failed."
 fi

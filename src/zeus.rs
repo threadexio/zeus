@@ -1,15 +1,11 @@
-#![allow(dead_code)]
 mod aur;
-mod cache;
 mod config;
 mod error;
 mod log;
-mod message;
+mod machine;
 mod ops;
-mod term;
+mod package;
 mod unix;
-
-pub mod machine;
 
 use std::process::exit;
 
@@ -18,24 +14,35 @@ use clap::Parser;
 fn main() {
 	let args = config::Config::parse();
 
-	let mut term = term::Terminal::new();
-
 	unsafe { log::LOGGER.level = args.global_opts.log_level.clone() }
 
 	{
 		use config::Color;
 		match args.global_opts.color {
-			Color::Always => {
-				term.color(true);
-			},
+			Color::Always => colored::control::set_override(true),
 			Color::Never => {
-				term.color(false);
+				colored::control::set_override(false);
 			},
 			_ => {},
 		}
+
+		inquire::set_global_render_config(
+			inquire::ui::RenderConfig::default_colored()
+				.with_prompt_prefix(
+					inquire::ui::Styled::new("=>")
+						.with_fg(inquire::ui::Color::LightGreen),
+				)
+				.with_unselected_checkbox(inquire::ui::Styled::new(
+					" ",
+				))
+				.with_selected_checkbox(
+					inquire::ui::Styled::new("*")
+						.with_fg(inquire::ui::Color::LightGreen),
+				),
+		);
 	}
 
-	let res = ops::run_operation(&mut term, args);
+	let res = ops::run_operation(args);
 
 	match res {
 		Ok(_) => exit(0),

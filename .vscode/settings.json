@@ -1,17 +1,28 @@
 {
-  "rust-analyzer.runnables.extraArgs": [
-    "--bin=zeus"
-  ],
-  "rust-analyzer.server.extraEnv": {
-    "BUILDER_NAME": "",
-    "BUILDER_IMAGE": "",
-    "BUILD_DIR": "",
-    "AUR_URL": "",
-    "RUNTIME": "",
-    "RUNTIME_DIR": "",
-    "DATA_DIR": "",
-    "LOG_LEVEL": "",
-    "VERSION": "",
-    "BUILD_INFO": "",
-  },
+	"cSpell.words": [
+		"builddir",
+		"canonicalize",
+		"formatcp",
+		"gopts",
+		"libloading",
+		"librt",
+		"lololol",
+		"pstore",
+		"runtimes"
+	],
+	"rust-analyzer.runnables.extraArgs": [
+		"--bin=zeus"
+	],
+	"rust-analyzer.server.extraEnv": {
+		"BUILDER_NAME": "",
+		"BUILDER_IMAGE": "",
+		"BUILD_DIR": "",
+		"AUR_URL": "",
+		"RUNTIME": "",
+		"RUNTIME_DIR": "",
+		"DATA_DIR": "",
+		"LOG_LEVEL": "",
+		"VERSION": "",
+		"BUILD_INFO": "",
+	},
 }

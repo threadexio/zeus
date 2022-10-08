@@ -1,17 +1,15 @@
 use super::prelude::*;
 
+use colored::Colorize;
+
 use std::fs::read_dir;
 
 pub fn runtime(
-	term: &mut Terminal,
-	rt_manager: &mut RuntimeManager,
-	gopts: &mut GlobalOptions,
+	gopts: GlobalOptions,
 	opts: RuntimeOptions,
 ) -> Result<()> {
 	if opts.list {
 		let runtime_dir = read_dir(&gopts.runtime_dir)?;
-
-		let mut working_runtimes: Vec<String> = Vec::new();
 
 		for entry in runtime_dir {
 			let entry = match entry {
@@ -37,42 +35,27 @@ pub fn runtime(
 			}
 
 			debug!("Test-loading runtime {}", entry_name);
-			unsafe {
-				let rtlib =
-					match rt_manager._load_unchecked(entry.path()) {
-						Ok(v) => v,
-						Err(e) => {
-							warn!(
-								"Runtime {} cannot be loaded: {}",
-								entry_name, e
-							);
-							continue;
-						},
-					};
 
-				working_runtimes.push(format!(
-					"{} - {} v{} (RT_API v{})",
-					entry_name,
-					rtlib.runtime.name().bold(),
-					rtlib.runtime.version().yellow(),
-					rtlib.runtime.rt_api_version()
-				));
-			}
+			let rt = match crate::machine::load(&entry.path(), &gopts)
+			{
+				Ok(v) => v,
+				Err(e) => {
+					warn!(
+						"Runtime {} cannot be loaded: {}",
+						entry_name, e
+					);
+					continue;
+				},
+			};
+
+			info!(
+				"{} - {} v{} (RT_API v{})",
+				entry_name,
+				rt.name().bold(),
+				rt.version().yellow(),
+				rt.rt_api_version()
+			)
 		}
-
-		term.list(
-			format!(
-				"{} working {} found:",
-				working_runtimes.len(),
-				if working_runtimes.len() == 1 {
-					"runtime"
-				} else {
-					"runtimes"
-				}
-			),
-			working_runtimes.iter(),
-			1,
-		)?;
 	}
 
 	Ok(())

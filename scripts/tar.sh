@@ -6,8 +6,6 @@ set -e
 
 DESTDIR="target/$BUILD_PROFILE/package"
 
-echo "$DESTDIR"
-
 export DESTDIR
 
 mkdir -p "$DESTDIR"

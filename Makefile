@@ -42,4 +42,7 @@ install:
 tar:
 	./scripts/tar.sh
 
-.PHONY: all build clean completions install
+cargo:
+	$(CARGO) $(CARGO_ARGS)
+
+.PHONY: all build clean completions install tar cargo

@@ -9,15 +9,57 @@
 //! the Apparmor rules to allow or disallow access. This requires the runtime developers
 //! to install their policy inside /etc/apparmor.d/zeus.d.
 
+use std::path::Path;
+
+use libloading::{Library, Symbol};
+
+pub use crate::error::*;
+
+pub(crate) fn load(
+	path: &Path,
+	opts: &GlobalOptions,
+) -> Result<BoxedRuntime> {
+	unsafe {
+		let library = Library::new(path)?;
+
+		let constructor: Symbol<constants::RuntimeConstructorSymbol> =
+			library
+				.get(
+					constants::RUNTIME_CONSTRUCTOR_SYMBOL_NAME
+						.as_bytes(),
+				)
+				.context("Could not find runtime constructor")?;
+
+		let mut runtime = Box::from_raw(constructor());
+
+		if runtime.rt_api_version() != constants::RT_API_VERSION {
+			return Err(Error::new(format!(
+				"Incompatible runtime ({}), supported ({})",
+				runtime.rt_api_version(),
+				constants::RT_API_VERSION
+			)));
+		}
+
+		runtime
+			.init(opts)
+			.context("Error during runtime initialization")?;
+
+		Ok(runtime.into())
+	}
+}
+
+pub(crate) fn unload(mut runtime: BoxedRuntime) {
+	runtime.exit()
+}
+
 pub use crate::config::GlobalOptions;
-pub use std::io::{Read, Write};
 
 pub mod constants {
 	use super::*;
 
 	/// Increasing this number means there has been a breaking change in the API.
 	/// Removing or changing method signatures is a breaking change.
-	pub const SUPPORTED_RT_API_VERSION: u32 = 3;
+	pub const RT_API_VERSION: u32 = 4;
 
 	// These should never really be changed
 	pub const RUNTIME_CONSTRUCTOR_SYMBOL_NAME: &'static str =
@@ -25,14 +67,9 @@ pub mod constants {
 	pub type RuntimeConstructorSymbol = unsafe fn() -> *mut Runtime;
 }
 
-pub(crate) mod manager;
-
-pub type Error = String;
-pub type Result<T> = std::result::Result<T, Error>;
-
 /// A trait specifying a common interface for all machine runtime drivers.
 pub type Runtime = dyn IRuntime;
-pub type BoxedRuntime = Box<Runtime>;
+pub struct BoxedRuntime(Box<Runtime>);
 pub trait IRuntime {
 	/// Runtime driver name
 	fn name(&self) -> &'static str;
@@ -41,14 +78,14 @@ pub trait IRuntime {
 
 	/// A simplistic way to signal breaking changes in the API for runtimes.
 	///
-	/// If `runtime.rt_api_version()` != `constants::SUPPORTED_RT_API_VERSION`,
+	/// If `runtime.rt_api_version()` != `constants::RT_API_VERSION`,
 	/// then the runtime will be considered incompatible and not load.
 	fn rt_api_version(&self) -> u32;
 
 	/// This will be ran on driver load.
 	///
 	/// Returning an Err variant here will exit the program immediately reporting the error to the user.
-	fn init(&mut self) -> Result<()>;
+	fn init(&mut self, config: &GlobalOptions) -> Result<()>;
 
 	/// This will be ran on driver unload.
 	fn exit(&mut self);
@@ -130,4 +167,30 @@ macro_rules! declare_runtime {
 			Box::into_raw(boxed)
 		}
 	};
+}
+
+impl std::ops::Deref for BoxedRuntime {
+	type Target = Box<Runtime>;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
+
+impl std::ops::DerefMut for BoxedRuntime {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.0
+	}
+}
+
+impl Drop for BoxedRuntime {
+	fn drop(&mut self) {
+		self.0.exit()
+	}
+}
+
+impl From<Box<Runtime>> for BoxedRuntime {
+	fn from(r: Box<Runtime>) -> Self {
+		Self(r)
+	}
 }

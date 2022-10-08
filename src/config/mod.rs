@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 pub mod constants;
 use constants::*;
 
@@ -38,18 +40,16 @@ pub struct SyncOptions {
 	#[clap(long, help = "Install packages after build")]
 	pub install: bool,
 
-	#[clap(long, help = "Extra arguments for makepkg", value_parser)]
+	#[clap(long, help = "Extra arguments for makepkg")]
 	pub build_args: Vec<String>,
 
 	#[clap(
 		long = "name",
 		help = "Builder machine name",
-		value_parser,
 		default_value = BUILDER_NAME
 	)]
 	pub machine_name: String,
 
-	#[clap(multiple_values = true, parse(from_str))]
 	pub packages: Vec<aur::Package>,
 }
 
@@ -61,12 +61,10 @@ pub struct RemoveOptions {
 	#[clap(
 		long = "name",
 		help = "Builder machine name",
-		value_parser,
 		default_value = BUILDER_NAME
 	)]
 	pub machine_name: String,
 
-	#[clap(multiple_values = true, parse(from_str))]
 	pub packages: Vec<aur::Package>,
 }
 
@@ -75,7 +73,6 @@ pub struct BuildOptions {
 	#[clap(
 		long = "name",
 		help = "Builder machine name",
-		value_parser,
 		default_value = BUILDER_NAME
 	)]
 	pub machine_name: String,
@@ -83,7 +80,6 @@ pub struct BuildOptions {
 	#[clap(
 		long = "image",
 		help = "Builder machine image",
-		value_parser,
 		default_value = BUILDER_IMAGE
 	)]
 	pub machine_image: String,
@@ -102,7 +98,6 @@ pub struct QueryOptions {
 	#[clap(
 		long,
 		help = "Query AUR packages by",
-		value_parser,
 		default_value = "name-desc",
 		conflicts_with = "info"
 	)]
@@ -112,12 +107,10 @@ pub struct QueryOptions {
 		short,
 		long,
 		help = "Output format",
-		value_parser,
 		default_value = "pretty"
 	)]
 	pub output: aur::Output,
 
-	#[clap(value_parser)]
 	pub keywords: Vec<String>,
 }
 
@@ -126,8 +119,7 @@ pub struct CompletionOptions {
 	#[clap(
 		short,
 		long,
-		help = "Specify shell to generate completions for",
-		value_parser
+		help = "Specify shell to generate completions for"
 	)]
 	pub shell: Option<Shell>,
 }
@@ -174,7 +166,6 @@ pub struct GlobalOptions {
 	#[clap(
 		long,
 		help = "Colorize the output",
-		value_parser,
 		default_value = "auto"
 	)]
 	pub color: Color,
@@ -183,25 +174,24 @@ pub struct GlobalOptions {
 		short = 'l',
 		long = "level",
 		help = "Set log level",
-		value_parser,
 		default_value = "info"
 	)]
 	pub log_level: crate::log::LogLevel,
 
-	#[clap(long = "builddir", help = "Package build directory", value_parser, default_value = BUILD_DIR)]
-	pub build_dir: String,
+	#[clap(long = "builddir", help = "Package build directory", default_value = BUILD_DIR)]
+	pub build_dir: PathBuf,
 
 	/// Instance to communicate with the AUR RPC interface
 	#[clap(long, help = "AUR URL", value_parser = aur::AurValueParser, default_value = AUR_URL)]
 	pub aur: aur::Aur,
 
 	/// Name of the runtime to load
-	#[clap(long = "rt", help = "Specify runtime to use", value_parser, default_value = RUNTIME)]
+	#[clap(long = "rt", help = "Specify runtime to use",  default_value = RUNTIME)]
 	pub runtime: String,
 
 	/// Directory to search for runtimes
-	#[clap(long = "rtdir", help = "Specify directory to search for runtimes", value_parser, default_value = RUNTIME_DIR)]
-	pub runtime_dir: String,
+	#[clap(long = "rtdir", help = "Specify directory to search for runtimes", default_value = RUNTIME_DIR)]
+	pub runtime_dir: PathBuf,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Parser)]

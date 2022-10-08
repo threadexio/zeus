@@ -45,14 +45,14 @@ pub const LONG_VERSION: &'static str = formatcp!(
  (   `-.     {}
   `--.._)
 
-	 Defaults:
-	   DATA_DIR      | {}
-	   BUILDER_NAME  | {}
-	   BUILDER_IMAGE | {}
-	   BUILD_DIR     | {}
-	   AUR_HOST      | {}
-	   RUNTIME       | {}
-	   RUNTIME_DIR   | {}
+	 Built with:
+	   Data directory    | {}
+	   Builder name      | {}
+	   Builder image     | {}
+	   Package directory | {}
+	   AUR url           | {}
+	   Runtime           | {}
+	   Runtime directory | {}
 "#,
 	VERSION,
 	BUILD_INFO,

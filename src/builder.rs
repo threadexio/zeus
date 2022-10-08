@@ -53,10 +53,10 @@ fn remove(
 			"Cannot remove package directory"
 		);
 
-		c.0.send(Message::PackageMeta(PackageMeta {
+		let _ = c.0.send(Message::PackageMeta(PackageMeta {
 			package,
 			files: vec![],
-		}))?;
+		}));
 	}
 
 	Ok(())

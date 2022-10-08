@@ -1,5 +1,7 @@
 use super::prelude::*;
 
+use crate::config::{constants, Config};
+
 use clap::CommandFactory;
 
 pub fn completions(opts: CompletionOptions) -> Result<()> {

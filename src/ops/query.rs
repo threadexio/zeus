@@ -1,5 +1,7 @@
 use super::prelude::*;
+
 use crate::aur;
+use colored::Colorize;
 
 macro_rules! print_info {
 	($a:expr, $b:expr) => {
@@ -34,7 +36,7 @@ macro_rules! print_vec {
 fn print_pretty_package(package: &aur::Package) {
 	print_info!("Name", &package.name);
 	print_info!("Version", &package.version);
-	print_info!("Description", &package.description);
+	print_if_some!("Description", &package.description);
 	print_info!("Last Modified", &package.last_modified);
 	print_info!("First Submitted", &package.first_submitted);
 	print_info!("Popularity", &package.popularity);
@@ -55,32 +57,27 @@ fn print_pretty_package(package: &aur::Package) {
 	println!("");
 }
 
-pub fn query(
-	_term: &mut Terminal,
-	gopts: &mut GlobalOptions,
-	opts: QueryOptions,
-) -> Result<()> {
+pub fn query(gopts: GlobalOptions, opts: QueryOptions) -> Result<()> {
 	if opts.keywords.is_empty() {
-		return Err(other!("No keywords specified"));
+		return Err(Error::new("No keywords specified"));
 	}
 
-	let res = match opts.info {
+	let data = match opts.info {
 		true => gopts.aur.info(opts.keywords.iter()),
 		false => {
 			gopts.aur.search(opts.by.clone(), opts.keywords.iter())
 		},
-	};
-
-	let data = err!(res, "Error");
+	}
+	.context("Failed to request package data from AUR")?;
 
 	debug!("Raw response: {:?}", data);
 
 	use aur::Output;
 	match opts.output {
-		Output::Json => err!(
-			serde_json::to_writer(std::io::stdout(), &data.results),
-			"Cannot serialize JSON"
-		),
+		Output::Json => {
+			serde_json::to_writer(std::io::stdout(), &data.results)
+				.context("Cannot serialize JSON")?
+		},
 		Output::Pretty => {
 			if opts.info {
 				for package in &data.results {
@@ -93,7 +90,11 @@ pub fn query(
 						"=>".green(),
 						package.name.bold(),
 						package.version.bright_blue(),
-						package.description
+						package
+							.description
+							.as_ref()
+							.map(|x| x.as_str())
+							.unwrap_or("")
 					);
 				}
 			}

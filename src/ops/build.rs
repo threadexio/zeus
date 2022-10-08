@@ -1,34 +1,31 @@
 use super::prelude::*;
 
 pub fn build(
-	runtime: &mut Runtime,
-	gopts: &mut GlobalOptions,
+	runtime: &mut BoxedRuntime,
+	gopts: GlobalOptions,
 	opts: BuildOptions,
 ) -> Result<()> {
 	for machine in
-		runtime.list_machines().map_err(|x| other!("{}", x))?
+		runtime.list_machines().context("Unable to get machines")?
 	{
 		if machine == opts.machine_name {
-			debug!("Removing old machine {}", &opts.machine_name);
 			runtime
 				.delete_machine(&machine)
-				.map_err(|x| other!("{}", x))?;
+				.context("Unable to delete machine")?;
 		}
 	}
 
-	debug!("Updating image {}", &opts.machine_image);
 	runtime
 		.make_image(&opts.machine_image)
-		.map_err(|x| other!("{}", x))?;
+		.context("Unable to make image")?;
 
-	debug!("Creating new machine {}", &opts.machine_name);
 	runtime
 		.create_machine(
 			&opts.machine_name,
 			&opts.machine_image,
-			gopts,
+			&gopts,
 		)
-		.map_err(|x| other!("{}", x))?;
+		.context("Unable to create new builder")?;
 
 	Ok(())
 }

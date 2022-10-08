@@ -9,34 +9,19 @@ use std::env;
 use std::io::BufRead;
 use std::process;
 
-mod models;
+use zeus::ErrorExt;
 
-macro_rules! handle {
-	($x:expr) => {
-		match $x {
-			Ok(v) => v,
-			Err(e) => {
-				return Err(format!(
-					"{}: {}",
-					"could not execute docker", e
-				))
-			},
-		}
-	};
-	($x:expr, $msg:tt) => {
-		match $x {
-			Ok(v) => v,
-			Err(e) => return Err(format!("{}: {}", $msg, e)),
-		}
-	};
-}
+mod models;
 
 macro_rules! check_exit {
 	($output:expr) => {
 		if !$output.status.success() {
-			return Err(format!(
-				"{}",
-				String::from_utf8_lossy(&$output.stderr[..])
+			return Err(Error::new_with_context(
+				format!(
+					"{}",
+					String::from_utf8_lossy(&$output.stderr[..])
+				),
+				"Docker failed",
 			));
 		}
 	};
@@ -59,23 +44,28 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn rt_api_version(&self) -> u32 {
-		zeus::constants::SUPPORTED_RT_API_VERSION
+		zeus::constants::RT_API_VERSION
 	}
 
-	fn init(&mut self) -> Result<()> {
+	fn init(&mut self, _: &GlobalOptions) -> Result<()> {
 		self.docker_bin = env::var("DOCKER_BIN")
 			.unwrap_or(String::from("/usr/bin/docker"));
+
+		println!("hello");
 
 		Ok(())
 	}
 
-	fn exit(&mut self) {}
+	fn exit(&mut self) {
+		println!("bye");
+	}
 
 	fn list_images(&self) -> Result<Vec<String>> {
-		let child = handle!(process::Command::new(&self.docker_bin)
+		let child = process::Command::new(&self.docker_bin)
 			.args(["image", "ls"])
 			.args(["--format", models::IMAGE_FMT])
-			.output());
+			.output()
+			.context(DOCKER_EXEC_ERROR)?;
 
 		check_exit!(child);
 
@@ -87,10 +77,8 @@ impl IRuntime for DockerRuntime {
 				Err(_) => continue,
 			};
 
-			let image: models::Image = handle!(
-				serde_json::from_str(&line),
-				"could not decode docker output"
-			);
+			let image: models::Image = serde_json::from_str(&line)
+				.context("Failed to parse docker output")?;
 
 			images.push(image.name);
 		}
@@ -101,27 +89,35 @@ impl IRuntime for DockerRuntime {
 	fn make_image(&mut self, image_name: &str) -> Result<()> {
 		let build_context = String::from("./");
 
-		let status = handle!(process::Command::new(&self.docker_bin)
+		let status = process::Command::new(&self.docker_bin)
 			.args(["build"])
 			.args(["--pull", "--rm"])
 			.args(["-t", image_name])
 			.arg("--")
 			.arg(build_context)
-			.status());
+			.status()
+			.context(DOCKER_EXEC_ERROR)?;
 
 		if !status.success() {
-			return Err(format!("error during image build"));
+			return Err(Error::new_with_context(
+				format!(
+					"error {}",
+					status.code().unwrap_or_default()
+				),
+				"Error during image build",
+			));
 		}
 
 		Ok(())
 	}
 
 	fn delete_image(&mut self, image_name: &str) -> Result<()> {
-		let child = handle!(process::Command::new(&self.docker_bin)
+		let child = process::Command::new(&self.docker_bin)
 			.args(["image", "rm"])
 			.arg("--")
 			.arg(image_name)
-			.output());
+			.output()
+			.context(DOCKER_EXEC_ERROR)?;
 
 		check_exit!(child);
 
@@ -129,11 +125,12 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn list_machines(&self) -> Result<Vec<String>> {
-		let child = handle!(process::Command::new(&self.docker_bin)
+		let child = process::Command::new(&self.docker_bin)
 			.args(["container", "ls"])
 			.args(["-a"])
 			.args(["--format", models::CONTAINER_FMT])
-			.output());
+			.output()
+			.context(DOCKER_EXEC_ERROR)?;
 
 		check_exit!(child);
 
@@ -145,10 +142,9 @@ impl IRuntime for DockerRuntime {
 				Err(_) => continue,
 			};
 
-			let container: models::Container = handle!(
-				serde_json::from_str(&line),
-				"could not decode docker output"
-			);
+			let container: models::Container =
+				serde_json::from_str(&line)
+					.context("Failed to parse docker output")?;
 
 			containers.push(container.name);
 		}
@@ -160,17 +156,23 @@ impl IRuntime for DockerRuntime {
 		&mut self,
 		machine_name: &str,
 		image_name: &str,
-		gopts: &GlobalOptions,
+		opts: &GlobalOptions,
 	) -> Result<()> {
-		let child = handle!(process::Command::new(&self.docker_bin)
+		let child = process::Command::new(&self.docker_bin)
 			.args(["container", "create"])
-			.args(["-i", "-t",])
+			.args(["-i", "-t"])
 			.args(["--name", machine_name])
 			.args([
 				"-v",
-				"/var/cache/pacman/pkg:/var/cache/pacman/pkg:rw"
+				"/var/cache/pacman/pkg:/var/cache/pacman/pkg:rw",
 			])
-			.args(["-v", &format!("{}:/build:rw", gopts.build_dir)])
+			.args([
+				"-v",
+				&format!(
+					"{}:/build:rw",
+					opts.build_dir.to_string_lossy()
+				),
+			])
 			.args([
 				"--cap-drop=all",
 				"--cap-add=CAP_SETUID",
@@ -179,7 +181,8 @@ impl IRuntime for DockerRuntime {
 			])
 			.arg("--")
 			.arg(image_name)
-			.output());
+			.output()
+			.context(DOCKER_EXEC_ERROR)?;
 
 		check_exit!(child);
 
@@ -187,16 +190,21 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn start_machine(&mut self, machine_name: &str) -> Result<()> {
-		let status = handle!(process::Command::new(&self.docker_bin)
+		let status = process::Command::new(&self.docker_bin)
 			.args(["container", "start"])
 			.args(["-a", "-i"])
 			.arg("--")
 			.arg(machine_name)
-			.status());
+			.status()
+			.context(DOCKER_EXEC_ERROR)?;
 
 		if !status.success() {
-			return Err(format!(
-				"failed to start and attach to machine"
+			return Err(Error::new_with_context(
+				format!(
+					"error {}",
+					status.code().unwrap_or_default()
+				),
+				"Failed to attach to container",
 			));
 		}
 
@@ -204,11 +212,12 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn stop_machine(&mut self, machine_name: &str) -> Result<()> {
-		let child = handle!(process::Command::new(&self.docker_bin)
+		let child = process::Command::new(&self.docker_bin)
 			.args(["container", "kill"])
 			.arg("--")
 			.arg(machine_name)
-			.output());
+			.output()
+			.context(DOCKER_EXEC_ERROR)?;
 
 		check_exit!(child);
 
@@ -216,15 +225,18 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn delete_machine(&mut self, machine_name: &str) -> Result<()> {
-		let child = handle!(process::Command::new(&self.docker_bin)
+		let child = process::Command::new(&self.docker_bin)
 			.args(["container", "rm"])
 			.args(["-f", "-v"])
 			.arg("--")
 			.arg(machine_name)
-			.output());
+			.output()
+			.context(DOCKER_EXEC_ERROR)?;
 
 		check_exit!(child);
 
 		Ok(())
 	}
 }
+
+const DOCKER_EXEC_ERROR: &'static str = "Failed to execute docker";
