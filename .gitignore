@@ -8,3 +8,5 @@
 *.tar.gz
 
 /.vagrant
+
+*_history

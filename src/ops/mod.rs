@@ -8,7 +8,7 @@ mod sync;
 pub mod prelude {
 	pub use crate::error::*;
 
-	pub use crate::machine::BoxedRuntime;
+	pub use crate::machine::Runtime;
 
 	pub use crate::config::{
 		BuildOptions, CompletionOptions, Config, GlobalOptions,
@@ -26,12 +26,17 @@ use prelude::*;
 
 use std::path::Path;
 
-fn load_runtime(opts: &GlobalOptions) -> Result<BoxedRuntime> {
+fn load_runtime(opts: &GlobalOptions) -> Result<Runtime> {
+	std::env::set_current_dir(crate::config::constants::DATA_DIR)
+		.context(format!(
+			"Unable to change directory to {}",
+			crate::config::constants::DATA_DIR
+		))?;
+
 	let path = Path::new(&opts.runtime_dir)
 		.join(format!("librt_{}.so", &opts.runtime));
 
-	crate::machine::load(&path, opts)
-		.context("Unable to load runtime")
+	Runtime::load(&path, opts).context("Unable to load runtime")
 }
 
 fn require_lock(pstore: &mut PackageStore) -> Result<()> {
@@ -41,10 +46,8 @@ fn require_lock(pstore: &mut PackageStore) -> Result<()> {
 pub fn run_operation(cfg: Config) -> Result<()> {
 	let opts = cfg.global_opts;
 
-	let mut pstore = PackageStore::new(Path::new(&opts.build_dir))
+	let mut pstore = PackageStore::new(&opts.build_dir)
 		.context("Unable to create package store")?;
-
-	// TODO: fix runtime segfaulting
 
 	use crate::config::Operation;
 	match cfg.operation {

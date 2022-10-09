@@ -35,9 +35,9 @@ channels = "0.5.0"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
 
 fs4 = { version = "0.6", features = ["sync"] }
+libloading = "0.7"
 
 const_format = "0.2"
-libloading = "0.7"
 thiserror = "1.0"
 
 [workspace]

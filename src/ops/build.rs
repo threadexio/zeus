@@ -1,7 +1,7 @@
 use super::prelude::*;
 
 pub fn build(
-	runtime: &mut BoxedRuntime,
+	runtime: &mut Runtime,
 	gopts: GlobalOptions,
 	opts: BuildOptions,
 ) -> Result<()> {

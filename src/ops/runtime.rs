@@ -36,8 +36,7 @@ pub fn runtime(
 
 			debug!("Test-loading runtime {}", entry_name);
 
-			let rt = match crate::machine::load(&entry.path(), &gopts)
-			{
+			let rt = match Runtime::load(&entry.path(), &gopts) {
 				Ok(v) => v,
 				Err(e) => {
 					warn!(
@@ -54,7 +53,7 @@ pub fn runtime(
 				rt.name().bold(),
 				rt.version().yellow(),
 				rt.rt_api_version()
-			)
+			);
 		}
 	}
 

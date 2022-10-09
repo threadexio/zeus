@@ -11,67 +11,83 @@
 
 use std::path::Path;
 
+pub use crate::config::GlobalOptions;
+use crate::error::*;
+
 use libloading::{Library, Symbol};
 
-pub use crate::error::*;
+pub struct Runtime {
+	// As of rust 1.61.0, field order matters, and we have to drop `runtime` first, otherwise this just segfaults.
+	// This has caused me great pain.
+	// Do NOT change the order of these fields.
+	runtime: Box<dyn IRuntime>,
+	#[allow(dead_code)]
+	library: Library,
+}
 
-// TODO: Fix Library getting dropped early and unloading the shared library
+#[allow(dead_code)]
+impl Runtime {
+	pub(crate) fn load(
+		path: &Path,
+		opts: &GlobalOptions,
+	) -> Result<Self> {
+		unsafe {
+			let library = Library::new(path)?;
 
-pub(crate) fn load(
-	path: &Path,
-	opts: &GlobalOptions,
-) -> Result<BoxedRuntime> {
-	unsafe {
-		let library = Library::new(path)?;
-
-		let constructor: Symbol<constants::RuntimeConstructorSymbol> =
-			library
-				.get(
-					constants::RUNTIME_CONSTRUCTOR_SYMBOL_NAME
-						.as_bytes(),
-				)
+			let constructor: Symbol<
+				unsafe fn() -> *mut dyn IRuntime,
+			> = library
+				.get(b"_runtime_create")
 				.context("Could not find runtime constructor")?;
 
-		let mut runtime = Box::from_raw(constructor());
+			let mut runtime = Box::from_raw(constructor());
 
-		if runtime.rt_api_version() != constants::RT_API_VERSION {
-			return Err(Error::new(format!(
-				"Incompatible runtime ({}), supported ({})",
-				runtime.rt_api_version(),
-				constants::RT_API_VERSION
-			)));
+			if runtime.rt_api_version() != Self::RT_API_VERSION {
+				return Err(Error::new(format!(
+					"Incompatible runtime ({}), supported ({})",
+					runtime.rt_api_version(),
+					Self::RT_API_VERSION
+				)));
+			}
+
+			runtime
+				.init(opts)
+				.context("Error during runtime initialization")?;
+
+			Ok(Self { library, runtime })
 		}
-
-		runtime
-			.init(opts)
-			.context("Error during runtime initialization")?;
-
-		Ok(runtime.into())
 	}
-}
 
-pub(crate) fn unload(mut runtime: BoxedRuntime) {
-	runtime.exit()
-}
-
-pub use crate::config::GlobalOptions;
-
-pub mod constants {
-	use super::*;
+	pub(crate) fn unload(self) {
+		drop(self)
+	}
 
 	/// Increasing this number means there has been a breaking change in the API.
 	/// Removing or changing method signatures is a breaking change.
 	pub const RT_API_VERSION: u32 = 4;
+}
 
-	// These should never really be changed
-	pub const RUNTIME_CONSTRUCTOR_SYMBOL_NAME: &'static str =
-		"_runtime_create";
-	pub type RuntimeConstructorSymbol = unsafe fn() -> *mut Runtime;
+impl std::ops::Deref for Runtime {
+	type Target = dyn IRuntime;
+
+	fn deref(&self) -> &Self::Target {
+		self.runtime.as_ref()
+	}
+}
+
+impl std::ops::DerefMut for Runtime {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		self.runtime.as_mut()
+	}
+}
+
+impl Drop for Runtime {
+	fn drop(&mut self) {
+		self.runtime.exit();
+	}
 }
 
 /// A trait specifying a common interface for all machine runtime drivers.
-pub type Runtime = dyn IRuntime;
-pub struct BoxedRuntime(Box<Runtime>);
 pub trait IRuntime {
 	/// Runtime driver name
 	fn name(&self) -> &'static str;
@@ -163,36 +179,11 @@ pub trait IRuntime {
 macro_rules! declare_runtime {
 	($plugin:ty, $constructor:path) => {
 		#[no_mangle]
-		pub extern "C" fn _runtime_create() -> *mut $crate::Runtime {
+		pub extern "C" fn _runtime_create(
+		) -> *mut dyn $crate::IRuntime {
 			let constructor: fn() -> $plugin = $constructor;
 			let boxed = Box::new(constructor());
 			Box::into_raw(boxed)
 		}
 	};
-}
-
-impl std::ops::Deref for BoxedRuntime {
-	type Target = Box<Runtime>;
-
-	fn deref(&self) -> &Self::Target {
-		&self.0
-	}
-}
-
-impl std::ops::DerefMut for BoxedRuntime {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.0
-	}
-}
-
-impl Drop for BoxedRuntime {
-	fn drop(&mut self) {
-		self.0.exit()
-	}
-}
-
-impl From<Box<Runtime>> for BoxedRuntime {
-	fn from(r: Box<Runtime>) -> Self {
-		Self(r)
-	}
 }

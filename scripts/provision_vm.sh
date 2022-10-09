@@ -1,7 +1,7 @@
 #!/bin/bash
 
 pacman -Syy archlinux-keyring
-pacman --needed --noconfirm -Syu base-devel gdb docker
+pacman --needed --noconfirm -Syu base-devel git gdb bash-completion docker
 gpasswd -a vagrant docker
 
 cat << EOF > /etc/systemd/system/gdbserver.service

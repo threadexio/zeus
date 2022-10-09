@@ -46,11 +46,11 @@ pub const LONG_VERSION: &'static str = formatcp!(
   `--.._)
 
 	 Built with:
-	   Data directory    | {}
-	   Builder name      | {}
-	   Builder image     | {}
-	   Package directory | {}
 	   AUR url           | {}
+	   Builder image     | {}
+	   Builder name      | {}
+	   Data directory    | {}
+	   Package directory | {}
 	   Runtime           | {}
 	   Runtime directory | {}
 "#,
@@ -58,11 +58,11 @@ pub const LONG_VERSION: &'static str = formatcp!(
 	BUILD_INFO,
 	AUTHORS,
 	HOMEPAGE,
-	DATA_DIR,
-	BUILDER_NAME,
-	BUILDER_IMAGE,
-	BUILD_DIR,
 	AUR_URL,
+	BUILDER_IMAGE,
+	BUILDER_NAME,
+	DATA_DIR,
+	BUILD_DIR,
 	RUNTIME,
 	RUNTIME_DIR,
 );

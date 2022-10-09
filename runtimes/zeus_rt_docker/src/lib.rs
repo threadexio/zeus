@@ -3,13 +3,12 @@
 //! following environment variables:
 //! - `DOCKER_BIN` - This must point to the docker cli tool. (default: `/usr/bin/docker`)
 
+use zeus::error::*;
 use zeus::*;
 
 use std::env;
 use std::io::BufRead;
 use std::process;
-
-use zeus::ErrorExt;
 
 mod models;
 
@@ -44,21 +43,17 @@ impl IRuntime for DockerRuntime {
 	}
 
 	fn rt_api_version(&self) -> u32 {
-		zeus::constants::RT_API_VERSION
+		Runtime::RT_API_VERSION
 	}
 
 	fn init(&mut self, _: &GlobalOptions) -> Result<()> {
 		self.docker_bin = env::var("DOCKER_BIN")
 			.unwrap_or(String::from("/usr/bin/docker"));
 
-		println!("hello");
-
 		Ok(())
 	}
 
-	fn exit(&mut self) {
-		println!("bye");
-	}
+	fn exit(&mut self) {}
 
 	fn list_images(&self) -> Result<Vec<String>> {
 		let child = process::Command::new(&self.docker_bin)

@@ -4,8 +4,8 @@
 
 mod aur;
 mod config;
-mod error;
 
+pub mod error;
 pub mod log;
 
 mod machine;
