@@ -15,6 +15,8 @@ use libloading::{Library, Symbol};
 
 pub use crate::error::*;
 
+// TODO: Fix Library getting dropped early and unloading the shared library
+
 pub(crate) fn load(
 	path: &Path,
 	opts: &GlobalOptions,

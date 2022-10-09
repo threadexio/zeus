@@ -5,14 +5,12 @@ Vagrant.configure("2") do |config|
   config.vm.box = "archlinux/archlinux"
   config.vm.box_check_update = true
 
+  config.vm.network "private_network", ip: "192.168.50.2"
+
   config.vm.synced_folder ".", "/zeus",
   sshfs_opts_append: "-o ro -o idmap=user",
   type: "sshfs"
 
-  config.vm.provision "shell", inline: <<-SHELL
-     pacman -Sy archlinux-keyring
-     pacman --needed --noconfirm -Syu base-devel docker
-     gpasswd -a vagrant docker
-     sudo systemctl enable --now docker.service
-  SHELL
+  config.vm.provision "shell", path: "scripts/provision_vm.sh"
+
 end
