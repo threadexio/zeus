@@ -1,12 +1,14 @@
+# cargo
 /target
+/.cargo
 
+# Vscode
 /.vscode/*
 !/.vscode/settings.json
 !/.vscode/launch.json
 !/.vscode/tasks.json
 
-*.tar.gz
-
+# other
 /.vagrant
-
+*.tar.gz
 *_history
