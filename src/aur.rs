@@ -5,7 +5,7 @@ use const_format::formatcp;
 use reqwest::blocking::{Client, ClientBuilder};
 use serde::{Deserialize, Serialize};
 
-use crate::config::constants;
+use crate::constants;
 
 const AUR_VERSION: usize = 5;
 const AUR_RPC: &'static str =

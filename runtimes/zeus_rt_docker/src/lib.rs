@@ -3,8 +3,7 @@
 //! following environment variables:
 //! - `DOCKER_BIN` - This must point to the docker cli tool. (default: `/usr/bin/docker`)
 
-use zeus::error::*;
-use zeus::*;
+use zeus::prelude::*;
 
 use std::env;
 use std::io::BufRead;

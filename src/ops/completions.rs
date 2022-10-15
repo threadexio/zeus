@@ -1,6 +1,7 @@
 use super::prelude::*;
 
-use crate::config::{constants, Config};
+use crate::config::Config;
+use crate::constants;
 
 use clap::CommandFactory;
 

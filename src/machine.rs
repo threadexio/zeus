@@ -7,7 +7,7 @@
 //! outside that path the current user has access to. It can't just read `/etc/shadow`,
 //! unless of course `zeus` is running as root. This can be mitigated by modifying
 //! the Apparmor rules to allow or disallow access. This requires the runtime developers
-//! to install their policy inside /etc/apparmor.d/zeus.d.
+//! to install their policy inside `/etc/apparmor.d/zeus.d`.
 
 use std::path::Path;
 

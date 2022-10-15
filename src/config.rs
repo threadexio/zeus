@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
-pub mod constants;
-use constants::*;
+use crate::constants::*;
 
 use crate::aur;
 
@@ -43,13 +42,14 @@ pub struct SyncOptions {
 	#[clap(long, help = "Extra arguments for makepkg")]
 	pub build_args: Vec<String>,
 
+	/*
 	#[clap(
 		long = "name",
 		help = "Builder machine name",
 		default_value = BUILDER_NAME
 	)]
 	pub machine_name: String,
-
+	 */
 	pub packages: Vec<aur::Package>,
 }
 
@@ -58,18 +58,20 @@ pub struct RemoveOptions {
 	#[clap(long, help = "Uninstall packages after remove")]
 	pub uninstall: bool,
 
+	/*
 	#[clap(
 		long = "name",
 		help = "Builder machine name",
 		default_value = BUILDER_NAME
 	)]
 	pub machine_name: String,
-
+	*/
 	pub packages: Vec<aur::Package>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Args)]
 pub struct BuildOptions {
+	/*
 	#[clap(
 		long = "name",
 		help = "Builder machine name",
@@ -83,6 +85,7 @@ pub struct BuildOptions {
 		default_value = BUILDER_IMAGE
 	)]
 	pub machine_image: String,
+	*/
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Args)]
@@ -163,6 +166,20 @@ pub enum Operation {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Parser)]
 pub struct GlobalOptions {
+	#[clap(
+		long = "name",
+		help = "Builder machine name",
+		default_value = BUILDER_NAME
+	)]
+	pub machine_name: String,
+
+	#[clap(
+		long = "image",
+		help = "Builder machine image",
+		default_value = BUILDER_IMAGE
+	)]
+	pub machine_image: String,
+
 	#[clap(
 		long,
 		help = "Colorize the output",

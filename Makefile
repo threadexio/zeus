@@ -14,6 +14,8 @@ else
 	include $(BUILD_SPEC)
 endif
 
+include build.config.mk
+
 MAKEFLAGS += --warn-undefined-variables --no-keep-going --no-print-directory
 
 REQUIRED_CARGO_ARGS := -j$(shell nproc)

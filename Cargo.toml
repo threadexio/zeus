@@ -13,10 +13,9 @@ license = "GPL-3.0-or-later"
 name = "zeus"
 path = "src/zeus.rs"
 
-# TODO: rewrite builder
-#[[bin]]
-#name = "builder"
-#path = "src/builder.rs"
+[[bin]]
+name = "builder"
+path = "src/builder.rs"
 
 [lib]
 name = "zeus"
@@ -41,7 +40,7 @@ const_format = "0.2"
 thiserror = "1.0"
 
 [workspace]
-members = ["runtimes/zeus_rt_docker"]
+members = ["runtimes/zeus_rt_docker", "runtimes/zeus_rt_null"]
 
 [profile.dev]
 opt-level = 0

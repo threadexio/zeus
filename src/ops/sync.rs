@@ -3,14 +3,16 @@ use super::prelude::*;
 use colored::Colorize;
 
 pub fn sync(
-	//runtime: &mut Runtime,
+	mut runtime: Runtime,
 	pstore: &mut PackageStore,
 	gopts: GlobalOptions,
 	mut opts: SyncOptions,
 ) -> Result<()> {
 	if opts.upgrade {
 		if opts.packages.is_empty() {
-			opts.packages = pstore.list()?;
+			opts.packages = pstore
+				.list()
+				.context("Unable to list local packages")?;
 		}
 	}
 
@@ -54,7 +56,13 @@ pub fn sync(
 		return Err(Error::new("Aborting..."));
 	}
 
-	// TODO: Start builder
+	super::start_builder(
+		&mut runtime,
+		pstore,
+		&gopts,
+		Operation::Sync(opts),
+	)
+	.context("Unable to start builder")?;
 
 	// TODO: Handle --install
 

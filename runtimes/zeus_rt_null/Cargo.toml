@@ -1,0 +1,15 @@
+[package]
+name = "zeus_rt_null"
+version = "0.1.0"
+edition = "2021"
+authors = ["threadexio"]
+description = "Null Runtime for the Zeus AUR helper"
+license = "GPL-3.0-or-later"
+
+# The following are necessary for any runtime
+[lib]
+name = "rt_null"
+crate-type = ["cdylib"]
+
+[dependencies.zeus]
+path = "../../"

@@ -21,6 +21,7 @@ impl PackageStore {
 
 		let lock_path = path.join(".zeus.lock");
 
+		// BUG: TOC TOU bug here
 		let lock_handle;
 		if !lock_path.exists() {
 			lock_handle = fs::File::options()

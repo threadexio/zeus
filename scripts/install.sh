@@ -1,20 +1,40 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
-cp() {
-	command cp --preserve=mode -r --reflink=auto "$@"
+install() {
+	command install -D "$@"
 }
 
-install() {
-	command install -s -D "$@"
+# $1 - Overlay src directory
+# $2 - Destination directory
+install_overlay() {
+	local src="${1}"
+	local dst="${2}"
+
+	local i
+	local k
+
+	mapfile -t dirs < <(find "$src" -type d | sed -E "s|^${src}/?+||g")
+
+	for i in "${dirs[@]}"; do
+		k="$(eval echo "$i")"
+		mkdir -p "$dst/$k"
+	done
+
+	mapfile -t files < <(find "$src" -type f | sed -E "s|^${src}/?+||g")
+
+	for i in "${files[@]}"; do
+		k="$(eval echo "$i")"
+		install "$src/$i" "$dst/$k"
+	done
 }
 
 [ ! -d "$DESTDIR/" ] && \
 	echo "$DESTDIR: No such file or directory" && \
 	exit 1
 
-# Extra files
-cp rootdir/. "$DESTDIR/"
+# Main overlay
+install_overlay rootdir/ "$DESTDIR"
 
 # Extra Directories
 mkdir -p \
@@ -24,9 +44,9 @@ mkdir -p \
 
 chmod 777 "$DESTDIR/$BUILD_DIR"
 
-# Runtime data
-for i in runtimes/*/data; do
-	cp "./$i/." "$DESTDIR/$PREFIX/share/zeus"
+# Runtime overlays
+for i in runtimes/*; do
+	[ -d "$i/overlay" ] && install_overlay "$i/overlay" "$DESTDIR"
 done
 
 # Runtimes

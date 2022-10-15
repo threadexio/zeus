@@ -1,7 +1,7 @@
 use super::prelude::*;
 
 pub fn remove(
-	//runtime: &mut BoxedRuntime,
+	runtime: &mut Runtime,
 	pstore: &mut PackageStore,
 	gopts: GlobalOptions,
 	mut opts: RemoveOptions,
@@ -36,7 +36,13 @@ pub fn remove(
 		return Err(Error::new("Aborting..."));
 	}
 
-	// TODO: Start builder
+	super::start_builder(
+		runtime,
+		pstore,
+		&gopts,
+		Operation::Remove(opts),
+	)
+	.context("Unable to start builder")?;
 
 	// TODO: Handle --uninstall
 

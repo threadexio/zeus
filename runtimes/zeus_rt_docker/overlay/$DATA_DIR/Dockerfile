@@ -8,13 +8,11 @@ RUN pacman -Syyu \
 RUN useradd -r -m builder
 RUN echo "builder ALL=(ALL:ALL) NOPASSWD: /usr/bin/pacman" > /etc/sudoers.d/builder
 
-VOLUME [ "/build" ]
+COPY --chown=root:root builder /builder
 
-COPY --chown=root:root builder /usr/local/bin
-
-RUN chmod +x /usr/local/bin/*
+RUN chmod +x /builder
 
 USER builder
 
 WORKDIR /build
-ENTRYPOINT ["/usr/local/bin/builder"]
+ENTRYPOINT ["/builder"]

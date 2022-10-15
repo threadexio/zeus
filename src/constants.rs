@@ -33,36 +33,27 @@ from_env!(BUILD_DIR);
 from_env!(AUR_URL);
 from_env!(RUNTIME);
 from_env!(RUNTIME_DIR);
+from_env!(LIB_DIR);
 
 pub const LONG_VERSION: &'static str = formatcp!(
-	r#"{} {}
+	r#"{VERSION} {BUILD_INFO}
 
-    _oo     Copyright lololol (C) 2022 {}
+    _oo     Copyright lololol (C) 2022 {AUTHORS}
  >-(_  \
     / _/     This program may be freely distributed under
    / /       the terms of the GNU General Public License v3.0.
   / (
- (   `-.     {}
+ (   `-.     {HOMEPAGE}
   `--.._)
 
 	 Built with:
-	   AUR url           | {}
-	   Builder image     | {}
-	   Builder name      | {}
-	   Data directory    | {}
-	   Package directory | {}
-	   Runtime           | {}
-	   Runtime directory | {}
-"#,
-	VERSION,
-	BUILD_INFO,
-	AUTHORS,
-	HOMEPAGE,
-	AUR_URL,
-	BUILDER_IMAGE,
-	BUILDER_NAME,
-	DATA_DIR,
-	BUILD_DIR,
-	RUNTIME,
-	RUNTIME_DIR,
+	   AUR url           │ {AUR_URL}
+	   Builder image     │ {BUILDER_IMAGE}
+	   Builder name      │ {BUILDER_NAME}
+	   Data directory    │ {DATA_DIR}
+	   Library directory │ {LIB_DIR}
+	   Package directory │ {BUILD_DIR}
+	   Runtime           │ {RUNTIME}
+	   Runtime directory │ {RUNTIME_DIR}
+"#
 );

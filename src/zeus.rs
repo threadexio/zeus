@@ -1,11 +1,12 @@
 mod aur;
 mod config;
+mod constants;
 mod error;
+mod ipc;
 mod log;
 mod machine;
 mod ops;
 mod package;
-mod unix;
 
 use std::process::exit;
 

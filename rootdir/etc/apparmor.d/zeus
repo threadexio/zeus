@@ -30,5 +30,5 @@ profile zeus "/{usr,usr/local}/bin/zeus" {
 	# AUR requests
 	network tcp,
 
-	include <zeus.d>
+	include_if_exists <zeus.d>
 }

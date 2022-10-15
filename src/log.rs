@@ -48,7 +48,7 @@ pub struct Logger {
 
 #[allow(dead_code)]
 impl Logger {
-	pub(crate) fn log_impl(&self, level: LogLevel, data: String) {
+	pub fn log_impl(&self, level: LogLevel, data: String) {
 		if level > self.level {
 			return;
 		}

@@ -7,6 +7,7 @@
 		"libloading",
 		"librt",
 		"lololol",
+		"makepkg",
 		"pstore",
 		"runtimes"
 	],
@@ -20,9 +21,11 @@
 		"AUR_URL": "",
 		"RUNTIME": "",
 		"RUNTIME_DIR": "",
+		"LIB_DIR": "",
 		"DATA_DIR": "",
 		"LOG_LEVEL": "",
 		"VERSION": "",
 		"BUILD_INFO": "",
 	},
+	"python.analysis.typeCheckingMode": "basic",
 }
