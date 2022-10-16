@@ -62,7 +62,7 @@ pub enum Output {
 }
 
 #[derive(
-	Debug, Default, PartialEq, Clone, Serialize, Deserialize,
+	Debug, Default, Clone, PartialEq, Serialize, Deserialize,
 )]
 pub struct Package {
 	#[serde(rename = "ID")]
@@ -116,9 +116,21 @@ pub struct Package {
 	pub keywords: Option<Vec<String>>,
 }
 
+impl Package {
+	pub fn new(name: String) -> Self {
+		Self { name, ..Default::default() }
+	}
+}
+
 impl From<&str> for Package {
 	fn from(name: &str) -> Self {
-		Self { name: name.to_owned(), ..Default::default() }
+		Self::new(name.to_string())
+	}
+}
+
+impl std::fmt::Display for Package {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		write!(f, "{}", &self.name)
 	}
 }
 
@@ -150,30 +162,10 @@ impl Aur {
 		Self { url }
 	}
 
-	/// Get full URL of AUR instance
-	///
-	/// # Example:
-	/// ```
-	/// let aur_instance = aur::Aur::new().build();
-	///
-	/// let url = aur_instance.get_url();
-	/// ```
 	pub fn get_url(&self) -> &str {
 		&self.url
 	}
 
-	/// Search for packages.
-	///
-	/// # Example:
-	/// ```
-	/// let aur_instance = aur::Aur::new().build();
-	///
-	///	let keywords :HashSet<&str> = HashSet::new();
-	/// keywords.insert("zeus");
-	/// keywords.insert("zeus-bin");
-	///
-	/// let response = aur_instance.search(aur::By::Name, &keywords);
-	/// ```
 	pub fn search<T>(
 		&self,
 		by: By,
@@ -199,18 +191,6 @@ impl Aur {
 		Ok(res)
 	}
 
-	/// Request package information.
-	///
-	/// Example:
-	/// ```
-	/// let aur_instance = aur::Aur::new().build();
-	///
-	///	let packages :HashSet<&str> = HashSet::new();
-	/// packages.insert("zeus");
-	/// packages.insert("zeus-bin");
-	///
-	/// let response = aur_instance.info(&packages);
-	/// ```
 	pub fn info<T>(
 		&self,
 		packages: impl IntoIterator<Item = T>,

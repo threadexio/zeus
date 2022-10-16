@@ -8,8 +8,11 @@
 		"librt",
 		"lololol",
 		"makepkg",
+		"packagelist",
 		"pstore",
-		"runtimes"
+		"resultcount",
+		"runtimes",
+		"verifysource"
 	],
 	"rust-analyzer.runnables.extraArgs": [
 		"--bin=zeus"

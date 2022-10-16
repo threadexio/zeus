@@ -32,6 +32,7 @@ build:
 
 clean:
 	$(CARGO) clean --
+	rm zeus.tar.gz
 
 completions:
 	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=bash > "$(COMPLETIONS_BASH)"
@@ -39,17 +40,15 @@ completions:
 	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=fish > "$(COMPLETIONS_FISH)"
 
 install:
-	./scripts/install.sh
+	fakeroot ./scripts/install.sh
 
 tar:
-	./scripts/tar.sh
+	fakeroot ./scripts/tar.sh
 
 install_tar:
 	sudo tar -axvpf zeus.tar.gz -C /
 
 cargo:
 	$(CARGO) $(CARGO_ARGS)
-
-# TODO: Write a recipe to create the finalized pacman package
 
 .PHONY: all build clean completions install tar cargo

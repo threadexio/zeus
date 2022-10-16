@@ -18,3 +18,7 @@ EOF
 systemctl daemon-reload
 systemctl enable gdbserver.service
 systemctl enable docker.service
+
+git config --global --add safe.directory /zeus
+
+echo You should reboot the VM now

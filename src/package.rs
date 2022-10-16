@@ -3,20 +3,19 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use fs4::FileExt;
+use nix::sys::stat::{umask, Mode};
 
 use crate::aur::Aur;
 pub use crate::aur::Package;
 
 use crate::error::*;
 
-// TODO: Make a better Package struct that will also work with the aur client
-// TODO: Better error messages
-
 pub struct PackageStore {
 	root: PathBuf,
 	lock_handle: fs::File,
 }
 
+#[allow(dead_code)]
 impl PackageStore {
 	pub fn new(root: &Path) -> Result<Self> {
 		let path = root.canonicalize().context(format!(
@@ -26,33 +25,22 @@ impl PackageStore {
 
 		if !path.is_dir() {
 			return Err(Error::new(
-				"build directory path must be a directory",
+				"Build directory path must be a directory",
 			));
 		}
 
 		let lock_path = path.join(".zeus.lock");
 
-		// BUG: TOC TOU bug here
-		let lock_handle;
-		if !lock_path.exists() {
-			lock_handle = fs::File::options()
-				.create(true)
-				.read(true)
-				.write(true)
-				.open(&lock_path)
-				.context(format!(
-					"Unable to create lock file {}",
-					lock_path.display()
-				))?;
-		} else {
-			lock_handle = fs::File::options()
-				.read(true)
-				.open(&lock_path)
-				.context(format!(
-					"Unable to open lock file {}",
-					lock_path.display()
-				))?;
-		}
+		// TODO: Proper privilege separation
+
+		// Allow all members of `zeus` to open the lock file for writing
+		umask(Mode::S_IRWXO);
+
+		let lock_handle = fs::File::options()
+			.create(true)
+			.write(true)
+			.open(lock_path)
+			.context("Unable to open lock file")?;
 
 		Ok(Self { root: path, lock_handle })
 	}
@@ -62,17 +50,19 @@ impl PackageStore {
 	}
 
 	pub fn lock(&mut self) -> Result<()> {
-		self.lock_handle
-			.try_lock_exclusive()
-			.context("Unable to obtain lock on build directory")?;
+		self.lock_handle.try_lock_exclusive().context(format!(
+			"Unable to obtain lock on build directory {}",
+			self.root.display()
+		))?;
 
 		Ok(())
 	}
 
 	pub fn unlock(&mut self) -> Result<()> {
-		self.lock_handle
-			.unlock()
-			.context("Unable to unlock build directory")?;
+		self.lock_handle.unlock().context(format!(
+			"Unable to unlock build directory {}",
+			self.root.display()
+		))?;
 
 		Ok(())
 	}
@@ -94,7 +84,7 @@ impl PackageStore {
 
 	pub fn list(&self) -> Result<Vec<Package>> {
 		let dir = fs::read_dir(&self.root).context(format!(
-			"unable to access build directory {}",
+			"Unable to access build directory {}",
 			&self.root.display()
 		))?;
 
@@ -110,10 +100,9 @@ impl PackageStore {
 				Err(_) => continue,
 			};
 
-			pkgs.push(Package {
-				name: entry.file_name().to_string_lossy().to_string(),
-				..Default::default()
-			});
+			pkgs.push(Package::new(
+				entry.file_name().to_string_lossy().to_string(),
+			));
 		}
 
 		Ok(pkgs)
@@ -124,10 +113,7 @@ impl PackageStore {
 			return None;
 		}
 
-		Some(Package {
-			name: package_name.to_string(),
-			..Default::default()
-		})
+		Some(Package::new(package_name.to_string()))
 	}
 
 	/// Clone package from AUR
@@ -173,7 +159,7 @@ impl PackageStore {
 		extra_args: &[&str],
 	) -> Result<()> {
 		let cmd = Command::new("makepkg")
-			.args(&["-s", "--verifysource"])
+			.args(&["-s"])
 			.args(extra_args)
 			.current_dir(self.package_path(&package.name))
 			.stdin(Stdio::inherit())
@@ -182,9 +168,10 @@ impl PackageStore {
 			.status()
 			.context(format!(
 				"unable to build package {}",
-				&package.name
+				&package
 			))?;
 
+		// TODO: Handle different makepkg exit codes
 		if !cmd.success() {
 			return Err(Error::new(format!(
 				"makepkg failed with: {}",
@@ -208,8 +195,8 @@ impl PackageStore {
 			.stderr(Stdio::null())
 			.output()
 			.context(format!(
-				"unable to get package files {}",
-				&package.name
+				"Unable to get package files for {}",
+				&package
 			))?;
 
 		if !cmd.status.success() {
@@ -238,13 +225,13 @@ impl PackageStore {
 
 		if !self.check_dir(&pkg_dir) {
 			return Err(Error::new(format!(
-				"invalid package directory {}",
+				"Invalid package directory {}",
 				pkg_dir.display()
 			)));
 		}
 
 		std::fs::remove_dir_all(&pkg_dir).context(format!(
-			"unable to remove {}",
+			"Unable to remove {}",
 			pkg_dir.display()
 		))?;
 
