@@ -4,6 +4,7 @@ mod constants;
 mod error;
 mod ipc;
 mod log;
+mod package;
 
 use colored::Colorize;
 
@@ -16,14 +17,22 @@ use crate::config::{
 pub mod init {
 	use super::*;
 
-	fn ipc() -> Result<ipc::Client> {
-		use std::path::Path;
+	use std::path::Path;
 
+	fn ipc() -> Result<ipc::Client> {
 		ipc::Client::new(Path::new(".zeus.sock").to_path_buf())
 	}
 
-	pub fn all() -> Result<(Config, ipc::Client)> {
-		let mut ipc = ipc()?;
+	fn package() -> Result<package::PackageStore> {
+		Ok(package::PackageStore::new(Path::new("./"))?)
+	}
+
+	pub fn all(
+	) -> Result<(Config, ipc::Client, package::PackageStore)> {
+		let pstore =
+			package().context("Unable to create package store")?;
+
+		let mut ipc = ipc().context("Unable to connect to socket")?;
 
 		let config;
 
@@ -40,14 +49,14 @@ pub mod init {
 			},
 		}
 
-		Ok((config, ipc))
+		Ok((config, ipc, pstore))
 	}
 }
 
 fn main() {
 	info!("Version: {}", constants::VERSION.bright_blue());
 
-	let (config, mut ipc) = match init::all() {
+	let (config, mut ipc, mut pstore) = match init::all() {
 		Ok(v) => v,
 		Err(e) => {
 			error!("Unable to initialize builder: {}", e);
@@ -61,8 +70,10 @@ fn main() {
 
 	use config::Operation;
 	let r = match op {
-		Operation::Sync(v) => sync(&mut ipc, &opts, v),
-		Operation::Remove(v) => remove(&mut ipc, &opts, v),
+		Operation::Sync(v) => sync(&mut ipc, &mut pstore, &opts, v),
+		Operation::Remove(v) => {
+			remove(&mut ipc, &mut pstore, &opts, v)
+		},
 		_ => {
 			debug!("Unexpected operation: {:?}", &op);
 			std::process::exit(128);
@@ -81,6 +92,7 @@ fn main() {
 // TODO: Finish `sync()`
 fn sync(
 	_ipc: &mut ipc::Client,
+	_pstore: &mut package::PackageStore,
 	_gopts: &GlobalOptions,
 	_opts: SyncOptions,
 ) -> Result<()> {
@@ -90,6 +102,7 @@ fn sync(
 // TODO: Finish `remove()`
 fn remove(
 	_ipc: &mut ipc::Client,
+	_pstore: &mut package::PackageStore,
 	_gopts: &GlobalOptions,
 	_opts: RemoveOptions,
 ) -> Result<()> {

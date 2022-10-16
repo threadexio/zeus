@@ -50,4 +50,6 @@ install_tar:
 cargo:
 	$(CARGO) $(CARGO_ARGS)
 
+# TODO: Write a recipe to create the finalized pacman package
+
 .PHONY: all build clean completions install tar cargo

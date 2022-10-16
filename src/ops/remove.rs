@@ -16,12 +16,13 @@ pub fn remove(
 		.map(|x| Package { name: x, ..Default::default() })
 		.collect();
 	} else {
-		opts.packages.retain(|x| match pstore.exists(&x.name) {
-			Ok(v) => v,
-			Err(_) => {
+		opts.packages.retain(|x| {
+			if pstore.exists(&x.name) {
+				true
+			} else {
 				warn!("{}: Not synced", &x.name);
 				false
-			},
+			}
 		});
 	}
 

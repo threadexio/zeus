@@ -1,10 +1,16 @@
 use std::fs;
-use std::io;
 use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 use fs4::FileExt;
 
+use crate::aur::Aur;
 pub use crate::aur::Package;
+
+use crate::error::*;
+
+// TODO: Make a better Package struct that will also work with the aur client
+// TODO: Better error messages
 
 pub struct PackageStore {
 	root: PathBuf,
@@ -12,11 +18,16 @@ pub struct PackageStore {
 }
 
 impl PackageStore {
-	pub fn new(root: &Path) -> io::Result<Self> {
-		let path = root.canonicalize()?;
+	pub fn new(root: &Path) -> Result<Self> {
+		let path = root.canonicalize().context(format!(
+			"Unable to initialize build directory at {}",
+			root.display()
+		))?;
 
-		if !path.exists() || !path.is_dir() {
-			return Err(io::ErrorKind::NotFound.into());
+		if !path.is_dir() {
+			return Err(Error::new(
+				"build directory path must be a directory",
+			));
 		}
 
 		let lock_path = path.join(".zeus.lock");
@@ -28,10 +39,19 @@ impl PackageStore {
 				.create(true)
 				.read(true)
 				.write(true)
-				.open(&lock_path)?;
+				.open(&lock_path)
+				.context(format!(
+					"Unable to create lock file {}",
+					lock_path.display()
+				))?;
 		} else {
-			lock_handle =
-				fs::File::options().read(true).open(&lock_path)?;
+			lock_handle = fs::File::options()
+				.read(true)
+				.open(&lock_path)
+				.context(format!(
+					"Unable to open lock file {}",
+					lock_path.display()
+				))?;
 		}
 
 		Ok(Self { root: path, lock_handle })
@@ -41,34 +61,42 @@ impl PackageStore {
 		self.root.as_path()
 	}
 
-	pub fn lock(&mut self) -> io::Result<()> {
-		self.lock_handle.try_lock_exclusive()?;
+	pub fn lock(&mut self) -> Result<()> {
+		self.lock_handle
+			.try_lock_exclusive()
+			.context("Unable to obtain lock on build directory")?;
 
 		Ok(())
 	}
 
-	pub fn unlock(&mut self) -> io::Result<()> {
-		self.lock_handle.unlock()?;
+	pub fn unlock(&mut self) -> Result<()> {
+		self.lock_handle
+			.unlock()
+			.context("Unable to unlock build directory")?;
 
 		Ok(())
 	}
 
-	fn package_name_path(
-		&self,
-		package_name: &str,
-	) -> io::Result<PathBuf> {
-		self.root().join(package_name).canonicalize()
+	fn package_path(&self, package_name: &str) -> PathBuf {
+		self.root().join(package_name)
 	}
 
-	fn check_package_dir_ok(&self, p: &Path) -> bool {
+	fn check_dir(&self, p: &Path) -> bool {
 		p.starts_with(self.root())
 			&& p.is_absolute()
 			&& p.exists()
 			&& p.is_dir()
 	}
 
-	pub fn list(&self) -> io::Result<Vec<Package>> {
-		let dir = fs::read_dir(&self.root)?;
+	pub fn exists(&self, package_name: &str) -> bool {
+		self.check_dir(&self.package_path(package_name))
+	}
+
+	pub fn list(&self) -> Result<Vec<Package>> {
+		let dir = fs::read_dir(&self.root).context(format!(
+			"unable to access build directory {}",
+			&self.root.display()
+		))?;
 
 		let mut pkgs = vec![];
 
@@ -91,10 +119,136 @@ impl PackageStore {
 		Ok(pkgs)
 	}
 
-	pub fn exists(&self, package_name: &str) -> io::Result<bool> {
-		let pkg_dir = self.package_name_path(package_name)?;
+	pub fn package(&self, package_name: &str) -> Option<Package> {
+		if !self.exists(package_name) {
+			return None;
+		}
 
-		Ok(self.check_package_dir_ok(&pkg_dir))
+		Some(Package {
+			name: package_name.to_string(),
+			..Default::default()
+		})
+	}
+
+	/// Clone package from AUR
+	pub fn clone_package(
+		&mut self,
+		aur: &Aur,
+		package_name: &str,
+	) -> Result<Package> {
+		let cmd = Command::new("git")
+			.args(&["clone", "--"])
+			.arg(format!("{}/{}.git", aur.get_url(), package_name))
+			.arg(package_name)
+			.current_dir(&self.root)
+			.stdin(Stdio::inherit())
+			.stdout(Stdio::inherit())
+			.stderr(Stdio::inherit())
+			.status()
+			.context(format!(
+				"unable to clone package {}",
+				package_name
+			))?;
+
+		if !cmd.success() {
+			return Err(Error::new(format!(
+				"git failed with: {}",
+				cmd.code().unwrap_or_default(),
+			)));
+		}
+
+		match self.package(package_name) {
+			Some(v) => Ok(v),
+			None => Err(Error::new(format!(
+				"unable to find cloned package {}",
+				package_name
+			))),
+		}
+	}
+
+	/// Build package with makepkg
+	pub fn build_package(
+		&mut self,
+		package: &Package,
+		extra_args: &[&str],
+	) -> Result<()> {
+		let cmd = Command::new("makepkg")
+			.args(&["-s", "--verifysource"])
+			.args(extra_args)
+			.current_dir(self.package_path(&package.name))
+			.stdin(Stdio::inherit())
+			.stdout(Stdio::inherit())
+			.stderr(Stdio::inherit())
+			.status()
+			.context(format!(
+				"unable to build package {}",
+				&package.name
+			))?;
+
+		if !cmd.success() {
+			return Err(Error::new(format!(
+				"makepkg failed with: {}",
+				cmd.code().unwrap_or_default(),
+			)));
+		}
+
+		Ok(())
+	}
+
+	/// Get package installation files
+	pub fn install_package(
+		&mut self,
+		package: &Package,
+	) -> Result<Vec<PathBuf>> {
+		let cmd = Command::new("makepkg")
+			.args(&["--packagelist"])
+			.current_dir(self.package_path(&package.name))
+			.stdin(Stdio::null())
+			.stdout(Stdio::piped())
+			.stderr(Stdio::null())
+			.output()
+			.context(format!(
+				"unable to get package files {}",
+				&package.name
+			))?;
+
+		if !cmd.status.success() {
+			return Err(Error::new(format!(
+				"makepkg failed with: {}",
+				cmd.status.code().unwrap_or_default(),
+			)));
+		}
+
+		let mut files = vec![];
+
+		for i in String::from_utf8_lossy(&cmd.stdout).lines() {
+			if let Some(k) =
+				Path::new(i).strip_prefix(&self.root).ok()
+			{
+				files.push(k.to_path_buf());
+			}
+		}
+
+		Ok(files)
+	}
+
+	/// Remove a package from the build directory
+	pub fn remove_package(&mut self, package: Package) -> Result<()> {
+		let pkg_dir = self.package_path(&package.name);
+
+		if !self.check_dir(&pkg_dir) {
+			return Err(Error::new(format!(
+				"invalid package directory {}",
+				pkg_dir.display()
+			)));
+		}
+
+		std::fs::remove_dir_all(&pkg_dir).context(format!(
+			"unable to remove {}",
+			pkg_dir.display()
+		))?;
+
+		Ok(())
 	}
 }
 
