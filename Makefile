@@ -44,6 +44,9 @@ install:
 tar:
 	./scripts/tar.sh
 
+install_tar:
+	sudo tar -axvpf zeus.tar.gz -C /
+
 cargo:
 	$(CARGO) $(CARGO_ARGS)
 

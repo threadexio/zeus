@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+cp() {
+	command cp --preserve=mode --reflink=auto "$@"
+}
+
 install() {
 	command install -D "$@"
 }
@@ -14,18 +18,17 @@ install_overlay() {
 	local i
 	local k
 
-	mapfile -t dirs < <(find "$src" -type d | sed -E "s|^${src}/?+||g")
-
-	for i in "${dirs[@]}"; do
-		k="$(eval echo "$i")"
-		mkdir -p "$dst/$k"
-	done
-
 	mapfile -t files < <(find "$src" -type f | sed -E "s|^${src}/?+||g")
 
 	for i in "${files[@]}"; do
 		k="$(eval echo "$i")"
-		install "$src/$i" "$dst/$k"
+
+		i="$src/$i"
+		k="$dst/$k"
+
+		mkdir -p "$(dirname "$k")"
+
+		cp "$i" "$k"
 	done
 }
 
