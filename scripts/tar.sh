@@ -1,18 +1,16 @@
-#!/bin/sh
+#!/bin/bash
 set -eu
+# shellcheck source=common.sh
+. scripts/common.sh
 
-# Arguments:
-# 1: Out archive
-
-DESTDIR="target/$BUILD_PROFILE/package"
-export DESTDIR
+export DESTDIR="target/$BUILD_PROFILE/package"
 
 mkdir -p "$DESTDIR"
 
 ./scripts/install.sh
 
 tar -acvpf "${1:-zeus.tar.gz}" \
-	-C "$DESTDIR/" \
+	-C "$DESTDIR" \
 	--no-acls \
 	--no-selinux \
 	--no-xattrs \

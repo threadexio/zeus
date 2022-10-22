@@ -2,6 +2,7 @@
 	"cSpell.words": [
 		"builddir",
 		"canonicalize",
+		"DESTDIR",
 		"formatcp",
 		"gopts",
 		"libloading",
@@ -11,6 +12,7 @@
 		"packagelist",
 		"pstore",
 		"resultcount",
+		"rootdir",
 		"runtimes",
 		"verifysource"
 	],

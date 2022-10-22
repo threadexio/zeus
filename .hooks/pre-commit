@@ -12,7 +12,7 @@ if ! cargo fmt --check --all -q; then
 	fatal "Incorrectly formatted code."
 fi
 
-if ! make tar; then
+if ! make build tar; then
 	fatal "Packaging failed."
 fi
 

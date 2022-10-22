@@ -12,3 +12,4 @@
 /.vagrant
 *.tar.gz
 *_history
+__pycache__

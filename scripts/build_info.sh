@@ -17,4 +17,4 @@ set_if_empty RUSTC "$(rustc --version 2>/dev/null)"
 set_if_empty DATE "$(date -u +'%a %b %d %I:%M:%S %p %Z %Y')"
 
 set -u
-echo "($USER@$HOSTNAME) ($RUSTC) $DATE"
+echo "(${USER:-unknown}@${HOSTNAME:-unknown}) (${RUSTC:-rustc not found}) ${DATE:-date unknown}"
