@@ -10,6 +10,8 @@ pub use crate::aur::Package;
 
 use crate::error::*;
 
+// TODO: Make wrappers around pacman, makepkg and git with the builder pattern
+
 pub struct PackageStore {
 	root: PathBuf,
 	lock_handle: fs::File,
@@ -18,10 +20,7 @@ pub struct PackageStore {
 #[allow(dead_code)]
 impl PackageStore {
 	pub fn new(root: &Path) -> Result<Self> {
-		let path = root.canonicalize().context(format!(
-			"Unable to initialize build directory at {}",
-			root.display()
-		))?;
+		let path = root.canonicalize()?;
 
 		if !path.is_dir() {
 			return Err(Error::new(
@@ -31,16 +30,12 @@ impl PackageStore {
 
 		let lock_path = path.join(".zeus.lock");
 
-		// TODO: Proper privilege separation
-
-		// Allow all members of `zeus` to open the lock file for writing
 		umask(Mode::S_IRWXO);
 
 		let lock_handle = fs::File::options()
 			.create(true)
 			.write(true)
-			.open(lock_path)
-			.context("Unable to open lock file")?;
+			.open(lock_path)?;
 
 		Ok(Self { root: path, lock_handle })
 	}
@@ -50,19 +45,13 @@ impl PackageStore {
 	}
 
 	pub fn lock(&mut self) -> Result<()> {
-		self.lock_handle.try_lock_exclusive().context(format!(
-			"Unable to obtain lock on build directory {}",
-			self.root.display()
-		))?;
+		self.lock_handle.try_lock_exclusive()?;
 
 		Ok(())
 	}
 
 	pub fn unlock(&mut self) -> Result<()> {
-		self.lock_handle.unlock().context(format!(
-			"Unable to unlock build directory {}",
-			self.root.display()
-		))?;
+		self.lock_handle.unlock()?;
 
 		Ok(())
 	}
@@ -83,10 +72,7 @@ impl PackageStore {
 	}
 
 	pub fn list(&self) -> Result<Vec<Package>> {
-		let dir = fs::read_dir(&self.root).context(format!(
-			"Unable to access build directory {}",
-			&self.root.display()
-		))?;
+		let dir = fs::read_dir(&self.root)?;
 
 		let mut pkgs = vec![];
 
@@ -130,11 +116,7 @@ impl PackageStore {
 			.stdin(Stdio::inherit())
 			.stdout(Stdio::inherit())
 			.stderr(Stdio::inherit())
-			.status()
-			.context(format!(
-				"unable to clone package {}",
-				package_name
-			))?;
+			.status()?;
 
 		if !cmd.success() {
 			return Err(Error::new(format!(
@@ -145,10 +127,7 @@ impl PackageStore {
 
 		match self.package(package_name) {
 			Some(v) => Ok(v),
-			None => Err(Error::new(format!(
-				"unable to find cloned package {}",
-				package_name
-			))),
+			None => Err(Error::new("unable to find package")),
 		}
 	}
 
@@ -165,13 +144,8 @@ impl PackageStore {
 			.stdin(Stdio::inherit())
 			.stdout(Stdio::inherit())
 			.stderr(Stdio::inherit())
-			.status()
-			.context(format!(
-				"unable to build package {}",
-				&package
-			))?;
+			.status()?;
 
-		// TODO: Handle different makepkg exit codes
 		if !cmd.success() {
 			return Err(Error::new(format!(
 				"makepkg failed with: {}",
@@ -187,17 +161,15 @@ impl PackageStore {
 		&mut self,
 		package: &Package,
 	) -> Result<Vec<PathBuf>> {
+		let pkg_dir = self.package_path(&package.name);
+
 		let cmd = Command::new("makepkg")
 			.args(&["--packagelist"])
-			.current_dir(self.package_path(&package.name))
+			.current_dir(&pkg_dir)
 			.stdin(Stdio::null())
 			.stdout(Stdio::piped())
 			.stderr(Stdio::null())
-			.output()
-			.context(format!(
-				"Unable to get package files for {}",
-				&package
-			))?;
+			.output()?;
 
 		if !cmd.status.success() {
 			return Err(Error::new(format!(
@@ -209,8 +181,7 @@ impl PackageStore {
 		let mut files = vec![];
 
 		for i in String::from_utf8_lossy(&cmd.stdout).lines() {
-			if let Some(k) =
-				Path::new(i).strip_prefix(&self.root).ok()
+			if let Some(k) = Path::new(i).strip_prefix(&pkg_dir).ok()
 			{
 				files.push(k.to_path_buf());
 			}
@@ -225,15 +196,12 @@ impl PackageStore {
 
 		if !self.check_dir(&pkg_dir) {
 			return Err(Error::new(format!(
-				"Invalid package directory {}",
+				"invalid package directory {}",
 				pkg_dir.display()
 			)));
 		}
 
-		std::fs::remove_dir_all(&pkg_dir).context(format!(
-			"Unable to remove {}",
-			pkg_dir.display()
-		))?;
+		std::fs::remove_dir_all(&pkg_dir)?;
 
 		Ok(())
 	}

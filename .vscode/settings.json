@@ -1,8 +1,10 @@
 {
 	"cSpell.words": [
+		"btrfs",
 		"builddir",
 		"canonicalize",
 		"DESTDIR",
+		"distros",
 		"formatcp",
 		"gopts",
 		"libloading",
@@ -10,12 +12,25 @@
 		"lololol",
 		"makepkg",
 		"packagelist",
+		"pacman",
+		"POSIX",
 		"pstore",
 		"resultcount",
 		"rootdir",
 		"runtimes",
+		"sysusers",
 		"verifysource"
 	],
+	"markdownlint.config": {
+		"MD010": false,
+		"MD007": false,
+		"MD041": false,
+		"MD033": false,
+	},
+	"python.analysis.typeCheckingMode": "basic",
+	"todo-tree.tree.showCountsInTree": true,
+	"todo-tree.tree.disableCompactFolders": false,
+	"todo-tree.tree.showBadges": true,
 	"rust-analyzer.runnables.extraArgs": [
 		"--bin=zeus"
 	],
@@ -31,6 +46,6 @@
 		"LOG_LEVEL": "",
 		"VERSION": "",
 		"BUILD_INFO": "",
+		"BUILD_TYPE": "",
 	},
-	"python.analysis.typeCheckingMode": "basic",
 }

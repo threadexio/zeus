@@ -12,8 +12,7 @@ type Receiver = channels::Receiver<Message, UnixStream>;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Message {
 	Init(Config),
-	Packages(Vec<Package>),
-	End,
+	End(Vec<Package>),
 }
 
 pub struct Listener {
@@ -63,7 +62,6 @@ impl Listener {
 
 impl Drop for Listener {
 	fn drop(&mut self) {
-		let _ = self.tx.send(Message::End);
 		let _ = fs::remove_file(self.path.as_path());
 	}
 }

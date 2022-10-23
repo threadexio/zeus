@@ -21,6 +21,10 @@ impl zeus::IRuntime for NullRuntime {
 	fn init(&mut self, _: &GlobalOptions) -> Result<()> {
 		info!("Hello world!");
 
+		warn!(
+			"This runtime does nothing! It is only used for testing."
+		);
+
 		Ok(())
 	}
 
@@ -29,18 +33,22 @@ impl zeus::IRuntime for NullRuntime {
 	}
 
 	fn list_images(&self) -> Result<Vec<String>> {
+		info!("Runtime::list_images()");
 		Ok(vec![])
 	}
 
 	fn make_image(&mut self, _image_name: &str) -> Result<()> {
+		info!("Runtime::make_image()");
 		Ok(())
 	}
 
 	fn delete_image(&mut self, _image_name: &str) -> Result<()> {
+		info!("Runtime::delete_image()");
 		Ok(())
 	}
 
 	fn list_machines(&self) -> Result<Vec<String>> {
+		info!("Runtime::list_machines()");
 		Ok(vec![])
 	}
 
@@ -50,18 +58,22 @@ impl zeus::IRuntime for NullRuntime {
 		_image_name: &str,
 		_config: &GlobalOptions,
 	) -> Result<()> {
+		info!("Runtime::create_machine()");
 		Ok(())
 	}
 
 	fn start_machine(&mut self, _machine_name: &str) -> Result<()> {
+		info!("Runtime::start_machine()");
 		Ok(())
 	}
 
 	fn stop_machine(&mut self, _machine_name: &str) -> Result<()> {
+		info!("Runtime::stop_machine()");
 		Ok(())
 	}
 
 	fn delete_machine(&mut self, _machine_name: &str) -> Result<()> {
+		info!("Runtime::delete_machine()");
 		todo!()
 	}
 }

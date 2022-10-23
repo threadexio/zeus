@@ -20,7 +20,33 @@ pub mod init {
 	use std::path::Path;
 
 	fn ipc() -> Result<ipc::Client> {
-		ipc::Client::new(Path::new(".zeus.sock").to_path_buf())
+		use std::{thread::sleep, time::Duration};
+
+		// IMPROVE: a humble attempt to fix the race condition between starting that builder and listening on the socket
+
+		let mut i = 0;
+		loop {
+			match ipc::Client::new(
+				Path::new(".zeus.sock").to_path_buf(),
+			) {
+				Ok(v) => return Ok(v),
+				Err(e) => {
+					if i == 5 {
+						return Err(e.context(
+							"Unable to connect to IPC channel",
+						));
+					}
+
+					debug!("Unable to connect to IPC channel. Retrying...");
+
+					sleep(Duration::from_secs(1));
+
+					i += 1;
+
+					continue;
+				},
+			};
+		}
 	}
 
 	fn package() -> Result<package::PackageStore> {
@@ -54,7 +80,7 @@ pub mod init {
 }
 
 fn main() {
-	info!("Version: {}", constants::VERSION.bright_blue());
+	debug!("Version: {}", constants::VERSION.bright_blue());
 
 	let (config, mut ipc, mut pstore) = match init::all() {
 		Ok(v) => v,
@@ -63,8 +89,6 @@ fn main() {
 			std::process::exit(1);
 		},
 	};
-
-	info!("{:#?}", config);
 
 	let Config { global_opts: opts, operation: op } = config;
 
@@ -81,12 +105,12 @@ fn main() {
 	};
 
 	match r {
-		Ok(v) => v,
+		Ok(_) => {},
 		Err(e) => {
 			error!("{}", e);
 			std::process::exit(3);
 		},
-	}
+	};
 }
 
 // TODO: Finish `sync()`
@@ -99,12 +123,34 @@ fn sync(
 	todo!()
 }
 
-// TODO: Finish `remove()`
+/// Remove packages specified in `opts.packages`. Returns packages that were successfully removed.
 fn remove(
-	_ipc: &mut ipc::Client,
-	_pstore: &mut package::PackageStore,
+	ipc: &mut ipc::Client,
+	pstore: &mut package::PackageStore,
 	_gopts: &GlobalOptions,
-	_opts: RemoveOptions,
+	mut opts: RemoveOptions,
 ) -> Result<()> {
-	todo!()
+	opts.packages.retain(|x| match pstore.package(&x.name) {
+		Some(v) => {
+			match pstore.remove_package(v).context(format!(
+				"Unable to remove package {}",
+				&x.name
+			)) {
+				Ok(_) => true,
+				Err(e) => {
+					warn!("{}", e);
+					false
+				},
+			}
+		},
+		None => {
+			warn!("Package {} is not synced", &x.name);
+			false
+		},
+	});
+
+	ipc.send(ipc::Message::End(opts.packages))
+		.context("Unable to send results back to zeus")?;
+
+	Ok(())
 }

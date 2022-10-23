@@ -36,6 +36,8 @@ pub fn runtime(
 
 			debug!("Test-loading runtime {}", entry_name);
 
+			// TODO: Don't run Runtime::init() here
+
 			let rt = match Runtime::load(&entry.path(), &gopts) {
 				Ok(v) => v,
 				Err(e) => {

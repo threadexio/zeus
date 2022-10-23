@@ -52,7 +52,7 @@ pub fn run_operation(cfg: Config) -> Result<()> {
 	let opts = cfg.global_opts;
 
 	let mut pstore = PackageStore::new(&opts.build_dir)
-		.context("Unable to create package store")?;
+		.context("Unable to initialize build cache")?;
 
 	match cfg.operation {
 		Operation::Build(v) => {
@@ -79,36 +79,24 @@ pub fn run_operation(cfg: Config) -> Result<()> {
 			require_lock(&mut pstore)?;
 			runtime::runtime(opts, v)
 		},
-		Operation::Query(v) => query::query(opts, v),
+		Operation::Query(v) => {
+			query::query(require_lock(&mut pstore)?, opts, v)
+		},
 		Operation::Completions(v) => completions::completions(v),
 	}
 }
 
 pub(self) fn start_builder(
-	_runtime: &mut Runtime,
+	runtime: &mut Runtime,
 	pstore: &mut PackageStore,
 	opts: &GlobalOptions,
 	op: Operation,
-) -> Result<()> {
-	// 1. Establish communication with builder
-	//		- Listen on /var/cache/aur/.zeus.sock
-	//
-	// 2. Send configuration
-	//		- Send `opts`
-	//		- Send current operation `crate::config::Operation` with opts
-	//
-	// 3. Wait for builder to finish
-	//		- Block until further messages
-	//
-	// 4. Receive data
-	//		- Receive failed packages
-	//		- Receive built packages
-	//		- Receive package archives
-	//
-	// 5. Terminate builder
-	//		- Stop builder gracefully or kill it
-	//
-	// 6. Return data
+) -> Result<Vec<Package>> {
+	/*
+	! IMPORTANT: Do not use anything that will write to stdout or stderr here,
+	!            because we expect the runtime to have attached the builder to
+	!            them and doing so might mess up the output.
+	*/
 
 	use crate::ipc::{Listener, Message};
 	use std::thread;
@@ -117,7 +105,8 @@ pub(self) fn start_builder(
 
 	let path = pstore.root().join(".zeus.sock");
 	let handle = thread::Builder::new()
-		.spawn(move || -> Result<()> {
+		.spawn(move || -> Result<Vec<Package>> {
+			debug!("Setting up communication channel...");
 			let mut ipc = Listener::new(path)?;
 
 			ipc.send(Message::Init(config))
@@ -125,24 +114,21 @@ pub(self) fn start_builder(
 
 			loop {
 				match ipc.recv().context("failed to recv message")? {
-					Message::End => {
-						debug!(
-							"End message received. Exiting loop..."
-						);
-						return Ok(());
+					Message::End(pkgs) => {
+						return Ok(pkgs);
 					},
-					m => debug!(
-						"Received message without handler: {:?}",
-						m
-					),
+					_ => {},
 				}
 			}
 		})
-		.context("failed to spawn thread")?;
+		.context("failed to spawn manager thread")?;
 
-	//runtime
-	//	.start_machine(&opts.machine_name)
-	//	.context("unable to start builder")?;
+	debug!("Starting builder...");
+	runtime
+		.start_machine(&opts.machine_name)
+		.context("failed to start builder")?;
+
+	debug!("Builder exited...");
 
 	handle.join().unwrap()
 }

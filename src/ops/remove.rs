@@ -37,15 +37,31 @@ pub fn remove(
 		return Err(Error::new("Aborting..."));
 	}
 
-	super::start_builder(
+	let removed_packages: Vec<Package> = super::start_builder(
 		runtime,
 		pstore,
 		&gopts,
-		Operation::Remove(opts),
+		Operation::Remove(opts.clone()),
 	)
 	.context("Unable to start builder")?;
 
-	// TODO: Handle --uninstall
+	if removed_packages.is_empty() {
+		return Err(Error::new("No packages removed!"));
+	}
+
+	if opts.uninstall {
+		let status = std::process::Command::new("sudo")
+			.args(["--", "pacman", "-R", "-c", "-n", "-s", "--"])
+			.args(removed_packages.iter().map(|x| x.name.as_str()))
+			.status()
+			.context("Unable to run pacman")?;
+
+		if !status.success() {
+			return Err(Error::new(
+				"Failed to uninstall packages with pacman",
+			));
+		}
+	}
 
 	Ok(())
 }

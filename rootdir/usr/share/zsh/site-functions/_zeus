@@ -15,13 +15,15 @@ _zeus() {
 
     local context curcontext="$curcontext" state line
     _arguments "${_arguments_options[@]}" \
-'*--color=[Colorize the output]:COLOR:(auto never always)' \
-'*-l+[Set log level]:LOG_LEVEL:(error warn info debug)' \
-'*--level=[Set log level]:LOG_LEVEL:(error warn info debug)' \
-'*--builddir=[Package build directory]:BUILD_DIR: ' \
-'*--aur=[AUR URL]:AUR: ' \
-'*--rt=[Specify runtime to use]:RUNTIME: ' \
-'*--rtdir=[Specify directory to search for runtimes]:RUNTIME_DIR: ' \
+'--name=[Builder machine name]:MACHINE_NAME: ' \
+'--image=[Builder machine image]:MACHINE_IMAGE: ' \
+'--color=[Colorize the output]:COLOR:(auto never always)' \
+'-l+[Set log level]:LOG_LEVEL:(error warn info debug)' \
+'--level=[Set log level]:LOG_LEVEL:(error warn info debug)' \
+'--builddir=[Package build directory]:BUILD_DIR:_files' \
+'--aur=[AUR URL]:AUR: ' \
+'--rt=[Specify runtime to use]:RUNTIME: ' \
+'--rtdir=[Specify directory to search for runtimes]:RUNTIME_DIR:_files' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 '-V[Print version information]' \
@@ -38,7 +40,6 @@ _zeus() {
             (sync)
 _arguments "${_arguments_options[@]}" \
 '*--build-args=[Extra arguments for makepkg]:BUILD_ARGS: ' \
-'*--name=[Builder machine name]:MACHINE_NAME: ' \
 '-u[Upgrade packages]' \
 '--upgrade[Upgrade packages]' \
 '--install[Install packages after build]' \
@@ -49,7 +50,6 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" \
-'*--name=[Builder machine name]:MACHINE_NAME: ' \
 '--uninstall[Uninstall packages after remove]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
@@ -58,34 +58,32 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (build)
 _arguments "${_arguments_options[@]}" \
-'*--name=[Builder machine name]:MACHINE_NAME: ' \
-'*--image=[Builder machine image]:MACHINE_IMAGE: ' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 && ret=0
 ;;
 (query)
 _arguments "${_arguments_options[@]}" \
-'(-i --info)*--by=[Query AUR packages by]:BY:((name\:"Search by package name"
+'(-i --info)--by=[Query AUR packages by]:BY:((name\:"Search by package name"
 name-desc\:"Search by package name and description"
 maintainer\:"Search by maintainer"
 depends\:"Search by dependencies"
 make-depends\:"Search by dev dependencies"
 opt-depends\:"Search by optional dependencies"
 check-depends\:"Search by testing dependencies"))' \
-'*-o+[Output format]:OUTPUT:(pretty json)' \
-'*--output=[Output format]:OUTPUT:(pretty json)' \
+'-o+[Output format]:OUTPUT:(pretty json)' \
+'--output=[Output format]:OUTPUT:(pretty json)' \
 '(--by)-i[Display additional information on results]' \
 '(--by)--info[Display additional information on results]' \
-'-h[Print help information]' \
-'--help[Print help information]' \
+'-h[Print help information (use `--help` for more detail)]' \
+'--help[Print help information (use `--help` for more detail)]' \
 '*::keywords:' \
 && ret=0
 ;;
 (completions)
 _arguments "${_arguments_options[@]}" \
-'*-s+[Specify shell to generate completions for]:SHELL:(bash fish zsh)' \
-'*--shell=[Specify shell to generate completions for]:SHELL:(bash fish zsh)' \
+'-s+[Specify shell to generate completions for]:SHELL:(bash fish zsh)' \
+'--shell=[Specify shell to generate completions for]:SHELL:(bash fish zsh)' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 && ret=0
@@ -100,8 +98,47 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (help)
 _arguments "${_arguments_options[@]}" \
-'*::subcommand -- The subcommand whose help message to display:' \
+":: :_zeus__help_commands" \
+"*::: :->help" \
 && ret=0
+
+    case $state in
+    (help)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:zeus-help-command-$line[1]:"
+        case $line[1] in
+            (sync)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(remove)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(build)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(query)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(completions)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(runtime)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+&& ret=0
+;;
+        esac
+    ;;
+esac
 ;;
         esac
     ;;
@@ -126,30 +163,73 @@ _zeus__build_commands() {
     local commands; commands=()
     _describe -t commands 'zeus build commands' commands "$@"
 }
+(( $+functions[_zeus__help__build_commands] )) ||
+_zeus__help__build_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus help build commands' commands "$@"
+}
 (( $+functions[_zeus__completions_commands] )) ||
 _zeus__completions_commands() {
     local commands; commands=()
     _describe -t commands 'zeus completions commands' commands "$@"
 }
+(( $+functions[_zeus__help__completions_commands] )) ||
+_zeus__help__completions_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus help completions commands' commands "$@"
+}
 (( $+functions[_zeus__help_commands] )) ||
 _zeus__help_commands() {
-    local commands; commands=()
+    local commands; commands=(
+'sync:Sync packages' \
+'remove:Remove packages' \
+'build:Build/Update builder' \
+'query:Query the AUR' \
+'completions:Generate shell completions' \
+'runtime:Various runtime operations' \
+'help:Print this message or the help of the given subcommand(s)' \
+    )
     _describe -t commands 'zeus help commands' commands "$@"
+}
+(( $+functions[_zeus__help__help_commands] )) ||
+_zeus__help__help_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus help help commands' commands "$@"
+}
+(( $+functions[_zeus__help__query_commands] )) ||
+_zeus__help__query_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus help query commands' commands "$@"
 }
 (( $+functions[_zeus__query_commands] )) ||
 _zeus__query_commands() {
     local commands; commands=()
     _describe -t commands 'zeus query commands' commands "$@"
 }
+(( $+functions[_zeus__help__remove_commands] )) ||
+_zeus__help__remove_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus help remove commands' commands "$@"
+}
 (( $+functions[_zeus__remove_commands] )) ||
 _zeus__remove_commands() {
     local commands; commands=()
     _describe -t commands 'zeus remove commands' commands "$@"
 }
+(( $+functions[_zeus__help__runtime_commands] )) ||
+_zeus__help__runtime_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus help runtime commands' commands "$@"
+}
 (( $+functions[_zeus__runtime_commands] )) ||
 _zeus__runtime_commands() {
     local commands; commands=()
     _describe -t commands 'zeus runtime commands' commands "$@"
+}
+(( $+functions[_zeus__help__sync_commands] )) ||
+_zeus__help__sync_commands() {
+    local commands; commands=()
+    _describe -t commands 'zeus help sync commands' commands "$@"
 }
 (( $+functions[_zeus__sync_commands] )) ||
 _zeus__sync_commands() {

@@ -56,7 +56,7 @@ pub fn sync(
 		return Err(Error::new("Aborting..."));
 	}
 
-	super::start_builder(
+	let installed_packages = super::start_builder(
 		&mut runtime,
 		pstore,
 		&gopts,

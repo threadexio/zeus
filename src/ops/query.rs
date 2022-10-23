@@ -57,9 +57,38 @@ fn print_pretty_package(package: &aur::Package) {
 	println!("");
 }
 
-pub fn query(gopts: GlobalOptions, opts: QueryOptions) -> Result<()> {
+pub fn query(
+	pstore: &mut PackageStore,
+	gopts: GlobalOptions,
+	opts: QueryOptions,
+) -> Result<()> {
 	if opts.keywords.is_empty() {
-		return Err(Error::new("No keywords specified"));
+		let pkgs =
+			pstore.list().context("Unable to get synced packages")?;
+
+		match opts.output {
+			Output::Pretty => {
+				for x in pkgs {
+					println!("{}", &x.name);
+				}
+			},
+			Output::Json => {
+				println!(
+					"{}",
+					serde_json::to_string(
+						&pkgs
+							.iter()
+							.map(|x| x.name.as_str())
+							.collect::<Vec<_>>()
+					)
+					.context(
+						"Unable to serialize packages to JSON"
+					)?
+				);
+			},
+		}
+
+		return Ok(());
 	}
 
 	let data = match opts.info {
