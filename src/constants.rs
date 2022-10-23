@@ -13,6 +13,14 @@ macro_rules! from_env {
 		pub const $varname: &'static str =
 			env!($envvar, concat!(stringify!($envvar), " not set"));
 	};
+	($varname:ident, $envvar:tt = $default:expr) => {
+		#[allow(dead_code)]
+		pub const $varname: &'static str = match option_env!($envvar)
+		{
+			Some(v) => v,
+			None => $default,
+		};
+	};
 }
 
 from_env!(NAME, "CARGO_CRATE_NAME");
@@ -24,6 +32,7 @@ from_env!(AUTHORS, "CARGO_PKG_AUTHORS");
 
 from_env!(VERSION);
 from_env!(BUILD_INFO);
+from_env!(BUILD_TYPE, "BUILD_TYPE" = "unknown");
 
 from_env!(LOG_LEVEL);
 from_env!(DATA_DIR);
@@ -36,7 +45,7 @@ from_env!(RUNTIME_DIR);
 from_env!(LIB_DIR);
 
 pub const LONG_VERSION: &'static str = formatcp!(
-	r#"{VERSION} {BUILD_INFO}
+	r#"{VERSION}-{BUILD_TYPE} {BUILD_INFO}
 
     _oo     Copyright lololol (C) 2022 {AUTHORS}
  >-(_  \

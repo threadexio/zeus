@@ -191,7 +191,7 @@ pub struct GlobalOptions {
 		short = 'l',
 		long = "level",
 		help = "Set log level",
-		default_value = "info"
+		default_value = LOG_LEVEL
 	)]
 	pub log_level: crate::log::LogLevel,
 

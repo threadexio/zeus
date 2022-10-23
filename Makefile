@@ -5,13 +5,15 @@ CARGO_ARGS ?=
 DESTDIR ?=
 
 BUILD_TYPE ?= debug
-BUILD_SPEC := build.config.$(BUILD_TYPE).mk
+export BUILD_TYPE
+
+override BUILD_SPEC := build.config.$(BUILD_TYPE).mk
 
 # Check if the spec exists
 ifeq ($(wildcard $(BUILD_SPEC)),)
-	$(error "$(BUILD_SPEC)" does not exist)
+$(error "$(BUILD_SPEC)" does not exist)
 else
-	include $(BUILD_SPEC)
+include $(BUILD_SPEC)
 endif
 
 include build.config.mk
