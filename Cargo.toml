@@ -38,7 +38,6 @@ nix = { version = "0.25", features = ["fs"] }
 libloading = "0.7"
 
 const_format = "0.2"
-thiserror = "1.0"
 
 [workspace]
 members = ["runtimes/zeus_rt_docker", "runtimes/zeus_rt_null"]
