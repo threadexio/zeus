@@ -41,46 +41,41 @@ fn load_runtime(opts: &GlobalOptions) -> Result<Runtime> {
 	Runtime::load(&path, opts).context("Unable to load runtime")
 }
 
-fn require_lock(
-	pstore: &mut PackageStore,
-) -> Result<&mut PackageStore> {
+fn require_lock(pstore: &mut PackageStore<'_>) -> Result<()> {
 	pstore.lock().context("Unable to lock package cache")?;
-	Ok(pstore)
+	Ok(())
 }
 
 pub fn run_operation(cfg: Config) -> Result<()> {
 	let opts = cfg.global_opts;
 
-	let mut pstore = PackageStore::new(&opts.build_dir)
-		.context("Unable to initialize build cache")?;
+	let mut pstore = PackageStore::new(&opts.build_dir);
 
 	match cfg.operation {
 		Operation::Build(v) => {
 			require_lock(&mut pstore)?;
-			let mut runtime = load_runtime(&opts)?;
-			build::build(&mut runtime, opts, v)
+			build::build(&mut load_runtime(&opts)?, opts, v)
 		},
 		Operation::Remove(v) => {
-			let mut runtime = load_runtime(&opts)?;
+			require_lock(&mut pstore)?;
 			remove::remove(
-				&mut runtime,
-				require_lock(&mut pstore)?,
+				&mut load_runtime(&opts)?,
+				&mut pstore,
 				opts,
 				v,
 			)
 		},
-		Operation::Sync(v) => sync::sync(
-			load_runtime(&opts)?,
-			require_lock(&mut pstore)?,
-			opts,
-			v,
-		),
+		Operation::Sync(v) => {
+			require_lock(&mut pstore)?;
+			sync::sync(load_runtime(&opts)?, &mut pstore, opts, v)
+		},
 		Operation::Runtime(v) => {
 			require_lock(&mut pstore)?;
 			runtime::runtime(opts, v)
 		},
 		Operation::Query(v) => {
-			query::query(require_lock(&mut pstore)?, opts, v)
+			require_lock(&mut pstore)?;
+			query::query(&mut pstore, opts, v)
 		},
 		Operation::Completions(v) => completions::completions(v),
 	}
@@ -91,7 +86,7 @@ pub(self) fn start_builder(
 	pstore: &mut PackageStore,
 	opts: &GlobalOptions,
 	op: Operation,
-) -> Result<Vec<Package>> {
+) -> Result<Vec<String>> {
 	/*
 	! IMPORTANT: Do not use anything that will write to stdout or stderr here,
 	!            because we expect the runtime to have attached the builder to
@@ -105,7 +100,7 @@ pub(self) fn start_builder(
 
 	let path = pstore.root().join(".zeus.sock");
 	let handle = thread::Builder::new()
-		.spawn(move || -> Result<Vec<Package>> {
+		.spawn(move || -> Result<Vec<String>> {
 			debug!("Setting up communication channel...");
 			let mut ipc = Listener::new(path)?;
 
@@ -113,11 +108,10 @@ pub(self) fn start_builder(
 				.context("failed to initialize builder")?;
 
 			loop {
-				match ipc.recv().context("failed to recv message")? {
-					Message::End(pkgs) => {
-						return Ok(pkgs);
-					},
-					_ => {},
+				if let Message::End(pkgs) =
+					ipc.recv().context("failed to recv message")?
+				{
+					return Ok(pkgs);
 				}
 			}
 		})

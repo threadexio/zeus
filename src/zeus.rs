@@ -1,3 +1,4 @@
+#![deny(warnings)]
 mod aur;
 mod config;
 mod constants;
@@ -41,6 +42,13 @@ fn main() {
 						.with_fg(inquire::ui::Color::LightGreen),
 				),
 		);
+	}
+
+	// Setup umask
+	{
+		use nix::sys::stat::{umask, Mode};
+
+		umask(Mode::S_IRWXO);
 	}
 
 	let res = ops::run_operation(args);

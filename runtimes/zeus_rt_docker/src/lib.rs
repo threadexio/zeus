@@ -47,7 +47,7 @@ impl IRuntime for DockerRuntime {
 
 	fn init(&mut self, _: &GlobalOptions) -> Result<()> {
 		self.docker_bin = env::var("DOCKER_BIN")
-			.unwrap_or(String::from("/usr/bin/docker"));
+			.unwrap_or_else(|_| String::from("/usr/bin/docker"));
 
 		Ok(())
 	}
@@ -233,4 +233,4 @@ impl IRuntime for DockerRuntime {
 	}
 }
 
-const DOCKER_EXEC_ERROR: &'static str = "Failed to execute docker";
+const DOCKER_EXEC_ERROR: &str = "Failed to execute docker";

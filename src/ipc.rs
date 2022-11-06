@@ -2,7 +2,6 @@ use std::fs;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
 
-use crate::aur::Package;
 use crate::config::Config;
 use crate::error::*;
 
@@ -12,7 +11,7 @@ type Receiver = channels::Receiver<Message, UnixStream>;
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Message {
 	Init(Config),
-	End(Vec<Package>),
+	End(Vec<String>),
 }
 
 pub struct Listener {

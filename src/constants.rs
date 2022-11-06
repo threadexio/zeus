@@ -44,7 +44,7 @@ from_env!(RUNTIME);
 from_env!(RUNTIME_DIR);
 from_env!(LIB_DIR);
 
-pub const LONG_VERSION: &'static str = formatcp!(
+pub const LONG_VERSION: &str = formatcp!(
 	r#"{VERSION}-{BUILD_TYPE} {BUILD_INFO}
 
     _oo     Copyright lololol (C) 2022 {AUTHORS}

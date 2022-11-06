@@ -9,18 +9,19 @@ pub fn remove(
 	if opts.packages.is_empty() {
 		opts.packages = inquire::MultiSelect::new(
 			"Select packages to remove:",
-			pstore.list()?.drain(..).map(|x| x.name).collect(),
+			pstore
+				.list_pkgs()?
+				.drain(..)
+				.map(|x| x.name().to_string())
+				.collect(),
 		)
-		.prompt()?
-		.drain(..)
-		.map(|x| Package { name: x, ..Default::default() })
-		.collect();
+		.prompt()?;
 	} else {
 		opts.packages.retain(|x| {
-			if pstore.exists(&x.name) {
+			if pstore.get_pkg(x).is_none() {
 				true
 			} else {
-				warn!("{}: Not synced", &x.name);
+				warn!("{}: Not synced", x);
 				false
 			}
 		});
@@ -37,7 +38,7 @@ pub fn remove(
 		return Err(Error::new("Aborting..."));
 	}
 
-	let removed_packages: Vec<Package> = super::start_builder(
+	let removed_packages = super::start_builder(
 		runtime,
 		pstore,
 		&gopts,
@@ -50,11 +51,15 @@ pub fn remove(
 	}
 
 	if opts.uninstall {
-		let status = std::process::Command::new("sudo")
-			.args(["--", "pacman", "-R", "-c", "-n", "-s", "--"])
-			.args(removed_packages.iter().map(|x| x.name.as_str()))
-			.status()
-			.context("Unable to run pacman")?;
+		let status = tools::Pacman::default()
+			.attach(true)
+			.remove()
+			.cascade()
+			.recursive()
+			.args(&removed_packages)
+			.wait()
+			.context("Unable to run pacman")?
+			.status;
 
 		if !status.success() {
 			return Err(Error::new(

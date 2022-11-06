@@ -17,9 +17,9 @@ complete -c zeus -n "__fish_use_subcommand" -f -a "runtime" -d 'Various runtime 
 complete -c zeus -n "__fish_use_subcommand" -f -a "help" -d 'Print this message or the help of the given subcommand(s)'
 complete -c zeus -n "__fish_seen_subcommand_from sync" -l build-args -d 'Extra arguments for makepkg' -r
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s u -l upgrade -d 'Upgrade packages'
-complete -c zeus -n "__fish_seen_subcommand_from sync" -l install -d 'Install packages after build'
+complete -c zeus -n "__fish_seen_subcommand_from sync" -l install -d 'Install packages after build (needs root)'
 complete -c zeus -n "__fish_seen_subcommand_from sync" -s h -l help -d 'Print help information'
-complete -c zeus -n "__fish_seen_subcommand_from remove" -l uninstall -d 'Uninstall packages after remove'
+complete -c zeus -n "__fish_seen_subcommand_from remove" -l uninstall -d 'Uninstall packages after remove (needs root)'
 complete -c zeus -n "__fish_seen_subcommand_from remove" -s h -l help -d 'Print help information'
 complete -c zeus -n "__fish_seen_subcommand_from build" -s h -l help -d 'Print help information'
 complete -c zeus -n "__fish_seen_subcommand_from query" -l by -d 'Query AUR packages by' -r -f -a "{name	Search by package name,name-desc	Search by package name and description,maintainer	Search by maintainer,depends	Search by dependencies,make-depends	Search by dev dependencies,opt-depends	Search by optional dependencies,check-depends	Search by testing dependencies}"

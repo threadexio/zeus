@@ -1,26 +1,5 @@
 {
-	"cSpell.words": [
-		"btrfs",
-		"builddir",
-		"canonicalize",
-		"DESTDIR",
-		"distros",
-		"formatcp",
-		"gopts",
-		"libloading",
-		"librt",
-		"lololol",
-		"makepkg",
-		"packagelist",
-		"pacman",
-		"POSIX",
-		"pstore",
-		"resultcount",
-		"rootdir",
-		"runtimes",
-		"sysusers",
-		"verifysource"
-	],
+	// Linters
 	"markdownlint.config": {
 		"MD010": false,
 		"MD007": false,
@@ -28,9 +7,8 @@
 		"MD033": false,
 	},
 	"python.analysis.typeCheckingMode": "basic",
-	"todo-tree.tree.showCountsInTree": true,
-	"todo-tree.tree.disableCompactFolders": false,
-	"todo-tree.tree.showBadges": true,
+	"rust-analyzer.checkOnSave.command": "clippy",
+	// Autocomplete
 	"rust-analyzer.runnables.extraArgs": [
 		"--bin=zeus"
 	],
@@ -48,4 +26,36 @@
 		"BUILD_INFO": "",
 		"BUILD_TYPE": "",
 	},
+	// Misc
+	"cSpell.words": [
+		"btrfs",
+		"builddir",
+		"canonicalize",
+		"DESTDIR",
+		"distros",
+		"formatcp",
+		"gopts",
+		"libloading",
+		"librt",
+		"lololol",
+		"makepkg",
+		"noconfirm",
+		"packagelist",
+		"pacman",
+		"POSIX",
+		"pstore",
+		"resultcount",
+		"rootdir",
+		"runtimes",
+		"sysusers",
+		"verifysource"
+	],
+	"cSpell.ignorePaths": [
+		".git/objects",
+		".vscode",
+		"src/package/tools.rs"
+	],
+	"todo-tree.tree.showCountsInTree": true,
+	"todo-tree.tree.disableCompactFolders": false,
+	"todo-tree.tree.showBadges": true,
 }

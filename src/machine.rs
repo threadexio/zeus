@@ -117,8 +117,8 @@ pub trait IRuntime {
 	/// Delete an image.
 	///
 	/// If:
-	/// 	- the image does NOT exist
-	/// 	- there are machines using the image
+	///     - the image does NOT exist
+	///     - there are machines using the image
 	///
 	/// Then:
 	///
@@ -131,7 +131,7 @@ pub trait IRuntime {
 	/// Create a machine and apply the necessary configuration.
 	///
 	/// If:
-	/// 	- the machine already exists
+	///     - the machine already exists
 	///
 	/// Then:
 	///
@@ -147,7 +147,7 @@ pub trait IRuntime {
 	/// forwarded the communication socket to the machine.
 	///
 	/// If:
-	/// 	- the machine does NOT exist
+	///     - the machine does NOT exist
 	///
 	/// Then:
 	///
@@ -157,7 +157,7 @@ pub trait IRuntime {
 	/// Stop a machine.
 	///
 	/// If:
-	/// 	- the machine does NOT exist
+	///     - the machine does NOT exist
 	///
 	/// Then:
 	///
@@ -167,7 +167,7 @@ pub trait IRuntime {
 	/// Delete a machine completely.
 	///
 	/// If:
-	/// 	- the machine does NOT exist
+	///     - the machine does NOT exist
 	///
 	/// Then:
 	///

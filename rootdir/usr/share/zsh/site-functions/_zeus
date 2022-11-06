@@ -42,7 +42,7 @@ _arguments "${_arguments_options[@]}" \
 '*--build-args=[Extra arguments for makepkg]:BUILD_ARGS: ' \
 '-u[Upgrade packages]' \
 '--upgrade[Upgrade packages]' \
-'--install[Install packages after build]' \
+'--install[Install packages after build (needs root)]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 '*::packages:' \
@@ -50,7 +50,7 @@ _arguments "${_arguments_options[@]}" \
 ;;
 (remove)
 _arguments "${_arguments_options[@]}" \
-'--uninstall[Uninstall packages after remove]' \
+'--uninstall[Uninstall packages after remove (needs root)]' \
 '-h[Print help information]' \
 '--help[Print help information]' \
 '*::packages:' \

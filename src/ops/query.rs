@@ -54,7 +54,7 @@ fn print_pretty_package(package: &aur::Package) {
 	print_if_some!("Maintainer", &package.maintainer);
 	print_if_some!("Out Of Date", &package.out_of_date);
 
-	println!("");
+	println!();
 }
 
 pub fn query(
@@ -63,13 +63,14 @@ pub fn query(
 	opts: QueryOptions,
 ) -> Result<()> {
 	if opts.keywords.is_empty() {
-		let pkgs =
-			pstore.list().context("Unable to get synced packages")?;
+		let pkgs = pstore
+			.list_pkgs()
+			.context("Unable to get synced packages")?;
 
 		match opts.output {
 			Output::Pretty => {
 				for x in pkgs {
-					println!("{}", &x.name);
+					println!("{}", x.name());
 				}
 			},
 			Output::Json => {
@@ -78,7 +79,7 @@ pub fn query(
 					serde_json::to_string(
 						&pkgs
 							.iter()
-							.map(|x| x.name.as_str())
+							.map(|x| x.name())
 							.collect::<Vec<_>>()
 					)
 					.context(
@@ -119,11 +120,7 @@ pub fn query(
 						"=>".green(),
 						package.name.bold(),
 						package.version.bright_blue(),
-						package
-							.description
-							.as_ref()
-							.map(|x| x.as_str())
-							.unwrap_or("")
+						package.description.as_deref().unwrap_or("")
 					);
 				}
 			}

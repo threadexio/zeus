@@ -36,57 +36,28 @@ pub struct SyncOptions {
 	#[clap(short, long, help = "Upgrade packages")]
 	pub upgrade: bool,
 
-	#[clap(long, help = "Install packages after build")]
+	#[clap(long, help = "Install packages after build (needs root)")]
 	pub install: bool,
 
 	#[clap(long, help = "Extra arguments for makepkg")]
 	pub build_args: Vec<String>,
 
-	/*
-	#[clap(
-		long = "name",
-		help = "Builder machine name",
-		default_value = BUILDER_NAME
-	)]
-	pub machine_name: String,
-	 */
-	pub packages: Vec<aur::Package>,
+	pub packages: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Args)]
 pub struct RemoveOptions {
-	#[clap(long, help = "Uninstall packages after remove")]
+	#[clap(
+		long,
+		help = "Uninstall packages after remove (needs root)"
+	)]
 	pub uninstall: bool,
 
-	/*
-	#[clap(
-		long = "name",
-		help = "Builder machine name",
-		default_value = BUILDER_NAME
-	)]
-	pub machine_name: String,
-	*/
-	pub packages: Vec<aur::Package>,
+	pub packages: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Args)]
-pub struct BuildOptions {
-	/*
-	#[clap(
-		long = "name",
-		help = "Builder machine name",
-		default_value = BUILDER_NAME
-	)]
-	pub machine_name: String,
-
-	#[clap(
-		long = "image",
-		help = "Builder machine image",
-		default_value = BUILDER_IMAGE
-	)]
-	pub machine_image: String,
-	*/
-}
+pub struct BuildOptions {}
 
 #[derive(Debug, Clone, Serialize, Deserialize, Args)]
 pub struct QueryOptions {
@@ -135,32 +106,45 @@ pub struct RuntimeOptions {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Subcommand)]
 pub enum Operation {
-	#[clap(name = "sync", about = "Sync packages", short_flag = 'S')]
+	#[clap(
+		name = "sync",
+		about = "Sync packages",
+		short_flag = 'S',
+		long_flag = "sync"
+	)]
 	Sync(SyncOptions),
 	#[clap(
 		name = "remove",
 		about = "Remove packages",
-		short_flag = 'R'
+		short_flag = 'R',
+		long_flag = "remove"
 	)]
 	Remove(RemoveOptions),
 	#[clap(
 		name = "build",
 		about = "Build/Update builder",
-		short_flag = 'B'
+		short_flag = 'B',
+		long_flag = "builder"
 	)]
 	Build(BuildOptions),
 	#[clap(
 		name = "query",
 		about = "Query the AUR",
-		short_flag = 'Q'
+		short_flag = 'Q',
+		long_flag = "query"
 	)]
 	Query(QueryOptions),
 	#[clap(
 		name = "completions",
-		about = "Generate shell completions"
+		about = "Generate shell completions",
+		long_flag = "completions"
 	)]
 	Completions(CompletionOptions),
-	#[clap(name = "runtime", about = "Various runtime operations")]
+	#[clap(
+		name = "runtime",
+		about = "Various runtime operations",
+		long_flag = "runtime"
+	)]
 	Runtime(RuntimeOptions),
 }
 

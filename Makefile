@@ -29,8 +29,15 @@ COMPLETIONS_FISH := rootdir/usr/share/fish/vendor_completions.d/zeus.fish
 
 all: build
 
-build:
+build: clippy
 	$(CARGO) build --workspace $(CARGO_ARGS) --
+
+TEST ?=
+test: clippy
+	$(CARGO) test $(CARGO_ARGS) -- $(TEST) --nocapture --exact
+
+clippy:
+	$(CARGO) clippy
 
 clean:
 	$(CARGO) clean --
@@ -53,4 +60,4 @@ install_tar:
 cargo:
 	$(CARGO) $(CARGO_ARGS)
 
-.PHONY: all build clean completions install tar cargo
+.PHONY: all build test clippy clean completions install tar install_tar cargo

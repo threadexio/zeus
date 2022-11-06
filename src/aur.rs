@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::constants;
 
 const AUR_VERSION: usize = 5;
-const AUR_RPC: &'static str =
+const AUR_RPC: &str =
 	const_format::formatcp!("rpc/?v={}", AUR_VERSION);
 
 /// Type alias for request results
@@ -16,7 +16,7 @@ pub type AurResult = reqwest::Result<AurResponse>;
 
 /// Package search types
 #[derive(
-	Debug, Clone, PartialEq, Serialize, Deserialize, ValueEnum,
+	Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ValueEnum,
 )]
 pub enum By {
 	/// Search by package name
@@ -54,7 +54,7 @@ impl fmt::Display for By {
 }
 
 #[derive(
-	Debug, Clone, PartialEq, Serialize, Deserialize, ValueEnum,
+	Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ValueEnum,
 )]
 pub enum Output {
 	Pretty,
@@ -147,7 +147,7 @@ pub struct AurResponse {
 	pub version: u8,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Serialize, Deserialize)]
 pub struct Aur {
 	url: String,
 }
@@ -155,8 +155,8 @@ pub struct Aur {
 #[allow(dead_code)]
 impl Aur {
 	pub fn new(mut url: String) -> Self {
-		if !url.ends_with('/') {
-			url.push('/')
+		if url.ends_with('/') {
+			url.pop();
 		}
 
 		Self { url }
@@ -175,7 +175,7 @@ impl Aur {
 		T: fmt::Display,
 	{
 		let mut url = format!(
-			"{}{}&type=search&by={}",
+			"{}/{}&type=search&by={}",
 			&self.url,
 			AUR_RPC,
 			by.to_string().to_lowercase()
@@ -198,7 +198,7 @@ impl Aur {
 	where
 		T: fmt::Display,
 	{
-		let mut url = format!("{}{}&type=info", &self.url, AUR_RPC,);
+		let mut url = format!("{}/{}&type=info", &self.url, AUR_RPC,);
 
 		for package in packages {
 			url.push_str(&format!("&arg[]={}", package));
