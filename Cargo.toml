@@ -1,59 +1,52 @@
 [package]
 name = "zeus"
-version = "0.1.0"
 edition = "2021"
-authors = ["threadexio"]
+version = "0.1.0"
+authors = ["threadexio <pzarganitis@gmail.com>"]
 description = "Containerized AUR helper"
-readme = "README.md"
 homepage = "https://github.com/threadexio/zeus"
 repository = "https://github.com/threadexio/zeus"
 license = "GPL-3.0-or-later"
+readme = "README.md"
 
-[[bin]]
-name = "zeus"
-path = "src/zeus.rs"
-
-[[bin]]
-name = "builder"
-path = "src/builder.rs"
+build = "build.rs"
+publish = false
+default-run = "zeus"
 
 [lib]
 name = "zeus"
 path = "src/lib.rs"
 
+[[bin]]
+name = "zeus"
+path = "src/main.rs"
+
+[[bin]]
+name = "builder"
+path = "src/builder.rs"
 
 [dependencies]
-colored = "2"
-inquire = "0.4"
-clap = { version = "4.0", features = ["cargo", "derive"] }
-clap_complete = "4.0"
+thiserror = "1.0"
+const_format = { version = "0.2" }
 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-channels = "0.5.0"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
+channels = "0.5.0"
+toml = "0.5"
+
+clap = { version = "3.2.23", features = ["cargo", "derive"] }
+clap_complete = { version = "3.2.5" }
+inquire = "0.4"
+colored = "2"
 
 fs4 = { version = "0.6", features = ["sync"] }
 nix = { version = "0.25", features = ["fs"] }
 libloading = "0.7"
 
-const_format = "0.2"
+[build-dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
 
 [workspace]
-members = ["runtimes/zeus_rt_docker", "runtimes/zeus_rt_null"]
-
-[profile.dev]
-opt-level = 0
-debug = true
-debug-assertions = true
-overflow-checks = true
-lto = "off"
-strip = false
-
-[profile.release]
-opt-level = "s"
-debug = false
-debug-assertions = false
-overflow-checks = true
-lto = "fat"
-strip = "debuginfo"
+members = ["runtimes/*"]

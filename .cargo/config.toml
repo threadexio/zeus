@@ -1,0 +1,16 @@
+[profile.dev]
+opt-level = 0
+lto = false
+debug = true
+debug-assertions = true
+overflow-checks = true
+strip = false
+
+[profile.release]
+opt-level = "s"
+lto = true
+debug = false
+debug-assertions = false
+overflow-checks = false
+strip = true
+panic = "abort"

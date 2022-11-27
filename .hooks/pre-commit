@@ -6,13 +6,13 @@ fatal() {
 	exit 1
 }
 
-export BUILD_TYPE=release
+export PROFILE=release
 
-if ! cargo fmt --check --all -q; then
-	fatal "Incorrectly formatted code."
+if ! make check; then
+	fatal "Fix your work"
 fi
 
-if ! make build tar; then
-	fatal "Packaging failed."
+if ! make test; then
+	fatal "Tests failed."
 fi
 

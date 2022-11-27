@@ -1,63 +1,55 @@
-CARGO ?= cargo
+MAKEFLAGS += --no-builtin-rules --warn-undefined-variables --no-keep-going --no-print-directory
 
+CARGO ?= cargo
 CARGO_ARGS ?=
 
+override CARGO_JOBS := -j$(shell expr $(shell nproc) + 2)
+
+PROFILE ?= dev
+export PROFILE
+
 DESTDIR ?=
+export DESTDIR
 
-BUILD_TYPE ?= debug
-export BUILD_TYPE
+CARGO_ARGS += --profile $(PROFILE)
 
-override BUILD_SPEC := build.config.$(BUILD_TYPE).mk
-
-# Check if the spec exists
-ifeq ($(wildcard $(BUILD_SPEC)),)
-$(error "$(BUILD_SPEC)" does not exist)
-else
-include $(BUILD_SPEC)
-endif
-
-include build.config.mk
-
-MAKEFLAGS += --warn-undefined-variables --no-keep-going --no-print-directory
-
-REQUIRED_CARGO_ARGS := -j$(shell nproc)
-CARGO_ARGS += $(REQUIRED_CARGO_ARGS)
-
-COMPLETIONS_BASH := rootdir/usr/share/bash-completion/completions/zeus
-COMPLETIONS_ZSH  := rootdir/usr/share/zsh/site-functions/_zeus
-COMPLETIONS_FISH := rootdir/usr/share/fish/vendor_completions.d/zeus.fish
+###
+### Recipes
+###
 
 all: build
 
-build: clippy
-	$(CARGO) build --workspace $(CARGO_ARGS) --
-
-TEST ?=
-test: clippy
-	$(CARGO) test $(CARGO_ARGS) -- $(TEST) --nocapture --exact
-
-clippy:
+check:
 	$(CARGO) clippy
 
+build:
+	$(CARGO) build $(CARGO_JOBS) $(CARGO_ARGS) --all-features --workspace
+
 clean:
-	$(CARGO) clean --
-	rm zeus.tar.gz
+	$(CARGO) clean
+
+test: build
+	$(CARGO) test $(CARGO_JOBS) $(CARGO_ARGS) --all-features --workspace
 
 completions:
-	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=bash > "$(COMPLETIONS_BASH)"
-	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=zsh > "$(COMPLETIONS_ZSH)"
-	$(CARGO) run --bin=zeus -q $(CARGO_ARGS) -- completions --shell=fish > "$(COMPLETIONS_FISH)"
+	./build/zeus completions -s bash > overlay/usr/share/bash-completion/completions/zeus
+	./build/zeus completions -s fish > overlay/usr/share/fish/vendor_completions.d/zeus.fish
+	./build/zeus completions -s zsh  > overlay/usr/share/zsh/site-functions/_zeus
 
-install:
-	fakeroot ./scripts/install.sh
+install: build
+	./scripts/install.sh
 
-tar:
+tar: build
 	fakeroot ./scripts/tar.sh
 
-install_tar:
-	sudo tar -axvpf zeus.tar.gz -C /
+# Build is not PHONY because we can use the symlink
+# (/build) from build.rs as a build condition.
+.PHONY: all check clean test completions install tar
 
-cargo:
-	$(CARGO) $(CARGO_ARGS)
+###
+### Flows
+###
 
-.PHONY: all build test clippy clean completions install tar install_tar cargo
+ci-flow: clean build test tar
+
+.PHONY: ci-flow

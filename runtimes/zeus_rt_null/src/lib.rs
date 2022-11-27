@@ -1,11 +1,9 @@
-use zeus::prelude::*;
+use zeus::*;
 
 #[derive(Default)]
-pub struct NullRuntime;
+struct NullRuntime;
 
-declare_runtime!(NullRuntime, NullRuntime::default);
-
-impl zeus::IRuntime for NullRuntime {
+impl IRuntime for NullRuntime {
 	fn name(&self) -> &'static str {
 		"null"
 	}
@@ -14,14 +12,10 @@ impl zeus::IRuntime for NullRuntime {
 		env!("CARGO_PKG_VERSION", "must be built with cargo")
 	}
 
-	fn rt_api_version(&self) -> u32 {
-		Runtime::RT_API_VERSION
-	}
-
 	fn init(&mut self, _: &GlobalOptions) -> Result<()> {
 		info!("Hello world!");
 
-		warn!(
+		warning!(
 			"This runtime does nothing! It is only used for testing."
 		);
 
@@ -77,3 +71,5 @@ impl zeus::IRuntime for NullRuntime {
 		todo!()
 	}
 }
+
+runtime!(NullRuntime::default);

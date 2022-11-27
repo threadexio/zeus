@@ -1,6 +1,6 @@
 # cargo
-/target
-/.cargo
+target
+/build
 
 # Vscode
 /.vscode/*
@@ -13,3 +13,4 @@
 *.tar.gz
 *_history
 __pycache__
+/tmp

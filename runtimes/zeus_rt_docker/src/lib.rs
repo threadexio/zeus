@@ -2,8 +2,7 @@
 //! Available user configuration is done by the
 //! following environment variables:
 //! - `DOCKER_BIN` - This must point to the docker cli tool. (default: `/usr/bin/docker`)
-
-use zeus::prelude::*;
+use zeus::*;
 
 use std::env;
 use std::io::BufRead;
@@ -30,7 +29,7 @@ pub struct DockerRuntime {
 	docker_bin: String,
 }
 
-declare_runtime!(DockerRuntime, DockerRuntime::default);
+runtime!(DockerRuntime::default);
 
 impl IRuntime for DockerRuntime {
 	fn name(&self) -> &'static str {
@@ -39,10 +38,6 @@ impl IRuntime for DockerRuntime {
 
 	fn version(&self) -> &'static str {
 		env!("CARGO_PKG_VERSION", "must be built with cargo")
-	}
-
-	fn rt_api_version(&self) -> u32 {
-		Runtime::RT_API_VERSION
 	}
 
 	fn init(&mut self, _: &GlobalOptions) -> Result<()> {

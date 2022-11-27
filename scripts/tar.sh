@@ -1,17 +1,18 @@
 #!/bin/bash
-set -eu
-# shellcheck source=common.sh
-. scripts/common.sh
+set -eux
 
-export DESTDIR="target/$BUILD_PROFILE/package"
+mkdir ./build/pkgroot
+DESTDIR="$(realpath -e "./build/pkgroot")"
 
-mkdir -p "$DESTDIR"
+export DESTDIR
 
 ./scripts/install.sh
 
-tar -acvpf "${1:-zeus.tar.gz}" \
+tar -acvpf "zeus.tar.gz" \
 	-C "$DESTDIR" \
 	--no-acls \
 	--no-selinux \
 	--no-xattrs \
-	-- "."
+	-- .
+
+rm -rf "${DESTDIR:?}"

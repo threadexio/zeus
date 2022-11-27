@@ -1,0 +1,6 @@
+# Ignore all files inside the
+# data directory except our own
+*
+
+!/Dockerfile
+!/builder

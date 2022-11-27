@@ -1,0 +1,95 @@
+## <-- The hashtag or the pound sign (#) is used to comment out a line.
+##     Commenting out a line means that it will be ignored. So If you need
+##     To make any changes bellow, you should remove the '#' in front.
+
+##
+## This section configures the terminal behavior
+## of zeus (aka what you see when you run it).
+##
+[cli]
+#color = "auto"
+
+##
+## This section configures the logger for zeus.
+##
+[log]
+#level = "info"
+
+##
+## This section configures the AUR
+## zeus will try and communicate with.
+##
+[aur]
+#url = "https://aur.archlinux.org"
+
+##
+## This section configures the
+## builder that will be used.
+##
+[machine]
+# The builder's name.
+#name = "zeus-builder"
+
+# The builder's base image.
+#image = "zeus-builder"
+
+##
+## This section configures the
+## general environment of zeus.
+##
+[zeus]
+# The default package build directory.
+#build_dir = "/var/cache/aur"
+
+# The runtime that will be used by default.
+#runtime = "docker"
+
+##
+## Default options for when syncing packages.
+##
+[zeus.sync]
+# Should we also try to upgrade the packages?
+#upgrade = false
+
+# Should  we also try to install the packages
+# with pacman?
+#
+# WARNING: Changing this option to true has security implications!
+#          See ArchWiki Arch User Repository § 3.4 Build the package.
+#          https://wiki.archlinux.org/title/Arch_User_Repository#Build_the_package
+#install = false
+
+# Extra arguments to pass to makepkg when building the packages.
+#extra_args = []
+
+##
+## Default options for when removing packages.
+##
+[zeus.remove]
+# Should we try to uninstall the packages with pacman?
+#uninstall = false
+
+##
+## Default options for querying the AUR
+##
+[zeus.query]
+# Should we display extra info for the packages?
+# Limits search to exact package names.
+#info = false
+
+# How should we match packages?
+# Valid values:
+# name           Match by package name
+# name-desc      Match by package name and description
+# maintainer     Match by maintainer name
+# depends        Match by dependency
+# makedepends    Match by dev dependency
+# optdepends     Match by optional dependency
+# checkdepends   Match by test dependency
+#by = "name-desc"
+
+# How should we display the results?
+# Valid values:
+# pretty         Display the results in a human-readable format
+# json           Display the results in JSON
+#output = "pretty"

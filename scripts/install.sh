@@ -1,46 +1,97 @@
-#!/bin/bash
+#!/usr/bin/bash
 set -eu
-# shellcheck source=common.sh
-. scripts/common.sh
+shopt -s nullglob
 
-install() {
-	./scripts/helper.py install "$@"
+PROFILE_DIR="profiles"
+
+function info {
+	printf ' \e[0;36m[*]\e[0m %s\n' "$@"
 }
 
-install_bin() {
-	install --strip --mode 755 "$1" "$2"
+function warn {
+	printf ' \e[0;33m[!]\e[0m %s\n' "$@"
 }
 
-install_lib() {
-	install --strip --mode 644 "$1" "$2"
+function load_profile {
+	# auto export all variable
+	set -a
+	# jq outputs the json structure in a `key=value` format
+	eval "$(jq -r 'to_entries[] | "\(.key)=\(.value)"' "${PROFILE_DIR}/${PROFILE}.json")"
+	set +a
 }
 
-install_file() {
-	install --mode 644 "$1" "$2"
+# install_overlay "<overlay src dir>" "<dest dir>"
+function install_overlay {
+	local src_dir
+	local dst_dir
+
+	# ensure these exist
+	src_dir="$(realpath -e "$1")"
+	dst_dir="$(realpath -e "$2")"
+
+	# paths relative to the overlay root
+	local rel_paths
+	mapfile -t rel_paths < <(find "$src_dir" -not \( -path '*/.hooks*' -or -path '*/.gitkeep' \) -printf '%P\n') # this find command probably wont work on anything other than gnuutils
+	# exlcude all:
+	#  .gitkeep files
+	#  the .hooks directory
+
+	# absolute paths to the source overlay files
+	local src_paths=()
+	for p in "${rel_paths[@]}"; do
+		src_paths+=("$(realpath -e "${src_dir}/$p")")
+	done
+
+	# absolute paths to the destination files
+	local dst_paths=()
+	for p in "${rel_paths[@]}"; do
+		dst_paths+=("$(realpath -m "${dst_dir}/$(eval "echo $p")")")
+	done
+
+	for ((i = 0; i < "${#rel_paths[@]}"; i++)); do
+		local src="${src_paths[i]}"
+		local dst="${dst_paths[i]}"
+
+		if [ -d "$src" ]; then
+			info "D: $dst"
+			mkdir -p -- "$dst"
+		elif [ -r "$src" ]; then
+			info "F: $src -> $dst"
+			install -Dm644 -- "$src" "$dst"
+		fi
+	done
+
+	# Hooks
+	for hook in "$src_dir"/.hooks/*; do
+		if [[ -x "$hook" ]]; then
+			info "Running hook: $hook"
+			"$hook"
+		else
+			warn "Skipping hook: $hook - not executable"
+		fi
+	done
 }
 
-# $1 - Overlay src directory
-# $2 - Destination directory
-install_overlay() {
-	./scripts/helper.py install_overlay "$1" "$2"
-}
+load_profile
 
-install_overlay rootdir/ "$DESTDIR"
+destdir="$(realpath -e "$DESTDIR")"
+export destdir
+export DESTDIR
+
+# Main overlay
+info "Installing main overlay"
+info "======================="
+install_overlay "./overlay/" "$destdir"
+
+printf '\n'
+info "Installing runtime overlays"
+info "==========================="
 
 # Runtime overlays
-for i in runtimes/*; do
-	if [ -d "$i/overlay" ]; then
-		install_overlay "$i/overlay" "$DESTDIR"
-	else
-		warn "$i: No overlay found. Skipping..."
+for rt_dir in runtimes/*/; do
+	rt_overlay_path="$rt_dir/overlay"
+	if [ -d "$rt_overlay_path" ]; then
+		info "Installing runtime for: $rt_dir"
+		install_overlay "$rt_overlay_path" "$destdir"
 	fi
 done
-
-# Runtimes
-for i in target/"$BUILD_PROFILE"/librt_*.so; do
-	install_lib "$i" "$DESTDIR/$RUNTIME_DIR/${i##*/}"
-done
-
-# zeus & builder
-install_bin "target/$BUILD_PROFILE/zeus" "$DESTDIR/$PREFIX/bin/zeus"
-install_bin "target/$BUILD_PROFILE/builder" "$DESTDIR/$DATA_DIR/builder"
