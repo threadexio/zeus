@@ -3,40 +3,32 @@ name: Build
 on: [push]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    if: "!startsWith(github.event.head_commit.message, '[no-ci]')"
+    build:
+        runs-on: ubuntu-latest
+        if: "!startsWith(github.event.head_commit.message, '[no-ci]')"
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v2
+              with:
+                  fetch-depth: 0
 
-      - name: Setup toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          default: true
+            - name: Setup toolchain
+              uses: actions-rs/toolchain@v1
 
-      - name: Format
-        run: |
-          cargo fmt --check --all
+            - name: CI
+              run: |
+                  make PROFILE=release ci-flow
 
-      - name: Build
-        run: |
-          make BUILD_TYPE=release tar
+            - name: Upload build artifacts
+              uses: actions/upload-artifact@v3
+              with:
+                  name: zeus
+                  path: |
+                      zeus.tar.gz
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v3
-        with:
-          name: zeus
-          path: |
-            zeus.tar.gz
-
-      - name: Create release
-        uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/v')
-        with:
-          files: zeus.tar.gz
+            - name: Create release
+              uses: softprops/action-gh-release@v1
+              if: startsWith(github.ref, 'refs/tags/v')
+              with:
+                  files: zeus.tar.gz

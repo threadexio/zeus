@@ -1,134 +1,136 @@
+<br>
 
-[latest-release]: https://github.com/threadexio/zeus/releases/latest
-[release-badge]: https://img.shields.io/github/v/release/threadexio/zeus?style=for-the-badge&display_name=release
+<p align="center">
+ <img src="img/out/optimized.logo.svg" width="300" alt="zeus icon"/>
+</p>
 
-[issues]: https://github.com/threadexio/zeus/issues
-[issues-badge]: https://img.shields.io/github/issues-raw/threadexio/zeus?style=for-the-badge
+<h3 align="center">
+ <img src="img/out/optimized.text.svg" width="100" alt="zeus">
+</h3>
 
-[build]: https://github.com/threadexio/zeus/actions/workflows/build.yaml
-[build-badge]: https://img.shields.io/github/workflow/status/threadexio/zeus/Build?style=for-the-badge
-
-[license]: https://github.com/threadexio/zeus/blob/master/LICENSE
-[license-badge]: https://img.shields.io/github/license/threadexio/zeus?style=for-the-badge
-
-[pkg-aur]: https://aur.archlinux.org/packages/zeus
-[pkg-aur-badge]: https://img.shields.io/aur/version/zeus?style=for-the-badge&label=AUR
-[pkg-bin-aur]: https://aur.archlinux.org/packages/zeus-bin
-[pkg-bin-aur-badge]: https://img.shields.io/aur/version/zeus-bin?style=for-the-badge&label=AUR
-
-[help]: https://github.com/threadexio/zeus/pulls
-[help-badge]: https://img.shields.io/badge/HELP-WANTED-green?style=for-the-badge&logo=github
-
-[wiki]: https://github.com/threadexio/zeus/wiki
-[usage]: https://github.com/threadexio/zeus/wiki/Usage
-[faq]: https://github.com/threadexio/zeus/wiki/FAQ
-[releases]: https://github.com/threadexio/zeus/releases
-[ci]: https://github.com/threadexio/zeus/actions
-[installing]: #installing
-[building]: #building
-
-<!---->
+<br>
 
 <div align="center">
 
-<img src="assets/logo.optimized.svg?width=3" width="30%"/>
-
-# **zeus**
-
-
-**<kbd>[Wiki][wiki]</kbd>** &nbsp; &nbsp;
-**<kbd>[Install][installing]</kbd>** &nbsp; &nbsp;
-**<kbd>[Usage][usage]</kbd>** &nbsp; &nbsp;
-**<kbd>[FAQ][faq]</kbd>** &nbsp; &nbsp;
-**<kbd>[Releases][releases]</kbd>** &nbsp; &nbsp;
-**<kbd>[Issues][issues]</kbd>** &nbsp; &nbsp;
-**<kbd>[CI][ci]</kbd>** &nbsp; &nbsp;
-
----
-
-[![release-badge]][releases]
-[![issues-badge]][issues]
-[![build-badge]][build]
-[![license-badge]][license]
-[![help-badge]][help]
+<a href="https://github.com/threadexio/zeus/releases/latest">
+ <img src="https://img.shields.io/github/v/release/threadexio/zeus?color=%238003fcff&label=version&style=flat-square">
+</a>
+&nbsp;
+<a href="https://github.com/threadexio/zeus/issues">
+ <img src="https://img.shields.io/github/issues/threadexio/zeus?style=flat-square">
+</a>
+&nbsp;
+<a href="https://github.com/threadexio/zeus/actions/workflows/build.yaml">
+ <img src="https://img.shields.io/github/workflow/status/threadexio/zeus/Build?style=flat-square">
+</a>
+&nbsp;
+<a href="https://github.com/threadexio/zeus/blob/master/LICENSE">
+ <img src="https://img.shields.io/github/license/threadexio/zeus?color=%230176ccff&style=flat-square">
+</a>
+&nbsp;
 
 </div>
 
----
-
-**Zeus**. A simple AUR helper which utilizes containers allowing developers and users alike to benefit from it's reproducible, clean and flexible builds. To get started with `zeus` follow the [install instructions][installing] or [build it yourself][building]. Be sure to check out the [wiki][wiki] for anything else.
-
-<br>
-
-## Installing
-
-Currently there are 2 packages in the AUR.
-
-- `zeus` - Which builds from the [latest release][latest-release]
-- `zeus-bin` - Which unpacks prebuilt binaries from the [latest release][latest-release].
-
-|  Package   |               Version               |
-| :--------: | :---------------------------------: |
-|   `zeus`   |     [![pkg-aur-badge]][pkg-aur]     |
-| `zeus-bin` | [![pkg-bin-aur-badge]][pkg-bin-aur] |
-
-> **NOTE:** The binaries for `zeus-bin` are built in [Github Actions][build]
-
-After installing one of the 2 packages, there is one final step towards getting up and running.
-
-Building the actual builder container.
-
-```shell
-zeus -B
-```
-
-> If your user does _**not**_ have access to the docker socket, you will have to run the previous command as root and subsequently every time you want to use the program.
+<div align="center">
+ <img src="https://img.shields.io/static/v1?label=built with&message=rust&color=tan&style=flat-square"/>
+ &nbsp;
+</div>
 
 <br>
-
-## Building
-
-After cloning the repository, use the `build` target in the `Makefile` to build everything.
-
-```shell
-make build
-```
-
-> By default the `build` target builds the debug version, if you wish to build the release version set `BUILD_TYPE=release`.
-
-```shell
-export BUILD_TYPE=release
-make build
-```
-
-Testing local changes can be done in 2 ways.
-
 <br>
 
-### Not installing locally
+<h1>
+ <img src="img/out/optimized.logo.svg" height=25> What is zeus?
+</h1>
 
-This method involves no extra steps.
+**zeus** is a simple AUR helper which utilizes containers allowing developers and users alike to benefit from it's reproducible, clean and flexible builds.
 
-Running the built binary is as simple as:
+<h1>Contents</h1>
 
-```shell
-./target/$BUILD_TYPE/zeus
+- [Features](#features)
+- [Documentation](#documentation)
+- [Installation](#installation)
+	- [Install on ArchLinux](#install-on-archlinux)
+	- [Install on other distros](#install-on-other-distros)
+- [Getting started](#getting-started)
+- [Why zeus?](#why-zeus)
+	- [Everything builds in a container.](#everything-builds-in-a-container)
+	- [You can ensure reliable builds](#you-can-ensure-reliable-builds)
+- [License](#license)
+
+# Features
+
+<!-- TODO: Finish the readme -->
+
+# Documentation
+
+For everything you might need, visit the <a href="https://github.com/threadexio/zeus/wiki" target="_blank">docs</a>.
+
+# Installation
+
+## Install on ArchLinux
+
+Use your other AUR helper to get one of these 2 packages.
+
+<a href="https://aur.archlinux.org/packages/zeus" target="_blank">
+ <img href="https://img.shields.io/aur/version/zeus?label=zeus&logo=archlinux&style=flat-square" alt="zeus">
+</a>
+
+<a href="https://aur.archlinux.org/packages/zeus-bin" target="_blank">
+ <img href="https://img.shields.io/aur/version/zeus-bin?label=zeus&logo=archlinux&style=flat-square" alt="zeus-bin">
+</a>
+
+## Install on other distros
+
+Zeus is build the mindset of using as few dependencies as possible, it only has 4 _real_ dependencies:
+
+- [ ] A working computer
+- [ ] A POSIX compatible filesystem (ext4, btrfs, xfs, ...)
+- [ ] `systemd-sysusers`
+- [ ] A supported container solution (docker)
+
+# Getting started
+
+Getting started with `zeus` is really easy. Just [install it](#installation) and choose your preferred supported container backend and install that too.
+
+> NOTE: If you don't install a backend, you won't be able to build any packages.
+
+After installing one you will have to configure `zeus` to use that one by default. Open `/etc/zeus/zeus.toml` perform the following changes.
+
+**Important:** The backend you choose must have a runtime for zeus. The officially supported backends are:
+- docker
+
+```toml
+...
+[zeus]
+...
+# remove the '#' from the front of the following line
+runtime = "<your backend>"
+...
 ```
 
-<br>
+# Why zeus?
 
-### Installing locally
+- [ ] Do you hate having messy packages leaving stray files?
+- [ ] Do you maintain packages and want to ensure they will always build on a default system?
+- [ ] Do you want an over-engineered AUR helper?
 
-Installing locally for easier testing is possible with the `install` target.
+If you answered yes to any of the previous questions, then `zeus` might be of some use to you.
 
-```shell
-# make install
-```
+How can `zeus` help you?
 
-> `DESTDIR` and `PREFIX` can be used to alter the installation.
+## Everything builds in a container.
 
-After all this you should be able to just run `zeus` directly in the terminal.
+This means cleaning up your build environment is as easy as removing that container.
 
-```shell
-zeus
-```
+## You can ensure reliable builds
+
+The container is just the base image. If your package doesn't build there, then it needs some tweaking.
+
+# License
+
+All source code for `zeus` is licensed under the [GNU General Public License Version 3](./LICENSE).
+
+All art, logos, images found in this repository are licensed under the [Creative Commons Attribution-NonCommercial 4.0 International Public License](img/LICENSE).
+
+Copies of these licenses can be found inside the respective directories.

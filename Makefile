@@ -31,7 +31,7 @@ clean:
 test: build
 	$(CARGO) test $(CARGO_JOBS) $(CARGO_ARGS) --all-features --workspace
 
-completions:
+completions: build
 	./build/zeus completions -s bash > overlay/usr/share/bash-completion/completions/zeus
 	./build/zeus completions -s fish > overlay/usr/share/fish/vendor_completions.d/zeus.fish
 	./build/zeus completions -s zsh  > overlay/usr/share/zsh/site-functions/_zeus
@@ -42,14 +42,13 @@ install: build
 tar: build
 	fakeroot ./scripts/tar.sh
 
-# Build is not PHONY because we can use the symlink
-# (/build) from build.rs as a build condition.
-.PHONY: all check clean test completions install tar
+.PHONY: all check build clean test completions install tar pkg
 
 ###
 ### Flows
 ###
 
-ci-flow: clean build test tar
+ci-flow:
+	make PROFILE=release clean test tar
 
 .PHONY: ci-flow
