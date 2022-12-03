@@ -85,32 +85,3 @@ pub mod __private_log {
 		}
 	}
 }
-
-#[cfg(test)]
-mod tests {
-	#[test]
-	fn test_logging_macros() {
-		use super::*;
-		use crate::*;
-
-		set_log_level!(Level::Debug);
-
-		trace!(facility: "Test", "test");
-		trace!("test");
-
-		debug!(facility: "Test", "test");
-		debug!("test");
-
-		info!(facility: "Test", "test");
-		info!("test");
-
-		warning!(facility: "Test", "test");
-		warning!("test");
-
-		error!(facility: "Test", "test");
-		error!("test");
-
-		fatal!(facility: "Test", "test");
-		fatal!("test");
-	}
-}

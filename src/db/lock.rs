@@ -9,8 +9,6 @@ pub struct Lock {
 	path: PathBuf,
 }
 
-// TODO: Custom errors
-
 impl Lock {
 	/// Create a new unlocked lock
 	pub fn new<P: AsRef<Path>>(path: P) -> Self {

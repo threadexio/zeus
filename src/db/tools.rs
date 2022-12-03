@@ -21,7 +21,7 @@ macro_rules! cmd_tool {
 	}) => {
 		pub struct $tool_name(::std::process::Command);
 
-
+		#[allow(dead_code)]
 		impl $tool_name {
 
 			$(
