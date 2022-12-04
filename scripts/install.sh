@@ -2,7 +2,8 @@
 set -eu
 shopt -s nullglob
 
-PROFILE_DIR="profiles"
+REPO_DIR="$(dirname "$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )")"
+PROFILE_DIR="${REPO_DIR}/profiles"
 
 function info {
 	printf ' \e[0;36m[*]\e[0m %s\n' "$@"
@@ -81,14 +82,14 @@ export DESTDIR
 # Main overlay
 info "Installing main overlay"
 info "======================="
-install_overlay "./overlay/" "$destdir"
+install_overlay "${REPO_DIR}/overlay/" "$destdir"
 
 printf '\n'
 info "Installing runtime overlays"
 info "==========================="
 
 # Runtime overlays
-for rt_dir in runtimes/*/; do
+for rt_dir in "${REPO_DIR}"/runtimes/*/; do
 	rt_overlay_path="$rt_dir/overlay"
 	if [ -d "$rt_overlay_path" ]; then
 		info "Installing runtime for: $rt_dir"

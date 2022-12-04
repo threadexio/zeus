@@ -1,10 +1,11 @@
 # shellcheck shell=bash
 # Maintainer: threadexio <pzarganitis at gmail dot com>
 _zeus_repo="$(realpath -e ..)"
-_zeus_version="$("$_zeus_repo"/scripts/version.sh)"
+_zeus_version="$("${_zeus_repo:?}"/scripts/version.sh)"
+_zeus_archive="${_zeus_repo:?}/zeus.tar.gz"
 
 pkgname="zeus-bin"
-pkgver="$_zeus_version"
+pkgver="${_zeus_version:?}"
 pkgrel=1
 pkgdesc="The containerized AUR helper"
 url="https://github.com/threadexio/zeus"
@@ -15,15 +16,9 @@ optdepends=(
 	'docker: docker container support'
 	'podman-docker: podman container support'
 )
-makedependes=('cargo' 'fakeroot' 'findutils' 'jq' 'make')
 conflicts=('zeus')
 backup=('etc/zeus/zeus.toml')
-source=("file://$_zeus_repo/zeus.tar.gz")
-noextract=("zeus.tar.gz")
-sha256sums=('SKIP')
 
 package() {
-	cd "$srcdir"
-
-	tar -axvpf "zeus.tar.gz" -C "$pkgdir"
+	tar -axvpf "${_zeus_archive}" -C "${pkgdir:?}"
 }
