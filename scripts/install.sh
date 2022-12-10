@@ -14,10 +14,10 @@ function warn {
 }
 
 function load_profile {
-	# auto export all variable
+	# auto export all variables
 	set -a
-	# jq outputs the json structure in a `key=value` format
-	eval "$(jq -r 'to_entries[] | "\(.key)=\(.value)"' "${PROFILE_DIR}/${PROFILE}.json")"
+	# shellcheck source=/dev/null
+	. "${PROFILE_DIR}/${PROFILE}.env"
 	set +a
 }
 

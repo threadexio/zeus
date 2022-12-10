@@ -1,7 +1,5 @@
-use std::collections::HashMap;
 use std::env;
 use std::fmt::Display;
-use std::fs::File;
 use std::path::Path;
 use std::process::Command;
 
@@ -43,7 +41,7 @@ fn main() {
 	set_var("BUILD_INFO", &build_info());
 
 	let file = Path::new("profiles").join(format!(
-		"{}.json",
+		"{}.env",
 		match profile.as_str() {
 			"debug" => "dev",
 			p => p,
@@ -51,13 +49,24 @@ fn main() {
 	));
 
 	println!("cargo:rerun-if-changed={}", file.display());
-	let file = File::open(file).expect("cannot open profile config");
-	let fields: HashMap<String, String> =
-		serde_json::from_reader(file).unwrap();
+	let raw_env =
+		std::fs::read_to_string(file).expect("cannot read profile");
 
-	for (k, v) in fields.iter() {
-		set_var(k, v);
+	for line in raw_env.lines() {
+		let line = line.trim();
+
+		if let Some((k, v)) = line.split_once('=') {
+			set_var(k, v);
+		}
 	}
+
+	//let file = File::open(file).expect("cannot open profile config");
+	//let fields: HashMap<String, String> =
+	//	serde_json::from_reader(file).unwrap()
+
+	//for (k, v) in fields.iter() {
+	//	set_var(k, v);
+	//}
 
 	// symlink the latest build to ./build
 	// so we can install directly from the

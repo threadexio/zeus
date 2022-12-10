@@ -8,7 +8,7 @@ override CARGO_JOBS := -j$(shell expr $(shell nproc) + 2)
 PROFILE ?= dev
 export PROFILE
 
-override PROFILES := $(patsubst profiles/%.json,%,$(wildcard profiles/*.json))
+override PROFILES := $(patsubst profiles/%.env,%,$(wildcard profiles/*.env))
 
 DESTDIR ?= /
 export DESTDIR
@@ -31,10 +31,10 @@ all: build
 check:
 	$(Q)$(CARGO) clippy
 
-build: profiles/$(PROFILE).json
+build: profiles/$(PROFILE).env
 	$(Q)$(CARGO) build $(CARGO_JOBS) $(CARGO_ARGS) --all-features --workspace
 
-test: profiles/$(PROFILE).json
+test: profiles/$(PROFILE).env
 	$(Q)$(CARGO) test $(CARGO_JOBS) $(CARGO_ARGS) --all-features --workspace
 
 clean:
