@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use ::std::{
 	path::{Path, PathBuf},
 	str::FromStr,
@@ -91,7 +93,8 @@ macro_rules! args {
 			$arg_name:ident : $arg_type:ty = $arg_default:expr ; $($arg_path:ident).* : $arg_conf_type:ident,
 		)*
 	}) => {
-		#[derive(Debug)]
+		#[derive(Debug, Clone)]
+		#[derive(serde::Serialize, serde::Deserialize)]
 		$(#[$attr])*
 		pub struct $args_name {
 			$(
@@ -102,9 +105,9 @@ macro_rules! args {
 
 		#[allow(dead_code)]
 		impl $args_name {
-			pub fn new(config: &str, matches: &clap::ArgMatches) -> error::Result<Self> {
+			pub fn new(config: impl AsRef<str>, matches: &clap::ArgMatches) -> error::Result<Self> {
 				let mut x = Self::default();
-				x.parse_config(config)?;
+				x.parse_config(config.as_ref())?;
 				x.parse_matches(matches);
 
 				Ok(x)
@@ -198,7 +201,6 @@ args! {
 }
 
 /// Builds the clap command
-#[allow(unused)]
 pub fn app() -> clap::Command<'static> {
 	use clap::{Arg, Command, ValueHint};
 
@@ -206,6 +208,7 @@ pub fn app() -> clap::Command<'static> {
 		.about(constants::DESCRIPTION)
 		.version(constants::VERSION)
 		.long_version(constants::LONG_VERSION)
+		.author(constants::AUTHORS)
 		.subcommand_required(true)
 		.arg_required_else_help(true)
 		.arg(
@@ -432,4 +435,14 @@ pub fn app() -> clap::Command<'static> {
 	);
 
 	command
+}
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn test_clap_cli() {
+		app().debug_assert()
+	}
 }

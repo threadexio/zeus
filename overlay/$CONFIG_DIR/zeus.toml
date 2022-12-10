@@ -3,16 +3,10 @@
 ##     To make any changes bellow, you should remove the '#' in front.
 
 ##
-## This section configures the terminal behavior
-## of zeus (aka what you see when you run it).
-##
-[cli]
-#color = "auto"
-
-##
 ## This section configures the logger for zeus.
 ##
 [log]
+# The default log level. (--level)
 #level = "info"
 
 ##
@@ -20,6 +14,7 @@
 ## zeus will try and communicate with.
 ##
 [aur]
+# The default AUR url. (--aur)
 #url = "https://aur.archlinux.org"
 
 ##
@@ -27,10 +22,10 @@
 ## builder that will be used.
 ##
 [machine]
-# The builder's name.
+# The builder's name. (--name)
 #name = "zeus-builder"
 
-# The builder's base image.
+# The builder's base image. (--image)
 #image = "zeus-builder"
 
 ##
@@ -38,58 +33,68 @@
 ## general environment of zeus.
 ##
 [zeus]
-# The default package build directory.
+# When to use colored terminal output. (--color)
+#color = "auto"
+
+# The default package build directory. (--build-dir)
 #build_dir = "/var/cache/aur"
 
-# The runtime that will be used by default.
+# The runtime that will be used by default. (--runtime)
 #runtime = "docker"
 
 ##
 ## Default options for when syncing packages.
 ##
 [zeus.sync]
-# Should we also try to upgrade the packages?
+# Should we also try to upgrade the packages? (--upgrade)
 #upgrade = false
 
 # Should  we also try to install the packages
-# with pacman?
+# with pacman? (--install)
 #
 # WARNING: Changing this option to true has security implications!
-#          See ArchWiki Arch User Repository § 3.4 Build the package.
+#          See: ArchWiki Arch User Repository § 3.4 Build the package.
 #          https://wiki.archlinux.org/title/Arch_User_Repository#Build_the_package
 #install = false
 
-# Extra arguments to pass to makepkg when building the packages.
+# Extra arguments to pass to makepkg when building the packages. (--build-args)
 #extra_args = []
 
 ##
 ## Default options for when removing packages.
 ##
 [zeus.remove]
-# Should we try to uninstall the packages with pacman?
+# Should we try to uninstall the packages with pacman? (--uninstall)
 #uninstall = false
 
 ##
 ## Default options for querying the AUR
 ##
 [zeus.query]
-# Should we display extra info for the packages?
-# Limits search to exact package names.
-#info = false
-
 # How should we match packages?
 # Valid values:
-# name           Match by package name
-# name-desc      Match by package name and description
-# maintainer     Match by maintainer name
-# depends        Match by dependency
-# makedepends    Match by dev dependency
-# optdepends     Match by optional dependency
-# checkdepends   Match by test dependency
+#   name           Match by package name
+#   name-desc      Match by package name and description
+#   maintainer     Match by maintainer name
+#   depends        Match by dependency
+#   makedepends    Match by dev dependency
+#   optdepends     Match by optional dependency
+#   checkdepends   Match by test dependency
 #by = "name-desc"
 
 # How should we display the results?
 # Valid values:
-# pretty         Display the results in a human-readable format
-# json           Display the results in JSON
+#   pretty         Display the results in a human-readable format
+#   json           Display the results in JSON
 #output = "pretty"
+
+##
+## Default options for generating completions
+##
+[zeus.completions]
+# The default shell. (--shell)
+# Valid values:
+#  bash
+#  zsh
+#  fish
+#shell = "bash"

@@ -1,4 +1,4 @@
-use std::ffi::OsStr;
+use ::std::ffi::OsStr;
 
 /// Macro to generate complete wrappers around command line programs
 ///

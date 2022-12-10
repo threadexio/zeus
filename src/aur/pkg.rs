@@ -1,9 +1,7 @@
-use std::fmt;
-
-use serde::{Deserialize, Serialize};
-
 /// Package search types
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(
+	Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize,
+)]
 pub enum By {
 	/// Search by package name
 	Name,
@@ -47,7 +45,7 @@ impl By {
 	}
 }
 
-impl std::str::FromStr for By {
+impl ::std::str::FromStr for By {
 	type Err = ();
 
 	fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -66,7 +64,12 @@ impl std::str::FromStr for By {
 
 // schema from: https://aur.archlinux.org/rpc/swagger
 #[derive(
-	Debug, Default, Clone, PartialEq, Serialize, Deserialize,
+	Debug,
+	Default,
+	Clone,
+	PartialEq,
+	serde::Serialize,
+	serde::Deserialize,
 )]
 pub struct Package {
 	#[serde(rename = "ID")]
@@ -135,7 +138,8 @@ pub struct Package {
 	pub keywords: Option<Vec<String>>,
 }
 
-impl std::fmt::Display for Package {
+use ::std::fmt;
+impl fmt::Display for Package {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		write!(f, "{}", &self.name)
 	}

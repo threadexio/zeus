@@ -1,8 +1,7 @@
-use std::fmt;
-use std::time::Duration;
+use ::std::{fmt, time::Duration};
 
-use reqwest::blocking::Client;
-use serde::{Deserialize, Serialize};
+use ::reqwest::blocking::Client;
+use ::serde::{Deserialize, Serialize};
 
 use super::cache::Cache;
 use super::error::*;
@@ -41,14 +40,14 @@ pub struct Aur {
 impl Aur {
 	/// Create a new [`Aur`] that will communicate with the
 	/// server at `url`. This instance will be presented at
-	/// the server as `identity`.
-	pub fn new(url: &str, identity: &str) -> Result<Self> {
-		let url = url.trim().trim_end_matches('/');
+	/// the server as [`crate::constants::AUR_IDENTITY`].
+	pub fn new(url: impl AsRef<str>) -> Result<Self> {
+		let url = url.as_ref().trim().trim_end_matches('/');
 
 		Ok(Self {
 			url: url.to_string(),
 			client: Client::builder()
-				.user_agent(identity.to_string())
+				.user_agent(crate::constants::AUR_IDENTITY)
 				.build()?,
 			cache: Cache::new(Duration::from_secs(5 * 60)), // 5 minutes by default
 		})
@@ -58,7 +57,7 @@ impl Aur {
 	///
 	/// # Example
 	/// ```rust,ignore
-	/// let aur = Aur::new("http://aur.example.com", "my-app/1.0").unwrap();
+	/// let aur = Aur::new("http://aur.example.com").unwrap();
 	///
 	/// assert_eq!(aur.get_url(), "http://aur.example.com");
 	/// ```
@@ -70,7 +69,7 @@ impl Aur {
 	///
 	/// # Example
 	/// ```rust,ignore
-	/// let aur = Aur::new("http://aur.example.com", "my-app/1.0").unwrap();
+	/// let aur = Aur::new("http://aur.example.com").unwrap();
 	///
 	/// aur.url("https://aur.archlinux.org");
 	///
@@ -172,5 +171,13 @@ impl Aur {
 			.drain(..)
 			.map(|name| self.cache.get(&name).unwrap().clone())
 			.collect())
+	}
+}
+
+impl std::str::FromStr for Aur {
+	type Err = Error;
+
+	fn from_str(s: &str) -> Result<Self> {
+		Self::new(s)
 	}
 }

@@ -1,8 +1,10 @@
-use std::borrow::Borrow;
-use std::cmp::Eq;
-use std::collections::HashMap;
-use std::hash::Hash;
-use std::time::{Duration, Instant};
+use ::std::{
+	borrow::Borrow,
+	cmp::Eq,
+	collections::HashMap,
+	hash::Hash,
+	time::{Duration, Instant},
+};
 
 #[derive(Debug, Clone)]
 struct CacheItem<T> {

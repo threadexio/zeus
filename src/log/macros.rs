@@ -19,8 +19,8 @@ pub use set_log_level;
 /// - `trace!`
 #[macro_export]
 macro_rules! log {
-	(facility: $facility:expr, $level:expr, $($arg:tt)+) => {
-		$crate::log::__private_log::imp_log($level, Some($facility), format!($($arg)+))
+	(target: $target:expr, $level:expr, $($arg:tt)+) => {
+		$crate::log::__private_log::imp_log($level, Some($target), format!($($arg)+))
 	};
 	($level:expr, $($arg:tt)+) => {
 		$crate::log::__private_log::imp_log($level, Option::<&str>::None, format!($($arg)*))
@@ -35,13 +35,13 @@ pub use log;
 /// ```
 /// use zeus::fatal;
 ///
-/// fatal!(facility: "network", "Fatal: {}: {}", 42, "some error");
+/// fatal!(target: "network", "Fatal: {}: {}", 42, "some error");
 /// fatal!("Fatal: {}: {}", 42, "some error");
 /// ```
 #[macro_export]
 macro_rules! fatal {
-	(facility: $facility:expr, $($arg:tt)+) => {
-		$crate::log!(facility: $facility, $crate::log::Level::Fatal, $($arg)+)
+	(target: $target:expr, $($arg:tt)+) => {
+		$crate::log!(target: $target, $crate::log::Level::Fatal, $($arg)+)
 	};
 	($($arg:tt)+) => {
 		$crate::log!($crate::log::Level::Fatal, $($arg)+)
@@ -55,13 +55,13 @@ macro_rules! fatal {
 /// ```
 /// use zeus::error;
 ///
-/// error!(facility: "network", "Error: {}: {}", 42, "some error");
+/// error!(target: "network", "Error: {}: {}", 42, "some error");
 /// error!("Error: {}: {}", 42, "some error");
 /// ```
 #[macro_export]
 macro_rules! error {
-	(facility: $facility:expr, $($arg:tt)+) => {
-		$crate::log!(facility: $facility, $crate::log::Level::Error, $($arg)+)
+	(target: $target:expr, $($arg:tt)+) => {
+		$crate::log!(target: $target, $crate::log::Level::Error, $($arg)+)
 	};
 	($($arg:tt)+) => {
 		$crate::log!($crate::log::Level::Error, $($arg)+)
@@ -76,13 +76,13 @@ pub use error;
 /// ```
 /// use zeus::warning;
 ///
-/// warning!(facility: "network", "Warning: {}: {}", 42, "some warning");
+/// warning!(target: "network", "Warning: {}: {}", 42, "some warning");
 /// warning!("Warning: {}: {}", 42, "some warning");
 /// ```
 #[macro_export]
 macro_rules! warning {
-	(facility: $facility:expr, $($arg:tt)+) => {
-		$crate::log!(facility: $facility, $crate::log::Level::Warn, $($arg)+)
+	(target: $target:expr, $($arg:tt)+) => {
+		$crate::log!(target: $target, $crate::log::Level::Warn, $($arg)+)
 	};
 	($($arg:tt)+) => {
 		$crate::log!($crate::log::Level::Warn, $($arg)+)
@@ -97,13 +97,13 @@ pub use warning;
 /// ```
 /// use zeus::info;
 ///
-/// info!(facility: "network", "Info: {}: {}", 42, "some info");
+/// info!(target: "network", "Info: {}: {}", 42, "some info");
 /// info!("Info: {}: {}", 42, "some info");
 /// ```
 #[macro_export]
 macro_rules! info {
-	(facility: $facility:expr, $($arg:tt)+) => {
-		$crate::log!(facility: $facility, $crate::log::Level::Info, $($arg)+)
+	(target: $target:expr, $($arg:tt)+) => {
+		$crate::log!(target: $target, $crate::log::Level::Info, $($arg)+)
 	};
 	($($arg:tt)+) => {
 		$crate::log!($crate::log::Level::Info, $($arg)+)
@@ -118,13 +118,13 @@ pub use info;
 /// ```
 /// use zeus::debug;
 ///
-/// debug!(facility: "network", "Debug: {}: {}", 42, "some info");
+/// debug!(target: "network", "Debug: {}: {}", 42, "some info");
 /// debug!("Debug: {}: {}", 42, "some debug");
 /// ```
 #[macro_export]
 macro_rules! debug {
-	(facility: $facility:expr, $($arg:tt)+) => {
-		$crate::log!(facility: $facility, $crate::log::Level::Debug, $($arg)+)
+	(target: $target:expr, $($arg:tt)+) => {
+		$crate::log!(target: $target, $crate::log::Level::Debug, $($arg)+)
 	};
 	($($arg:tt)+) => {
 		$crate::log!($crate::log::Level::Debug, $($arg)+)
@@ -139,13 +139,13 @@ pub use debug;
 /// ```
 /// use zeus::trace;
 ///
-/// trace!(facility: "network", "Trace: {}: {}", 42, "some trace");
+/// trace!(target: "network", "Trace: {}: {}", 42, "some trace");
 /// trace!("Trace: {}: {}", 42, "some trace");
 /// ```
 #[macro_export]
 macro_rules! trace {
-	(facility: $facility:expr, $($arg:tt)+) => {
-		$crate::log!(facility: $facility, $crate::log::Level::Trace, $($arg)+)
+	(target: $target:expr, $($arg:tt)+) => {
+		$crate::log!(target: $target, $crate::log::Level::Trace, $($arg)+)
 	};
 	($($arg:tt)+) => {
 		$crate::log!($crate::log::Level::Trace, $($arg)+)

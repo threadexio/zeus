@@ -1,10 +1,14 @@
-mod lock;
-mod tools;
+// TODO: Add module docs
+#![allow(dead_code)]
 
-use std::fs;
-use std::io;
-use std::marker::PhantomData;
-use std::path::{Path, PathBuf};
+mod lock;
+pub mod tools;
+
+use ::std::{
+	fs, io,
+	marker::PhantomData,
+	path::{Path, PathBuf},
+};
 
 #[derive(Debug)]
 pub struct Package<'db> {
@@ -23,9 +27,9 @@ impl<'db> Package<'db> {
 		db.root().join(name)
 	}
 
-	pub(self) fn new<S: AsRef<str>>(
+	pub(self) fn new(
 		db: &'db Db,
-		name: S,
+		name: impl AsRef<str>,
 	) -> io::Result<Self> {
 		let name = name.as_ref();
 
@@ -70,14 +74,20 @@ impl<'db> Package<'db> {
 			.wait()?;
 
 		if !output.status.success() {
-			return Err(io::ErrorKind::InvalidData.into());
+			return Err(io::Error::new(
+				io::ErrorKind::Other,
+				format!(
+					"makepkg exited with: {}",
+					output.status.code().unwrap_or(-1)
+				),
+			));
 		}
 
 		let s = String::from_utf8_lossy(&output.stdout);
 
 		let mut files = vec![];
-		for line in s.trim().lines() {
-			let file = Path::new(line);
+		for line in s.lines() {
+			let file = Path::new(line.trim());
 			if file.exists() && file.is_file() {
 				files.push(file.to_path_buf());
 			}
@@ -90,7 +100,7 @@ impl<'db> Package<'db> {
 #[derive(Debug)]
 enum Action {
 	Clone { name: String, url: String, upgrade: bool },
-	Build { name: String },
+	Build { name: String, extra_args: Vec<String> },
 	Remove { name: String },
 }
 
@@ -132,9 +142,20 @@ impl<'db> Transaction<'db> {
 		self
 	}
 
-	pub fn build_pkg<S: AsRef<str>>(mut self, name: S) -> Self {
-		self.actions
-			.push(Action::Build { name: name.as_ref().to_string() });
+	pub fn build_pkg<
+		S: AsRef<str>,
+		I: Iterator<Item = impl AsRef<str>>,
+	>(
+		mut self,
+		name: S,
+		extra_args: I,
+	) -> Self {
+		self.actions.push(Action::Build {
+			name: name.as_ref().to_string(),
+			extra_args: extra_args
+				.map(|x| x.as_ref().to_string())
+				.collect(),
+		});
 		self
 	}
 
@@ -162,7 +183,16 @@ impl Db {
 		}
 
 		if !db_path.is_dir() {
-			return Err(io::ErrorKind::InvalidData.into());
+			return Err(io::Error::new(
+				io::ErrorKind::Other,
+				"root path is not a directory",
+			));
+		}
+
+		{
+			use nix::sys::stat::{umask, Mode};
+
+			umask(Mode::S_IRWXO); // umask 007
 		}
 
 		Ok(Self { root: db_path.to_path_buf() })
@@ -178,8 +208,15 @@ impl Db {
 		DbGuard::new(self)
 	}
 
+	/// This is only supposed to be used from the builder.
+	///
+	/// Do not ever use it elsewhere.
+	pub unsafe fn unlocked_guard(&self) -> DbGuard {
+		DbGuard::new_unlocked(self)
+	}
+
 	/// Get a package.
-	pub fn pkg<S: AsRef<str>>(&self, name: S) -> io::Result<Package> {
+	pub fn pkg(&self, name: impl AsRef<str>) -> io::Result<Package> {
 		Package::new(self, name)
 	}
 
@@ -225,10 +262,16 @@ pub struct DbGuard<'db> {
 
 impl<'db> DbGuard<'db> {
 	pub(self) fn new(db: &'db Db) -> io::Result<Self> {
-		let mut lock = lock::Lock::new(db.root().join(".lck"));
-		lock.lock()?;
+		let mut x = Self::new_unlocked(db);
+		x.lock.lock()?;
 
-		Ok(Self { db, lock })
+		Ok(x)
+	}
+
+	pub(self) fn new_unlocked(db: &'db Db) -> Self {
+		let lock = lock::Lock::new(db.root().join(".lck"));
+
+		Self { db, lock }
 	}
 
 	pub fn release(self) {}
@@ -240,7 +283,9 @@ impl<'db> DbGuard<'db> {
 	) -> io::Result<()> {
 		for action in &transaction.actions {
 			match action {
-				Action::Build { name } => self.imp_build_pkg(name)?,
+				Action::Build { name, extra_args } => {
+					self.imp_build_pkg(name, extra_args)?
+				},
 				Action::Clone { name, url, upgrade } => {
 					self.imp_clone_pkg(name, url, *upgrade)?
 				},
@@ -253,7 +298,11 @@ impl<'db> DbGuard<'db> {
 		Ok(())
 	}
 
-	fn imp_build_pkg(&self, name: &str) -> io::Result<()> {
+	fn imp_build_pkg(
+		&self,
+		name: &str,
+		extra_args: &[String],
+	) -> io::Result<()> {
 		let pkg = self.db.pkg(name)?;
 
 		let output = tools::Makepkg::default()
@@ -263,10 +312,17 @@ impl<'db> DbGuard<'db> {
 			.noconfirm()
 			.install_dependencies()
 			.force()
+			.args(extra_args)
 			.wait()?;
 
 		if !output.status.success() {
-			return Err(io::ErrorKind::InvalidData.into());
+			return Err(io::Error::new(
+				io::ErrorKind::Other,
+				format!(
+					"makepkg exited with: {}",
+					output.status.code().unwrap_or(-1)
+				),
+			));
 		}
 
 		Ok(())
@@ -302,7 +358,13 @@ impl<'db> DbGuard<'db> {
 		}
 
 		if !output.status.success() {
-			return Err(io::ErrorKind::InvalidData.into());
+			return Err(io::Error::new(
+				io::ErrorKind::Other,
+				format!(
+					"git exited with: {}",
+					output.status.code().unwrap_or(-1)
+				),
+			));
 		}
 
 		Ok(())
@@ -312,6 +374,14 @@ impl<'db> DbGuard<'db> {
 		let pkg = self.db.pkg(name)?;
 		fs::remove_dir_all(&pkg.path)?;
 		Ok(())
+	}
+}
+
+impl std::ops::Deref for DbGuard<'_> {
+	type Target = Db;
+
+	fn deref(&self) -> &Self::Target {
+		self.db
 	}
 }
 

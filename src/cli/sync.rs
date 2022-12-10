@@ -2,7 +2,7 @@ use super::prelude::*;
 
 pub fn sync(
 	runtime: &mut Runtime,
-	db: &mut db::Db,
+	db: db::DbGuard,
 	aur: &mut aur::Aur,
 	gopts: GlobalOptions,
 	mut opts: SyncOptions,
@@ -17,7 +17,8 @@ pub fn sync(
 	}
 
 	if opts.packages.is_empty() {
-		return Err(Error::new("No packages specified"));
+		error!("No packages specified");
+		return Ok(());
 	}
 
 	let mut packages = aur
@@ -31,7 +32,8 @@ pub fn sync(
 	opts.packages = packages.drain(..).map(|x| x.name).collect();
 
 	if opts.packages.is_empty() {
-		return Err(Error::new("No valid packages specified"));
+		error!("No valid packages specified");
+		return Ok(());
 	}
 
 	if !inquire::Confirm::new(&format!(
@@ -47,32 +49,27 @@ pub fn sync(
 	.with_default(true)
 	.prompt()?
 	{
-		return Err(Error::new("Aborting..."));
+		info!("Aborting...");
+		return Ok(());
 	}
 
-	let built_packages = super::start_builder(runtime)
-		.context("Unable to start builder")?;
+	let res = super::start_builder(
+		runtime,
+		gopts,
+		Message::Sync(opts.clone()),
+	)
+	.context("Unable to start builder")?;
+
+	trace!("synced packages: {:#?}", &res.packages);
 
 	if opts.install {
-		let mut pacman =
-			db::tools::Pacman::default().attach(true).upgrade();
-
-		for p in built_packages.iter().filter_map(|x| db.get_pkg(x)) {
-			match p.get_install_files().context(format!(
-				"Unable to get package files for {}",
-				p.name()
-			)) {
-				Ok(v) => {
-					pacman = pacman.args(&v);
-				},
-				Err(e) => {
-					warning!("{}", e);
-				},
-			}
-		}
-
-		let status =
-			pacman.wait().context("Unable to run pacman")?.status;
+		let status = db::tools::Pacman::default()
+			.attach(true)
+			.upgrade()
+			.args(res.files.iter().map(|x| db.root().join(x)))
+			.wait()
+			.context("Unable to run pacman")?
+			.status;
 
 		if !status.success() {
 			return Err(Error::new(

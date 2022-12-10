@@ -27,8 +27,7 @@ pub use pkg::{By, Package};
 mod tests {
 	use super::*;
 
-	use std::thread::sleep;
-	use std::time::Duration;
+	use ::std::{thread::sleep, time::Duration};
 
 	#[test]
 	fn test_cache() {
@@ -71,8 +70,7 @@ mod tests {
 
 	#[test]
 	fn test_aur() {
-		let mut aur =
-			Aur::new("https://aur.archlinux.org/", "").unwrap();
+		let mut aur = Aur::new("https://aur.archlinux.org/").unwrap();
 
 		println!(
 			"{:#?}",

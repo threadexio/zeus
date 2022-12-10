@@ -1,8 +1,10 @@
-use std::fs::File;
-use std::io;
-use std::path::{Path, PathBuf};
+use ::std::{
+	fs::File,
+	io,
+	path::{Path, PathBuf},
+};
 
-use fs4::FileExt;
+use ::fs4::FileExt;
 
 pub struct Lock {
 	handle: Option<File>,

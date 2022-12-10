@@ -11,6 +11,7 @@ where
 	V: ?Sized + Display,
 {
 	println!("cargo:rustc-env={}={}", k, v);
+	println!("cargo:rerun-if-env-changed={}", k);
 }
 
 fn version() -> String {
@@ -49,7 +50,7 @@ fn main() {
 		}
 	));
 
-	println!("{:?}", &file);
+	println!("cargo:rerun-if-changed={}", file.display());
 	let file = File::open(file).expect("cannot open profile config");
 	let fields: HashMap<String, String> =
 		serde_json::from_reader(file).unwrap();

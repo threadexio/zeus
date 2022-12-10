@@ -1,6 +1,6 @@
-pub mod macros;
+#![allow(dead_code)]
 
-pub use colored::Colorize;
+pub mod macros;
 
 #[derive(
 	Debug,
@@ -43,24 +43,22 @@ impl std::str::FromStr for Level {
 	}
 }
 
-#[allow(dead_code)]
 pub fn set_color_enabled(enabled: bool) {
 	colored::control::set_override(enabled)
 }
 
 #[doc(hidden)]
-#[allow(dead_code)]
 pub mod __private_log {
 	use super::*;
 
 	pub static mut MAX_LOG_LEVEL: Level = Level::Info;
 
+	use ::std::fmt::Display;
 	use colored::Colorize;
-	use std::fmt::Display;
 
 	pub fn imp_log<D: Display>(
 		level: Level,
-		facility: Option<&str>,
+		target: Option<&str>,
 		message: D,
 	) {
 		unsafe {
@@ -75,7 +73,7 @@ pub mod __private_log {
 						Level::Error => "**".red(),
 						Level::Fatal => "**".bright_red().bold(),
 					},
-					match facility {
+					match target {
 						Some(v) => format!("{}: ", v),
 						None => "".to_string(),
 					},

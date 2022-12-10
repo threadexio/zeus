@@ -1,6 +1,6 @@
 use ::std::str::FromStr;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Color {
 	Always,
 	Never,
@@ -26,7 +26,7 @@ impl Color {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Output {
 	Pretty,
 	Json,
@@ -51,7 +51,7 @@ impl FromStr for Output {
 	}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub enum Shell {
 	Bash,
 	Fish,
