@@ -9,6 +9,10 @@ jobs:
         if: "!startsWith(github.event.head_commit.message, '[no-ci]')"
 
         steps:
+            - name: Setup machine
+              run: |
+                  useradd -m builder
+
             - name: Checkout
               uses: actions/checkout@v2
               with:
@@ -17,9 +21,13 @@ jobs:
             - name: Setup toolchain
               uses: actions-rs/toolchain@v1
 
-            - name: CI
+            - name: Build
               run: |
                   make PROFILE=release ci-flow
+
+            - name: Package
+              run: |
+                  sudo -u builder make tar pkg
 
             - name: Upload build artifacts
               uses: actions/upload-artifact@v3
