@@ -27,6 +27,8 @@ jobs:
 
             - name: Package
               run: |
+                  mkdir -p /install
+                  chown -R -v builder:builder /install
                   sudo -u builder make DESTDIR=/install tar pkg
 
             - name: Upload build artifacts
