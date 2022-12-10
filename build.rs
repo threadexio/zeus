@@ -61,13 +61,19 @@ fn main() {
 	// symlink the latest build to ./build
 	// so we can install directly from the
 	// overlay with symlinks
-	let _ = std::fs::remove_file("./build");
-	std::os::unix::fs::symlink(
-		Path::new(&env::var("OUT_DIR").unwrap())
-			.join("../../..") // a very hacky way to get the root build directory (`target/debug`)
-			.canonicalize()
-			.expect("build_dir does not exist"),
-		"./build",
+
+	let build_root = Path::new(&env::var("OUT_DIR").unwrap())
+	.join("../../..") // a very hacky way to get the root build directory (`target/debug`)
+	.canonicalize()
+	.expect("build_dir does not exist");
+
+	let build_path = pathdiff::diff_paths(
+		&build_root,
+		env::current_dir().expect("cannot get cwd"),
 	)
-	.expect("unable to link latest build to /build")
+	.unwrap_or(build_root);
+
+	let _ = std::fs::remove_file("./build");
+	std::os::unix::fs::symlink(build_path, "./build")
+		.expect("unable to link latest build to /build")
 }
