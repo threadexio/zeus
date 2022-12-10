@@ -49,7 +49,7 @@ completions: build/zeus
 install: build/zeus
 	$(Q)./scripts/install.sh
 
-tar: build/zeus
+tar:
 	$(Q)fakeroot ./scripts/tar.sh
 
 pkg:
