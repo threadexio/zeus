@@ -5,6 +5,7 @@ on: [push]
 jobs:
     build:
         runs-on: ubuntu-latest
+        container: docker.io/archlinux/archlinux:base-devel
         if: "!startsWith(github.event.head_commit.message, '[no-ci]')"
 
         steps:
@@ -26,9 +27,15 @@ jobs:
                   name: zeus
                   path: |
                       zeus.tar.gz
+                      pkg/zeus-bin-*.pkg.tar.zst
 
             - name: Create release
               uses: softprops/action-gh-release@v1
               if: startsWith(github.ref, 'refs/tags/v')
               with:
-                  files: zeus.tar.gz
+                  draft: true
+                  fail_on_unmatched_files: true
+                  generate_release_notes: true
+                  files: |
+                      zeus.tar.gz
+                      pkg/zeus-bin-*.pkg.tar.zst

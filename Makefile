@@ -52,7 +52,7 @@ install: build/zeus
 tar: build/zeus
 	$(Q)fakeroot ./scripts/tar.sh
 
-pkg:
+pkg: zeus.tar.gz
 	$(Q)cd pkg && \
 		makepkg -sfC --noconfirm
 
@@ -69,7 +69,7 @@ zeus.tar.gz:
 ###
 
 ci-flow:
-	$(Q)make PROFILE=release clean test tar
+	$(Q)make PROFILE=release clean test tar pkg
 
 .PHONY: ci-flow
 
