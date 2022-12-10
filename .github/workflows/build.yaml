@@ -27,7 +27,7 @@ jobs:
 
             - name: Package
               run: |
-                  sudo -u builder make tar pkg
+                  sudo -u builder make DESTDIR=/install tar pkg
 
             - name: Upload build artifacts
               uses: actions/upload-artifact@v3

@@ -49,8 +49,9 @@ completions: build/zeus
 install: build/zeus
 	$(Q)./scripts/install.sh
 
+O ?=
 tar:
-	$(Q)fakeroot ./scripts/tar.sh
+	$(Q)fakeroot ./scripts/tar.sh $(O)
 
 pkg:
 	$(Q)cd pkg && \
