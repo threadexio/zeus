@@ -1,8 +1,8 @@
 #!/bin/bash
 set -eux
 
-mkdir -p "$DESTDIR"
 DESTDIR="$(realpath -e "./build/pkgroot")"
+mkdir -p "$DESTDIR"
 export DESTDIR
 
 
