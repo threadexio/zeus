@@ -11,6 +11,7 @@ jobs:
         steps:
             - name: Setup machine
               run: |
+                  pacman --noconfirm --needed -Sy git
                   useradd -m builder
 
             - name: Checkout

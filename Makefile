@@ -70,7 +70,7 @@ zeus.tar.gz:
 ###
 
 ci-flow:
-	$(Q)make PROFILE=release clean test
+	$(Q)make PROFILE=release clean build test
 
 .PHONY: ci-flow
 
