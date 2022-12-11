@@ -24,13 +24,12 @@ jobs:
 
             - name: Build
               run: |
-                  make PROFILE=release ci-flow
+                  make PROFILE=release clean build test tar
 
             - name: Package
               run: |
-                  mkdir -p /install
-                  chown -R -v builder:builder /install
-                  sudo -u builder make DESTDIR=/install tar pkg
+                  chown -R -v builder:builder .
+                  sudo -u builder make pkg
 
             - name: Upload build artifacts
               uses: actions/upload-artifact@v3
