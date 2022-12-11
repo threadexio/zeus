@@ -19,5 +19,5 @@ backup=('etc/zeus/zeus.toml')
 
 package() {
 	cd "$_zeus_repo" || exit 1
-	make DESTDIR="${pkgdir:?}" install
+	make DESTDIR="${pkgdir:?}" PROFILE=release install
 }
