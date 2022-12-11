@@ -32,10 +32,10 @@ check:
 	$(Q)$(CARGO) clippy
 
 build: profiles/$(PROFILE).env
-	$(Q)$(CARGO) build $(CARGO_JOBS) $(CARGO_ARGS) --all-features --workspace
+	$(Q)$(CARGO) build $(CARGO_JOBS) $(CARGO_ARGS) --workspace
 
 test: profiles/$(PROFILE).env
-	$(Q)$(CARGO) test $(CARGO_JOBS) $(CARGO_ARGS) --all-features --workspace
+	$(Q)$(CARGO) test $(CARGO_JOBS) $(CARGO_ARGS) --workspace
 
 clean:
 	$(Q)$(CARGO) clean

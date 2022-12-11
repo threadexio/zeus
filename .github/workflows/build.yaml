@@ -11,7 +11,7 @@ jobs:
         steps:
             - name: Setup machine
               run: |
-                  pacman --noconfirm --needed -Sy git
+                  pacman --noconfirm --needed -Sy git nodejs
                   useradd -m builder
 
             - name: Checkout
@@ -22,13 +22,24 @@ jobs:
             - name: Setup toolchain
               uses: actions-rs/toolchain@v1
 
+            - name: Cache
+              uses: actions/cache@v3
+              with:
+                  path: |
+                      ~/.cargo/bin/
+                      ~/.cargo/registry/index/
+                      ~/.cargo/registry/cache/
+                      ~/.cargo/git/db/
+                      target/
+                  key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
             - name: Build
               run: |
                   make PROFILE=release clean build test tar
 
             - name: Package
               run: |
-                  chown -R -v builder:builder .
+                  chown -R builder:builder .
                   sudo -u builder make pkg
 
             - name: Upload build artifacts
