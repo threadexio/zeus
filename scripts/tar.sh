@@ -1,13 +1,10 @@
 #!/bin/bash
 set -eux
 
-if [ -z "$DESTDIR" ]; then
-	DESTDIR="$(realpath "./build/pkgroot")"
-fi
-
+mkdir -p "$DESTDIR"
+DESTDIR="$(realpath -e "./build/pkgroot")"
 export DESTDIR
 
-mkdir -p "$DESTDIR"
 
 ./scripts/install.sh
 
