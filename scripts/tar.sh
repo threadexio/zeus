@@ -1,8 +1,11 @@
 #!/bin/bash
 set -eux
 
+if [ ! -d ./build/pkgroot ]; then
+	mkdir ./build/pkgroot
+fi
+
 DESTDIR="$(realpath -e "./build/pkgroot")"
-mkdir -p "$DESTDIR"
 export DESTDIR
 
 
