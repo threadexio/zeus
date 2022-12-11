@@ -54,6 +54,7 @@ impl<'db> Package<'db> {
 	pub fn name(&self) -> &str {
 		// unwraps are safe here because we guarantee that the
 		// package name is valid utf8 in the `new()` constructor
+		#[allow(clippy::unwrap_used)]
 		self.path.file_name().unwrap().to_str().unwrap()
 	}
 

@@ -38,7 +38,6 @@ impl Lock {
 			.create(true)
 			.open(&self.path)?;
 
-		// TODO: Switch to blocking version
 		handle.try_lock_exclusive()?;
 
 		self.handle = Some(handle);
@@ -48,13 +47,9 @@ impl Lock {
 
 	/// Disengage the lock
 	pub fn unlock(&mut self) -> io::Result<()> {
-		if !self.locked() {
-			return Ok(());
+		if let Some(handle) = self.handle.take() {
+			handle.unlock()?;
 		}
-
-		// unwrap is safe here because self.locked() guarantees that
-		let handle = self.handle.take().unwrap();
-		handle.unlock()?;
 
 		Ok(())
 	}
@@ -90,7 +85,7 @@ mod tests {
 		assert!(!lock1.locked());
 		assert!(!lock2.locked());
 
-		lock1.lock().unwrap();
+		lock1.lock().expect("failed to lock lock1");
 
 		assert!(lock1.locked());
 		assert!(!lock2.locked());
@@ -100,7 +95,7 @@ mod tests {
 		assert!(lock1.locked());
 		assert!(!lock2.locked());
 
-		lock1.unlock().unwrap();
+		lock1.unlock().expect("failed to unlock lock1");
 		assert!(!lock1.locked());
 	}
 }

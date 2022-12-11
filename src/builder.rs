@@ -1,4 +1,11 @@
-#![deny(clippy::all)]
+#![deny(clippy::correctness)]
+#![warn(
+	clippy::style,
+	clippy::complexity,
+	clippy::perf,
+	clippy::unwrap_used,
+	clippy::expect_used
+)]
 
 mod aur;
 mod config;
@@ -119,21 +126,25 @@ mod sync {
 
 		res.packages.push(name.to_string());
 
-		res.files.extend(
-			db.pkg(name)
-				.unwrap()
-				.files()
-				.context(format!(
-					"Unable to get package files for {}",
-					name
-				))?
-				.drain(..)
-				.filter_map(|x| {
-					x.strip_prefix(db.root())
-						.map(|x| x.to_path_buf())
-						.ok()
-				}),
-		);
+		match db.pkg(name) {
+			Ok(pkg) => {
+				res.files.extend(
+					pkg.files()
+						.context(format!(
+							"Unable to get package files for {name}"
+						))?
+						.drain(..)
+						.filter_map(|x| {
+							x.strip_prefix(db.root())
+								.map(|x| x.to_path_buf())
+								.ok()
+						}),
+				);
+			},
+			_ => warning!(
+				"Package {name} synced but is not found in database"
+			),
+		}
 
 		Ok(())
 	}

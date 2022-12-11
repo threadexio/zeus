@@ -79,7 +79,7 @@ pub fn init() -> Result<()> {
 	match matches.subcommand() {
 		Some(("sync", m)) => {
 			let opts =
-				SyncOptions::new(&file_data, m).unwrap();
+				SyncOptions::new(&file_data, m)?;
 			trace!("sync opts = {:#?}", &opts);
 
 			let mut runtime = load_runtime(&global_opts.runtime)?;
@@ -89,7 +89,7 @@ pub fn init() -> Result<()> {
 		},
 		Some(("remove", m)) => {
 			let opts =
-				RemoveOptions::new(&file_data, m).unwrap();
+				RemoveOptions::new(&file_data, m)?;
 			trace!("remove opts = {:#?}", &opts);
 
 			let mut runtime = load_runtime(&global_opts.runtime)?;
@@ -99,7 +99,7 @@ pub fn init() -> Result<()> {
 		},
 		Some(("build", m)) => {
 			let opts =
-				BuildOptions::new(&file_data, m).unwrap();
+				BuildOptions::new(&file_data, m)?;
 			trace!("build opts = {:#?}", &opts);
 
 			get_lock()?;
@@ -111,21 +111,20 @@ pub fn init() -> Result<()> {
 		},
 		Some(("query", m)) => {
 			let opts =
-				QueryOptions::new(&file_data, m).unwrap();
+				QueryOptions::new(&file_data, m)?;
 			trace!("query opts = {:#?}", &opts);
 
 			query::query(&mut db, &mut aur, opts)
 		},
 		Some(("completions", m)) => {
-			let opts = CompletionOptions::new(&file_data, m)
-				.unwrap();
+			let opts = CompletionOptions::new(&file_data, m)?;
 			trace!("completions opts = {:#?}", &opts);
 
 			completions::completions(opts)
 		},
 		Some(("runtime", m)) => {
 			let opts =
-				RuntimeOptions::new(&file_data, m).unwrap();
+				RuntimeOptions::new(&file_data, m)?;
 			trace!("runtime opts = {:#?}", &opts);
 
 			runtime::runtime(opts)
@@ -173,33 +172,40 @@ pub(self) fn start_builder(
 	!            them and doing so might mess up the output.
 	*/
 
-	use ::std::thread::Builder;
+	use ::std::thread;
 
 	let machine_name = gopts.machine_name.clone();
 
-	let builder = Builder::new()
+	let builder = thread::Builder::new()
 		.spawn(move || -> Result<Response> {
 			use crate::ipc::Listener;
 
 			let mut ipc =
 				Listener::new(gopts.build_dir.join(".zeus.sock"))
-					.unwrap();
+					.context("Unable to create listener")?;
 
-			ipc.send(Message::Init(gopts)).unwrap();
+			ipc.send(Message::Init(gopts))
+				.context("Unable to initialize builder")?;
 
-			ipc.send(operation).unwrap();
+			ipc.send(operation)
+				.context("Unable to send operation to builder")?;
 
-			match ipc.recv().unwrap() {
+			match ipc.recv().context("Unable to receive data from builder")? {
 				Message::Response(res) => Ok(res),
 				r => Err(Error::new(
 					format!("received unexpected response from builder: {:#?}", r),
 				)),
 			}
 		})
-		.unwrap();
+		.context("Unable to create builder thread")?;
 
-	runtime.start_machine(&machine_name).unwrap();
+	runtime
+		.start_machine(&machine_name)
+		.context("Unable to start machine")?;
 
 	debug!("Waiting for builder thread to finish...");
-	builder.join().unwrap()
+	match builder.join() {
+		Ok(v) => v,
+		Err(_) => Err(Error::new("Unable to join builder thread")),
+	}
 }

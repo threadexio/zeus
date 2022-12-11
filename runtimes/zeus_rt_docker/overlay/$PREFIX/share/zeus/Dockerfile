@@ -1,4 +1,4 @@
-FROM archlinux/archlinux:base-devel
+FROM docker.io/archlinux/archlinux:base-devel
 
 RUN pacman -Syyu \
 	--noconfirm \

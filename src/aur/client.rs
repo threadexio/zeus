@@ -169,7 +169,7 @@ impl Aur {
 
 		Ok(pkgs
 			.drain(..)
-			.map(|name| self.cache.get(&name).unwrap().clone())
+			.filter_map(|name| self.cache.get(&name).cloned())
 			.collect())
 	}
 }

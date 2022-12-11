@@ -1,4 +1,11 @@
-#![deny(clippy::all)]
+#![deny(clippy::correctness)]
+#![warn(
+	clippy::style,
+	clippy::complexity,
+	clippy::perf,
+	clippy::unwrap_used,
+	clippy::expect_used
+)]
 
 mod aur;
 mod cli;

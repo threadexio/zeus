@@ -39,7 +39,7 @@ test: profiles/$(PROFILE).env
 
 clean:
 	$(Q)$(CARGO) clean
-	$(Q)rm -f -- ./build zeus.tar.gz
+	$(Q)rm -f -- ./build zeus.tar.gz pkg/*.pkg.tar.zst
 
 completions: build/zeus
 	$(Q)$< completions -s bash > overlay/usr/share/bash-completion/completions/zeus
@@ -53,7 +53,7 @@ O ?=
 tar:
 	$(Q)fakeroot ./scripts/tar.sh $(O)
 
-pkg:
+pkg: build/zeus
 	$(Q)cd pkg && \
 		makepkg -sfC --noconfirm
 

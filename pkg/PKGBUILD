@@ -2,7 +2,6 @@
 # Maintainer: threadexio <pzarganitis at gmail dot com>
 _zeus_repo="$(realpath -e ..)"
 _zeus_version="$("${_zeus_repo:?}"/scripts/version.sh)"
-_zeus_archive="${_zeus_repo:?}/zeus.tar.gz"
 
 pkgname="zeus-bin"
 pkgver="${_zeus_version:?}"
@@ -14,11 +13,11 @@ license=('GPL3')
 depends=('libssl.so' 'libcrypto.so')
 optdepends=(
 	'docker: docker container support'
-	'podman-docker: podman container support'
 )
 conflicts=('zeus')
 backup=('etc/zeus/zeus.toml')
 
 package() {
-	tar -axvpf "${_zeus_archive}" -C "${pkgdir:?}"
+	cd "$_zeus_repo" || exit 1
+	make DESTDIR="${pkgdir:?}" install
 }
