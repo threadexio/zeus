@@ -19,9 +19,8 @@ jobs:
               with:
                   fetch-depth: 0
 
-            - name: Fetch repo version
-              run: |
-                  git fetch --force --tags
+            - run: |
+                  echo "Version: $(./scripts/version.sh)"
 
             - name: Cache
               uses: actions/cache@v3
