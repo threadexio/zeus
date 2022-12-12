@@ -19,7 +19,9 @@ jobs:
               with:
                   fetch-depth: 0
 
-            - run: |
+            - name: Version
+              run: |
+                  git config --global --add safe.directory .
                   echo "Version: $(./scripts/version.sh)"
 
             - name: Cache
