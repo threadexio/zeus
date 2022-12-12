@@ -15,13 +15,13 @@ jobs:
                   useradd -m builder
 
             - name: Checkout
-              uses: actions/checkout@v2
+              uses: actions/checkout@v3
               with:
                   fetch-depth: 0
+                  set-safe-directory: true
 
             - name: Version
               run: |
-                  git config --global --add safe.directory .
                   echo "Version: $(./scripts/version.sh)"
 
             - name: Cache
