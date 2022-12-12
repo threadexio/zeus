@@ -12,33 +12,37 @@ where
 	println!("cargo:rerun-if-env-changed={}", k);
 }
 
-fn version() -> String {
-	let c = Command::new("scripts/version.sh")
+fn run_script(script: &str) -> String {
+	let c = Command::new(script)
 		.output()
-		.expect("cannot run scripts/version.sh");
+		.unwrap_or_else(|_| panic!("cannot run {script}"));
 
-	String::from_utf8(c.stdout)
-		.expect("the version cannot contain invalid utf8")
-}
+	if !c.status.success() {
+		panic!(
+			"
+{script} exited with: {}
+Stdout:
+{}
+Stderr:
+{}",
+			c.status.code().unwrap_or(-42),
+			String::from_utf8_lossy(&c.stdout),
+			String::from_utf8_lossy(&c.stderr),
+		);
+	}
 
-fn build_info() -> String {
-	let c = Command::new("scripts/build_info.sh")
-		.output()
-		.expect("cannot run scripts/build_info.sh");
-
-	String::from_utf8(c.stdout)
-		.expect("the build info cannot contain invalid utf8")
-}
-
-fn profile() -> String {
-	env::var("PROFILE").expect("cargo did not set PROFILE")
+	String::from_utf8(c.stdout).unwrap_or_else(|_| {
+		panic!("{script}: cannot contain invalid utf8")
+	})
 }
 
 fn main() {
-	let profile = profile();
+	let profile =
+		env::var("PROFILE").expect("cargo did not set PROFILE");
+
 	set_var("PROFILE", &profile);
-	set_var("VERSION", &version());
-	set_var("BUILD_INFO", &build_info());
+	set_var("VERSION", &run_script("scripts/version.sh"));
+	set_var("BUILD_INFO", &run_script("scripts/build_info.sh"));
 
 	let file = Path::new("profiles").join(format!(
 		"{}.env",
@@ -59,18 +63,6 @@ fn main() {
 			set_var(k, v);
 		}
 	}
-
-	//let file = File::open(file).expect("cannot open profile config");
-	//let fields: HashMap<String, String> =
-	//	serde_json::from_reader(file).unwrap()
-
-	//for (k, v) in fields.iter() {
-	//	set_var(k, v);
-	//}
-
-	// symlink the latest build to ./build
-	// so we can install directly from the
-	// overlay with symlinks
 
 	let build_root = Path::new(&env::var("OUT_DIR").unwrap())
 	.join("../../..") // a very hacky way to get the root build directory (`target/debug`)
