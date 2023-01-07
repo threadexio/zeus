@@ -47,7 +47,7 @@ completions: build/zeus
 	$(Q)$< completions -s zsh  > overlay/usr/share/zsh/site-functions/_zeus
 
 install: build/zeus
-	$(Q)./scripts/install.sh
+	$(Q)fakeroot ./scripts/install.sh
 
 O ?=
 tar:
