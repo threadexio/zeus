@@ -4,17 +4,22 @@ use std::path::{Path, PathBuf};
 use super::error::*;
 use super::Message;
 
-pub struct Client {
+pub struct Client<'a> {
 	path: PathBuf,
-	tx: channels::Sender<Message, UnixStream>,
-	rx: channels::Receiver<Message, UnixStream>,
+	tx: channels::Sender<'a, Message>,
+	rx: channels::Receiver<'a, Message>,
 }
 
-impl Client {
+impl Client<'_> {
 	pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
 		let connection = UnixStream::connect(&path)?;
 
-		let (tx, rx) = channels::channel(connection);
+		let (tx, rx) = channels::channel(
+			connection
+				.try_clone()
+				.context("Unable to clone unix connection")?,
+			connection,
+		);
 
 		Ok(Self { path: path.as_ref().to_path_buf(), tx, rx })
 	}

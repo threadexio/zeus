@@ -35,7 +35,7 @@ const_format = { version = "0.2" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
-channels = { version = "0.5.0", features = ["crc"] }
+channels = { version = "0.6.1" }
 toml = "0.5"
 
 clap = { version = "3.2.23", features = ["cargo", "derive"] }

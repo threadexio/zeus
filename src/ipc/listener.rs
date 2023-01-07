@@ -1,17 +1,17 @@
 use std::fs;
-use std::os::unix::net::{UnixListener, UnixStream};
+use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
 
 use super::error::*;
 use super::Message;
 
-pub struct Listener {
+pub struct Listener<'a> {
 	path: PathBuf,
-	tx: channels::Sender<Message, UnixStream>,
-	rx: channels::Receiver<Message, UnixStream>,
+	tx: channels::Sender<'a, Message>,
+	rx: channels::Receiver<'a, Message>,
 }
 
-impl Listener {
+impl Listener<'_> {
 	pub fn new<P: AsRef<Path>>(path: P) -> Result<Self> {
 		let _ = fs::remove_file(&path);
 
@@ -19,7 +19,12 @@ impl Listener {
 
 		let (connection, _) = listener.accept()?;
 
-		let (tx, rx) = channels::channel(connection);
+		let (tx, rx) = channels::channel(
+			connection
+				.try_clone()
+				.context("Unable to clone unix connection")?,
+			connection,
+		);
 
 		Ok(Self { path: path.as_ref().to_path_buf(), tx, rx })
 	}
@@ -41,7 +46,7 @@ impl Listener {
 	}
 }
 
-impl Drop for Listener {
+impl Drop for Listener<'_> {
 	fn drop(&mut self) {
 		let _ = fs::remove_file(self.path.as_path());
 	}

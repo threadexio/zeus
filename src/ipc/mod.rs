@@ -1,7 +1,4 @@
-// TODO: Add module docs
 #![allow(dead_code)]
-
-mod error;
 
 mod client;
 mod listener;
@@ -9,6 +6,7 @@ mod listener;
 use ::std::path::PathBuf;
 
 use crate::config::*;
+use crate::error;
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub enum Message {
