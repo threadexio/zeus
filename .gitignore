@@ -5,12 +5,8 @@ target
 # Vscode
 /.vscode/*
 !/.vscode/settings.json
-!/.vscode/launch.json
-!/.vscode/tasks.json
 
 # other
 /.vagrant
 *.tar.gz
 *_history
-__pycache__
-/tmp

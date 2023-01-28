@@ -1,0 +1,149 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "*"
+    tags:
+      - "v*"
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    if: ${{ !startsWith(github.event.head_commit.message, '[no-ci]') }}
+
+    name: Check & Test
+    container: docker.io/archlinux:base-devel
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+          components: rustfmt, clippy
+
+      - name: Check
+        run: make check
+
+      - name: Run tests
+        run: make test
+
+  build:
+    needs: ["test"]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - { target: x86_64-unknown-linux-gnu, profile: release }
+
+    name: Build ${{ matrix.job.profile }}
+    container: docker.io/archlinux:base-devel
+    runs-on: ubuntu-latest
+
+    env:
+      PROFILE: ${{ matrix.job.profile }}
+
+    steps:
+      - name: Setup toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.job.target }}
+          override: true
+          profile: minimal
+
+      - name: Setup build env
+        run: |
+          pacman --needed --noconfirm -Sy sudo fakeroot git
+
+          useradd -m -d /build builder
+          echo 'builder ALL=(ALL:ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder
+
+          cargo install turboinstall
+
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+          set-safe-directory: true
+
+      - name: Build info
+        run: |
+          set -e
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+          echo target:  ${{ matrix.job.target }}
+          echo profile: ${{ matrix.job.profile }}
+
+          rustc --version
+          cargo --version
+          git version
+          turboinstall --version
+          echo "zeus version:    $(./scripts/version.sh)"
+          echo "zeus build info: $(./scripts/build_info.sh)"
+
+      - name: Build
+        run: make build
+
+      - name: Create tarball
+        id: tarball
+        run: |
+          export O=zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}.tar.gz
+          make tar
+          echo PATH="$O" >> $GITHUB_OUTPUT
+          unset O
+
+      - name: Create package
+        id: package
+        run: |
+          export BUILDDIR="/build/work"
+          export SRCDEST="/build/src"
+          export PKGDEST="/build/out"
+
+          mkdir -p "$BUILDDIR" "$SRCDEST" "$PKGDEST"
+          chown -R builder:builder /build
+
+          function run_as {
+            sudo -u builder \
+              --preserve-env=BUILDDIR,SRCDEST,PKGDEST \
+              "$@"
+          }
+
+          run_as -s << EOF
+            git config --global --add safe.directory "$GITHUB_WORKSPACE"
+            make pkg
+          EOF
+
+          package="$(run_as -- make MAKEPKG_ARGS='--packagelist' pkg | head -n1)"
+          mv "$package" ./
+          echo PATH="$(basename "$package")" >> $GITHUB_OUTPUT
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}
+          if-no-files-found: error
+          path: |
+            ${{ steps.tarball.outputs.PATH }}
+            ${{ steps.package.outputs.PATH }}
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          draft: true
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          files: |
+            ${{ steps.tarball.outputs.PATH }}
+            ${{ steps.package.outputs.PATH }}
