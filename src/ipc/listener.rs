@@ -2,7 +2,8 @@ use std::fs;
 use std::os::unix::net::UnixListener;
 use std::path::{Path, PathBuf};
 
-use super::error::*;
+use anyhow::{Context, Result};
+
 use super::Message;
 
 pub struct Listener<'a> {

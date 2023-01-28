@@ -54,7 +54,7 @@ pub fn remove(
 			.status;
 
 		if !status.success() {
-			return Err(Error::new(
+			return Err(anyhow!(
 				"Failed to uninstall packages with pacman",
 			));
 		}

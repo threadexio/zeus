@@ -72,7 +72,7 @@ pub fn sync(
 			.status;
 
 		if !status.success() {
-			return Err(Error::new(
+			return Err(anyhow!(
 				"Failed to install packages with pacman",
 			));
 		}

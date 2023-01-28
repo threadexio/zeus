@@ -117,7 +117,7 @@ pub fn query(
 						package.version.bright_blue(),
 						match package.description {
 							Some(ref desc) =>
-								format!("\n      {}", desc),
+								format!("\n      {desc}"),
 							None => "".to_string(),
 						}
 					);

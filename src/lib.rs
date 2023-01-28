@@ -65,8 +65,7 @@ pub mod log;
 mod config;
 pub use config::GlobalOptions;
 
-mod error;
-pub use error::*;
-
 mod runtime;
 pub use runtime::IRuntime;
+
+pub use anyhow::{anyhow, bail, Context, Error, Result};

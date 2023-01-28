@@ -6,7 +6,6 @@ mod listener;
 use ::std::path::PathBuf;
 
 use crate::config::*;
-use crate::error;
 
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub enum Message {

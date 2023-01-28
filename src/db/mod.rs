@@ -373,7 +373,7 @@ impl<'db> DbGuard<'db> {
 
 	fn imp_remove_pkg(&self, name: &str) -> io::Result<()> {
 		let pkg = self.db.pkg(name)?;
-		fs::remove_dir_all(&pkg.path)?;
+		fs::remove_dir_all(pkg.path)?;
 		Ok(())
 	}
 }

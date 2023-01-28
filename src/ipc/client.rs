@@ -1,7 +1,8 @@
 use std::os::unix::net::UnixStream;
 use std::path::{Path, PathBuf};
 
-use super::error::*;
+use anyhow::{Context, Result};
+
 use super::Message;
 
 pub struct Client<'a> {

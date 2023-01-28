@@ -74,7 +74,7 @@ pub mod __private_log {
 						Level::Fatal => "**".bright_red().bold(),
 					},
 					match target {
-						Some(v) => format!("{}: ", v),
+						Some(v) => format!("{v}: "),
 						None => "".to_string(),
 					},
 					message

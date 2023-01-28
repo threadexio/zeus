@@ -8,8 +8,8 @@ where
 	K: ?Sized + Display,
 	V: ?Sized + Display,
 {
-	println!("cargo:rustc-env={}={}", k, v);
-	println!("cargo:rerun-if-env-changed={}", k);
+	println!("cargo:rustc-env={k}={v}");
+	println!("cargo:rerun-if-env-changed={k}");
 }
 
 fn run_script(script: &str) -> String {

@@ -1,5 +1,6 @@
+use anyhow::Result;
+
 use crate::config::GlobalOptions;
-use crate::error::*;
 
 /// A trait specifying a common interface for all machine runtime drivers.
 pub trait IRuntime {

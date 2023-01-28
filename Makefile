@@ -30,6 +30,7 @@ all: build
 
 check:
 	$(Q)$(CARGO) fmt --check --all
+	$(Q)$(CARGO) check --all
 	$(Q)$(CARGO) clippy
 
 build: $(PROFILE_FILE)

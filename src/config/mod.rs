@@ -5,7 +5,9 @@ use ::std::{
 	str::FromStr,
 };
 
-use crate::{aur, constants, error, log};
+use anyhow::Result;
+
+use crate::{aur, constants, log};
 
 mod misc;
 pub use misc::*;
@@ -105,7 +107,7 @@ macro_rules! args {
 
 		#[allow(dead_code)]
 		impl $args_name {
-			pub fn new(config: impl AsRef<str>, matches: &clap::ArgMatches) -> error::Result<Self> {
+			pub fn new(config: impl AsRef<str>, matches: &clap::ArgMatches) -> Result<Self> {
 				let mut x = Self::default();
 				x.parse_config(config.as_ref())?;
 				x.parse_matches(matches);
@@ -123,7 +125,7 @@ macro_rules! args {
 
 			/// Parse the options from the config file at `file`.
 			#[allow(unused)]
-			pub fn parse_config(&mut self,config: &str) -> $crate::error::Result<()> {
+			pub fn parse_config(&mut self,config: &str) -> Result<()> {
 				use toml::Value;
 				let data: Value = toml::from_str(config)?;
 

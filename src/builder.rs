@@ -11,11 +11,10 @@ mod aur;
 mod config;
 mod constants;
 mod db;
-mod error;
 mod ipc;
 mod log;
 
-use error::*;
+use anyhow::{anyhow, Context, Result};
 
 fn main() {
 	if let Err(e) = init() {
@@ -45,7 +44,7 @@ fn init() -> Result<()> {
 
 		gopts = opts;
 	} else {
-		return Err(Error::new(
+		return Err(anyhow!(
 			"This is a bug! Received unexpected packet",
 		));
 	}
@@ -64,10 +63,9 @@ fn init() -> Result<()> {
 	{
 		Message::Sync(opts) => sync::sync(db, gopts, opts),
 		Message::Remove(opts) => remove::remove(db, gopts, opts),
-		p => Err(Error::new(format!(
-			"This is a bug! Received unexpected packet: {:#?}",
-			p
-		))),
+		p => Err(anyhow!(
+			"This is a bug! Received unexpected packet: {p:#?}"
+		)),
 	}?;
 
 	ipc.send(Message::Response(r))
@@ -122,7 +120,7 @@ mod sync {
 			.build_pkg(name, opts.build_args.iter());
 
 		db.commit(trans)
-			.context(format!("Unable to sync package {}", name))?;
+			.context(format!("Unable to sync package {name}"))?;
 
 		res.packages.push(name.to_string());
 

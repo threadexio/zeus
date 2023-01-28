@@ -13,13 +13,10 @@ mod models;
 macro_rules! check_exit {
 	($output:expr) => {
 		if !$output.status.success() {
-			return Err(Error::new_with_context(
-				format!(
-					"{}",
-					String::from_utf8_lossy(&$output.stderr[..])
-				),
-				"Docker failed",
-			));
+			bail!(
+				"Docker failed: {}",
+				String::from_utf8_lossy(&$output.stderr[..])
+			);
 		}
 	};
 }
@@ -88,13 +85,10 @@ impl IRuntime for DockerRuntime {
 			.context(DOCKER_EXEC_ERROR)?;
 
 		if !status.success() {
-			return Err(Error::new_with_context(
-				format!(
-					"error {}",
-					status.code().unwrap_or_default()
-				),
-				"Error during image build",
-			));
+			bail!(
+				"Error during image build: code {}",
+				status.code().unwrap_or_default()
+			);
 		}
 
 		Ok(())
@@ -188,13 +182,10 @@ impl IRuntime for DockerRuntime {
 			.context(DOCKER_EXEC_ERROR)?;
 
 		if !status.success() {
-			return Err(Error::new_with_context(
-				format!(
-					"error {}",
-					status.code().unwrap_or_default()
-				),
-				"Failed to attach to container",
-			));
+			bail!(
+				"Failed to attach to container: code {}",
+				status.code().unwrap_or_default()
+			);
 		}
 
 		Ok(())

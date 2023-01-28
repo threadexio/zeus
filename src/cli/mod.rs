@@ -7,11 +7,12 @@ mod prelude {
 		aur,
 		config::*,
 		constants, db,
-		error::*,
 		ipc::{Message, Response},
 		log::{self, macros::*},
 		runtime::Runtime,
 	};
+
+	pub use anyhow::{anyhow, bail, Context, Result};
 
 	pub use colored::Colorize;
 }
@@ -68,9 +69,9 @@ pub fn init() -> Result<()> {
 		Runtime::load(
 			Path::new(constants::LIB_DIR)
 				.join("runtimes")
-				.join(format!("librt_{}.so", name)),
+				.join(format!("librt_{name}.so")),
 		)
-		.context(format!("Unable to load runtime {}", name))
+		.context(format!("Unable to load runtime {name}"))
 	};
 
 	// These `unwrap`s should be safe as the call to `GlobalOpts::new()` should
@@ -192,9 +193,7 @@ pub(self) fn start_builder(
 
 			match ipc.recv().context("Unable to receive data from builder")? {
 				Message::Response(res) => Ok(res),
-				r => Err(Error::new(
-					format!("received unexpected response from builder: {:#?}", r),
-				)),
+				r => Err(anyhow!("received unexpected response from builder: {r:#?}")),
 			}
 		})
 		.context("Unable to create builder thread")?;
@@ -206,6 +205,6 @@ pub(self) fn start_builder(
 	debug!("Waiting for builder thread to finish...");
 	match builder.join() {
 		Ok(v) => v,
-		Err(_) => Err(Error::new("Unable to join builder thread")),
+		Err(_) => Err(anyhow!("Unable to join builder thread")),
 	}
 }
