@@ -1,6 +1,5 @@
+pub use crate::config::GlobalConfig;
 use anyhow::Result;
-
-use crate::config::GlobalOptions;
 
 /// A trait specifying a common interface for all machine runtime drivers.
 pub trait IRuntime {
@@ -12,7 +11,7 @@ pub trait IRuntime {
 	/// This will be ran on driver load.
 	///
 	/// Returning an Err variant here will exit the program immediately reporting the error to the user.
-	fn init(&mut self, config: &GlobalOptions) -> Result<()>;
+	fn init(&mut self, config: &GlobalConfig) -> Result<()>;
 
 	/// This will be ran on driver unload.
 	fn exit(&mut self);
@@ -49,7 +48,7 @@ pub trait IRuntime {
 		&mut self,
 		machine_name: &str,
 		image_name: &str,
-		config: &GlobalOptions,
+		config: &GlobalConfig,
 	) -> Result<()>;
 
 	/// Start a machine and attach it to the terminal. The runtime is responsible for having

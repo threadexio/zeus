@@ -49,11 +49,11 @@
 //! For a complete working example see: [`runtimes/zeus_rt_docker`](../src/rt_docker/lib.rs.html)
 #![deny(clippy::correctness)]
 #![warn(
+	clippy::all,
 	clippy::style,
 	clippy::complexity,
 	clippy::perf,
-	clippy::unwrap_used,
-	clippy::expect_used
+	clippy::unwrap_used
 )]
 
 mod aur;
@@ -63,9 +63,8 @@ mod constants;
 pub mod log;
 
 mod config;
-pub use config::GlobalOptions;
 
 mod runtime;
-pub use runtime::IRuntime;
+pub use runtime::{GlobalConfig, IRuntime};
 
 pub use anyhow::{anyhow, bail, Context, Error, Result};

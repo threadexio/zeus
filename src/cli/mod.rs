@@ -1,13 +1,13 @@
-//mod ops;
-
 use ::std::{env, path::Path};
 
 mod prelude {
 	pub(crate) use crate::{
 		aur,
-		config::*,
-		constants, db,
-		ipc::{Message, Response},
+		config::{
+			self, BuildConfig, CompletionsConfig, GlobalConfig,
+			QueryConfig, RemoveConfig, RuntimeConfig, SyncConfig,
+		},
+		constants, db, ipc,
 		log::{self, macros::*},
 		runtime::Runtime,
 	};
@@ -16,8 +16,9 @@ mod prelude {
 
 	pub use colored::Colorize;
 }
-
 use prelude::*;
+
+use config::{load, types::Color, AppConfig, Operation};
 
 mod build;
 mod completions;
@@ -26,45 +27,32 @@ mod remove;
 mod runtime;
 mod sync;
 
-/// Start the cli
 pub fn init() -> Result<()> {
-	let matches = app().get_matches();
+	let AppConfig { global: global_config, operation } = load()?;
+	init_global(&global_config)?;
 
-	let config_file =
-		Path::new(constants::CONFIG_DIR).join("zeus.toml");
-	debug!("Config file: {:?}", config_file);
+	trace!("global config = {:#?}", &global_config);
+	trace!("operation = {:#?}", &operation);
 
-	let file_data = std::fs::read_to_string(&config_file)
-		.context("Unable to read config file")?;
-	drop(config_file);
-
-	let opts = GlobalOptions::new(&file_data, &matches)
-		.context("Unable to parse config file")?;
-	trace!("global opts = {:#?}", &opts);
-
-	let global_opts = opts;
-	init_global(&global_opts)?;
-
-	trace!("Operation: {:?}", matches.subcommand_name());
-
-	let mut aur = aur::Aur::new(&global_opts.aur_url)
+	let mut aur = aur::Aur::new(&global_config.aur_url)
 		.context("Unable to initialize AUR client")?;
 
 	let mut db =
-		db::Db::new(&global_opts.build_dir).context(format!(
-			"Unable to initialize database {}",
-			&global_opts.build_dir.display()
-		))?;
+		db::Db::new(&global_config.build_dir).with_context(|| {
+			format!(
+				"Unable to initialize database {}",
+				&global_config.build_dir.display()
+			)
+		})?;
 
 	let get_lock =
 		|| db.lock().context("Unable to obtain lock on database");
 
 	let load_runtime = |name: &str| {
 		env::set_current_dir(Path::new(constants::DATA_DIR))
-			.context(format!(
-				"Unable to move into {}",
-				constants::DATA_DIR
-			))?;
+			.with_context(|| {
+				format!("Unable to move into {}", constants::DATA_DIR)
+			})?;
 
 		Runtime::load(
 			Path::new(constants::LIB_DIR)
@@ -74,75 +62,59 @@ pub fn init() -> Result<()> {
 		.context(format!("Unable to load runtime {name}"))
 	};
 
-	// These `unwrap`s should be safe as the call to `GlobalOpts::new()` should
-	// have already validated that the data is a valid schema.
+	match operation {
+		Operation::Sync(config) => {
+			let mut runtime = load_runtime(&global_config.runtime)?;
+			runtime.init(&global_config)?;
 
-	match matches.subcommand() {
-		Some(("sync", m)) => {
-			let opts =
-				SyncOptions::new(&file_data, m)?;
-			trace!("sync opts = {:#?}", &opts);
-
-			let mut runtime = load_runtime(&global_opts.runtime)?;
-			runtime.init(&global_opts)?;
-
-			sync::sync(&mut runtime, get_lock()?, &mut aur, global_opts, opts)
+			sync::sync(
+				global_config,
+				config,
+				&mut runtime,
+				get_lock()?,
+				&mut aur,
+			)
 		},
-		Some(("remove", m)) => {
-			let opts =
-				RemoveOptions::new(&file_data, m)?;
-			trace!("remove opts = {:#?}", &opts);
+		Operation::Remove(config) => {
+			let mut runtime = load_runtime(&global_config.runtime)?;
+			runtime.init(&global_config)?;
 
-			let mut runtime = load_runtime(&global_opts.runtime)?;
-			runtime.init(&global_opts)?;
-
-			remove::remove(&mut runtime, get_lock()?, global_opts, opts)
+			remove::remove(
+				global_config,
+				config,
+				&mut runtime,
+				get_lock()?,
+			)
 		},
-		Some(("build", m)) => {
-			let opts =
-				BuildOptions::new(&file_data, m)?;
-			trace!("build opts = {:#?}", &opts);
-
+		Operation::Build(config) => {
 			get_lock()?;
 
-			let mut runtime = load_runtime(&global_opts.runtime)?;
-			runtime.init(&global_opts)?;
+			let mut runtime = load_runtime(&global_config.runtime)?;
+			runtime.init(&global_config)?;
 
-			build::build(&mut runtime, global_opts)
+			build::build(global_config, config, &mut runtime)
 		},
-		Some(("query", m)) => {
-			let opts =
-				QueryOptions::new(&file_data, m)?;
-			trace!("query opts = {:#?}", &opts);
-
-			query::query(&mut db, &mut aur, opts)
+		Operation::Query(config) => {
+			query::query(global_config, config, &mut db, &mut aur)
 		},
-		Some(("completions", m)) => {
-			let opts = CompletionOptions::new(&file_data, m)?;
-			trace!("completions opts = {:#?}", &opts);
-
-			completions::completions(opts)
+		Operation::Runtime(config) => {
+			runtime::runtime(global_config, config)
 		},
-		Some(("runtime", m)) => {
-			let opts =
-				RuntimeOptions::new(&file_data, m)?;
-			trace!("runtime opts = {:#?}", &opts);
-
-			runtime::runtime(opts)
+		Operation::Completion(config) => {
+			completions::completions(global_config, config)
 		},
-		_ => panic!("How did we get here? This is a bug. Please run with `--level trace` and report this."),
 	}
 }
 
 /// Initialize the environment
-fn init_global(opts: &GlobalOptions) -> Result<()> {
-	match opts.color {
+fn init_global(config: &GlobalConfig) -> Result<()> {
+	match config.color {
 		Color::Always => log::set_color_enabled(true),
 		Color::Never => log::set_color_enabled(false),
 		_ => {},
 	};
 
-	set_log_level!(opts.log_level.clone());
+	set_log_level!(config.log_level.clone());
 
 	debug!("Version: {}", constants::VERSION.bright_blue());
 
@@ -162,10 +134,12 @@ fn init_global(opts: &GlobalOptions) -> Result<()> {
 	Ok(())
 }
 
+use ipc::{Message, Response};
+
 pub(self) fn start_builder(
-	runtime: &mut Runtime,
-	gopts: GlobalOptions,
+	global_config: GlobalConfig,
 	operation: Message,
+	runtime: &mut Runtime,
 ) -> Result<Response> {
 	/*
 	! IMPORTANT: Do not use anything that will write to stdout or stderr here,
@@ -175,17 +149,17 @@ pub(self) fn start_builder(
 
 	use ::std::thread;
 
-	let machine_name = gopts.machine_name.clone();
+	let machine_name = global_config.machine_name.clone();
 
 	let builder = thread::Builder::new()
 		.spawn(move || -> Result<Response> {
 			use crate::ipc::Listener;
 
 			let mut ipc =
-				Listener::new(gopts.build_dir.join(".zeus.sock"))
+				Listener::new(global_config.build_dir.join(".zeus.sock"))
 					.context("Unable to create listener")?;
 
-			ipc.send(Message::Init(gopts))
+			ipc.send(Message::Init(global_config))
 				.context("Unable to initialize builder")?;
 
 			ipc.send(operation)

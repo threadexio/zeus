@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 pub mod macros;
 
 #[derive(
@@ -19,28 +17,6 @@ pub enum Level {
 	Info,
 	Debug,
 	Trace,
-}
-
-impl Level {
-	pub fn possible_values() -> &'static [&'static str] {
-		&["fatal", "error", "warn", "info", "debug", "trace"]
-	}
-}
-
-impl std::str::FromStr for Level {
-	type Err = ();
-
-	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		match s {
-			"fatal" => Ok(Self::Fatal),
-			"error" => Ok(Self::Error),
-			"warn" => Ok(Self::Warn),
-			"info" => Ok(Self::Info),
-			"debug" => Ok(Self::Debug),
-			"trace" => Ok(Self::Trace),
-			_ => Err(()),
-		}
-	}
 }
 
 pub fn set_color_enabled(enabled: bool) {

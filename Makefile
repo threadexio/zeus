@@ -55,9 +55,9 @@ pkg:
 	$(Q)cd pkg && makepkg $(MAKEPKG_ARGS)
 
 completions: build/zeus
-	$(Q)$< completions -s bash > overlay/usr/share/bash-completion/completions/zeus
-	$(Q)$< completions -s fish > overlay/usr/share/fish/vendor_completions.d/zeus.fish
-	$(Q)$< completions -s zsh  > overlay/usr/share/zsh/site-functions/_zeus
+	$(Q)$< --config /dev/null --build-dir . completions -s bash > overlay/usr/share/bash-completion/completions/zeus
+	$(Q)$< --config /dev/null --build-dir . completions -s fish > overlay/usr/share/fish/vendor_completions.d/zeus.fish
+	$(Q)$< --config /dev/null --build-dir . completions -s zsh  > overlay/usr/share/zsh/site-functions/_zeus
 
 .PHONY: all check build test clean install tar pkg completions
 

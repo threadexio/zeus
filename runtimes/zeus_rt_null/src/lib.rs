@@ -12,7 +12,7 @@ impl IRuntime for NullRuntime {
 		env!("CARGO_PKG_VERSION", "must be built with cargo")
 	}
 
-	fn init(&mut self, _: &GlobalOptions) -> Result<()> {
+	fn init(&mut self, _: &GlobalConfig) -> Result<()> {
 		info!("Hello world!");
 
 		warning!(
@@ -50,7 +50,7 @@ impl IRuntime for NullRuntime {
 		&mut self,
 		_machine_name: &str,
 		_image_name: &str,
-		_config: &GlobalOptions,
+		_config: &GlobalConfig,
 	) -> Result<()> {
 		info!("Runtime::create_machine()");
 		Ok(())

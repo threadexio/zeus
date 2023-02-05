@@ -31,18 +31,6 @@ impl By {
 			By::CheckDepends => "checkdepends",
 		}
 	}
-
-	pub fn possible_values() -> &'static [&'static str] {
-		&[
-			"name",
-			"name-desc",
-			"maintainer",
-			"depends",
-			"makedepends",
-			"optdepends",
-			"checkdepends",
-		]
-	}
 }
 
 impl ::std::str::FromStr for By {

@@ -37,7 +37,7 @@ impl IRuntime for DockerRuntime {
 		env!("CARGO_PKG_VERSION", "must be built with cargo")
 	}
 
-	fn init(&mut self, _: &GlobalOptions) -> Result<()> {
+	fn init(&mut self, _: &GlobalConfig) -> Result<()> {
 		self.docker_bin = env::var("DOCKER_BIN")
 			.unwrap_or_else(|_| String::from("/usr/bin/docker"));
 
@@ -139,7 +139,7 @@ impl IRuntime for DockerRuntime {
 		&mut self,
 		machine_name: &str,
 		image_name: &str,
-		opts: &GlobalOptions,
+		opts: &GlobalConfig,
 	) -> Result<()> {
 		let child = process::Command::new(&self.docker_bin)
 			.args(["container", "create"])

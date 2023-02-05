@@ -1,14 +1,15 @@
 use super::prelude::*;
+use ipc::Message;
 
 pub fn sync(
+	global_config: GlobalConfig,
+	mut config: SyncConfig,
 	runtime: &mut Runtime,
 	db: db::DbGuard,
 	aur: &mut aur::Aur,
-	gopts: GlobalOptions,
-	mut opts: SyncOptions,
 ) -> Result<()> {
-	if opts.upgrade && opts.packages.is_empty() {
-		opts.packages = db
+	if config.upgrade && config.packages.is_empty() {
+		config.packages = db
 			.list_pkgs()
 			.context("Unable to list local packages")?
 			.drain(..)
@@ -16,35 +17,35 @@ pub fn sync(
 			.collect();
 	}
 
-	if opts.packages.is_empty() {
+	if config.packages.is_empty() {
 		error!("No packages specified");
 		return Ok(());
 	}
 
 	let mut packages = aur
-		.info(opts.packages.iter())
+		.info(config.packages.iter())
 		.context("Unable to request package data from AUR")?;
 
-	if packages.len() > opts.packages.len() {
+	if packages.len() > config.packages.len() {
 		warning!("AUR returned more packages than requested. This might be a bug with zeus or the AUR!");
 	}
 
-	opts.packages = packages.drain(..).map(|x| x.name).collect();
+	config.packages = packages.drain(..).map(|x| x.name).collect();
 
-	if opts.packages.is_empty() {
+	if config.packages.is_empty() {
 		error!("No valid packages specified");
 		return Ok(());
 	}
 
 	if !inquire::Confirm::new(&format!(
 		"Proceed to {} {} packages? {}",
-		if opts.upgrade {
+		if config.upgrade {
 			"upgrade"
 		} else {
 			"sync"
 		},
 		packages.len(),
-		opts.packages.join(" ").bold()
+		config.packages.join(" ").bold()
 	))
 	.with_default(true)
 	.prompt()?
@@ -54,15 +55,15 @@ pub fn sync(
 	}
 
 	let res = super::start_builder(
+		global_config,
+		Message::Sync(config.clone()),
 		runtime,
-		gopts,
-		Message::Sync(opts.clone()),
 	)
 	.context("Unable to start builder")?;
 
 	trace!("synced packages: {:#?}", &res.packages);
 
-	if opts.install {
+	if config.install {
 		let status = db::tools::Pacman::default()
 			.attach(true)
 			.upgrade()

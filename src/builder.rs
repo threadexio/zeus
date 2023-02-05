@@ -1,10 +1,10 @@
 #![deny(clippy::correctness)]
 #![warn(
+	clippy::all,
 	clippy::style,
 	clippy::complexity,
 	clippy::perf,
-	clippy::unwrap_used,
-	clippy::expect_used
+	clippy::unwrap_used
 )]
 
 mod aur;
@@ -33,7 +33,7 @@ fn init() -> Result<()> {
 		.recv()
 		.context("Unable to receive initialization packet")?
 	{
-		use config::Color;
+		use config::types::Color;
 		match opts.color {
 			Color::Always => log::set_color_enabled(true),
 			Color::Never => log::set_color_enabled(false),
@@ -74,18 +74,18 @@ fn init() -> Result<()> {
 	Ok(())
 }
 
-use config::GlobalOptions;
+use config::GlobalConfig;
 use db::Transaction;
 use ipc::Response;
 
 mod sync {
 	use super::*;
-	use config::SyncOptions;
+	use config::SyncConfig;
 
 	pub fn sync(
 		mut db: db::DbGuard,
-		gopts: GlobalOptions,
-		opts: SyncOptions,
+		gopts: GlobalConfig,
+		opts: SyncConfig,
 	) -> Result<Response> {
 		let mut res = Response::default();
 
@@ -108,8 +108,8 @@ mod sync {
 		res: &mut Response,
 		name: &str,
 		db: &mut db::DbGuard,
-		gopts: &GlobalOptions,
-		opts: &SyncOptions,
+		gopts: &GlobalConfig,
+		opts: &SyncConfig,
 	) -> Result<()> {
 		let trans = Transaction::new()
 			.clone_pkg(
@@ -150,12 +150,12 @@ mod sync {
 
 mod remove {
 	use super::*;
-	use config::RemoveOptions;
+	use config::RemoveConfig;
 
 	pub fn remove(
 		mut db: db::DbGuard,
-		_gopts: GlobalOptions,
-		opts: RemoveOptions,
+		_gopts: GlobalConfig,
+		opts: RemoveConfig,
 	) -> Result<Response> {
 		let mut transaction = Transaction::new();
 

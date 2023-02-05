@@ -1,10 +1,10 @@
 #![deny(clippy::correctness)]
 #![warn(
+	clippy::all,
 	clippy::style,
 	clippy::complexity,
 	clippy::perf,
-	clippy::unwrap_used,
-	clippy::expect_used
+	clippy::unwrap_used
 )]
 
 mod aur;
@@ -18,6 +18,6 @@ mod runtime;
 
 fn main() {
 	if let Err(e) = cli::init() {
-		fatal!("{}", e);
+		fatal!("{:#}", e);
 	}
 }

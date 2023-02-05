@@ -1,9 +1,12 @@
 use super::prelude::*;
 
-pub fn completions(opts: CompletionOptions) -> Result<()> {
+pub fn completions(
+	_: GlobalConfig,
+	opts: CompletionsConfig,
+) -> Result<()> {
 	clap_complete::generate(
 		clap_complete::Shell::from(opts.shell),
-		&mut app(),
+		&mut config::command(),
 		constants::NAME.to_string(),
 		&mut std::io::stdout(),
 	);

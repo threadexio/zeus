@@ -1,25 +1,25 @@
-#![allow(dead_code)]
+use ::std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
 
 mod client;
-mod listener;
+pub use client::Client;
 
-use ::std::path::PathBuf;
+mod listener;
+pub use listener::Listener;
 
 use crate::config::*;
 
-#[derive(Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum Message {
-	Init(GlobalOptions),
-	Sync(SyncOptions),
-	Remove(RemoveOptions),
+	Init(GlobalConfig),
+	Sync(SyncConfig),
+	Remove(RemoveConfig),
 	Response(Response),
 }
 
-#[derive(Debug, Default, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Response {
 	pub packages: Vec<String>,
 	pub files: Vec<PathBuf>,
 }
-
-pub use client::Client;
-pub use listener::Listener;

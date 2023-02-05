@@ -2,8 +2,8 @@ use ::std::path::Path;
 
 use super::prelude::*;
 
-pub fn runtime(opts: RuntimeOptions) -> Result<()> {
-	if opts.list {
+pub fn runtime(_: GlobalConfig, config: RuntimeConfig) -> Result<()> {
+	if config.list {
 		let runtime_dir = Path::new(constants::LIB_DIR)
 			.join("runtimes")
 			.read_dir()?;

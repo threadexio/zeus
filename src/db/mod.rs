@@ -1,6 +1,3 @@
-// TODO: Add module docs
-#![allow(dead_code)]
-
 mod lock;
 pub mod tools;
 

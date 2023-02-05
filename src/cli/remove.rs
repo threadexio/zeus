@@ -1,17 +1,18 @@
 use super::prelude::*;
+use ipc::Message;
 
 pub fn remove(
+	global_config: GlobalConfig,
+	mut config: RemoveConfig,
 	runtime: &mut Runtime,
 	db: db::DbGuard,
-	gopts: GlobalOptions,
-	mut opts: RemoveOptions,
 ) -> Result<()> {
-	if opts.packages.is_empty() {
+	if config.packages.is_empty() {
 		error!("No packages specified");
 		return Ok(());
 	}
 
-	opts.packages.retain(|x| {
+	config.packages.retain(|x| {
 		if db.pkg(x).is_ok() {
 			true
 		} else {
@@ -20,7 +21,7 @@ pub fn remove(
 		}
 	});
 
-	if opts.packages.is_empty() {
+	if config.packages.is_empty() {
 		error!("No valid packages specified");
 		return Ok(());
 	}
@@ -34,15 +35,15 @@ pub fn remove(
 	}
 
 	let res = super::start_builder(
+		global_config,
+		Message::Remove(config.clone()),
 		runtime,
-		gopts,
-		Message::Remove(opts.clone()),
 	)
 	.context("Unable to start builder")?;
 
 	trace!("removed packages: {:#?}", &res.packages);
 
-	if opts.uninstall {
+	if config.uninstall {
 		let status = db::tools::Pacman::default()
 			.attach(true)
 			.remove()

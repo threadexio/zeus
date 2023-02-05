@@ -7,7 +7,7 @@
 ##
 [log]
 # The default log level. (--level)
-#level = "info"
+#Level = "info"
 
 ##
 ## This section configures the AUR
@@ -15,18 +15,21 @@
 ##
 [aur]
 # The default AUR url. (--aur)
-#url = "https://aur.archlinux.org"
+#Url = "https://aur.archlinux.org"
 
 ##
 ## This section configures the
-## builder that will be used.
+## runtime zeus will use.
 ##
-[machine]
+[runtime]
+# The runtime that will be used by default. (--runtime)
+#Name = "docker"
+
 # The builder's name. (--name)
-#name = "zeus-builder"
+#BuilderName = "zeus-builder"
 
 # The builder's base image. (--image)
-#image = "zeus-builder"
+#BuilderImage = "zeus-builder"
 
 ##
 ## This section configures the
@@ -34,38 +37,35 @@
 ##
 [zeus]
 # When to use colored terminal output. (--color)
-#color = "auto"
+#Color = "auto"
 
 # The default package build directory. (--build-dir)
-#build_dir = "/var/cache/aur"
-
-# The runtime that will be used by default. (--runtime)
-#runtime = "docker"
+#BuildDir = "/var/cache/aur"
 
 ##
 ## Default options for when syncing packages.
 ##
 [zeus.sync]
 # Should we also try to upgrade the packages? (--upgrade)
-#upgrade = false
+#Upgrade = false
 
-# Should  we also try to install the packages
+# Should we also try to install the packages
 # with pacman? (--install)
 #
 # WARNING: Changing this option to true has security implications!
 #          See: ArchWiki Arch User Repository § 3.4 Build the package.
 #          https://wiki.archlinux.org/title/Arch_User_Repository#Build_the_package
-#install = false
+#Install = false
 
 # Extra arguments to pass to makepkg when building the packages. (--build-args)
-#extra_args = []
+#ExtraArgs = []
 
 ##
 ## Default options for when removing packages.
 ##
 [zeus.remove]
 # Should we try to uninstall the packages with pacman? (--uninstall)
-#uninstall = false
+#Uninstall = false
 
 ##
 ## Default options for querying the AUR
@@ -74,19 +74,19 @@
 # How should we match packages?
 # Valid values:
 #   name           Match by package name
-#   name-desc      Match by package name and description
+#   namedesc       Match by package name and description
 #   maintainer     Match by maintainer name
 #   depends        Match by dependency
 #   makedepends    Match by dev dependency
 #   optdepends     Match by optional dependency
 #   checkdepends   Match by test dependency
-#by = "name-desc"
+#By = "namedesc"
 
 # How should we display the results?
 # Valid values:
 #   pretty         Display the results in a human-readable format
 #   json           Display the results in JSON
-#output = "pretty"
+#Output = "pretty"
 
 ##
 ## Default options for generating completions
@@ -95,6 +95,6 @@
 # The default shell. (--shell)
 # Valid values:
 #  bash
-#  zsh
 #  fish
-#shell = "bash"
+#  zsh
+#Shell = "bash"

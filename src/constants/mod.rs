@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use const_format::formatcp;
 
 macro_rules! from_env {
@@ -46,6 +44,7 @@ from_env!(AUR_URL);
 from_env!(RUNTIME);
 
 pub const AUR_IDENTITY: &str = formatcp!("{NAME}/{VERSION}");
+pub const CONFIG_FILE: &str = formatcp!("{}/zeus.toml", CONFIG_DIR);
 
 pub const LONG_VERSION: &str = formatcp!(
 	r#"{VERSION} {BUILD_INFO}

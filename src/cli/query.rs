@@ -1,4 +1,5 @@
 use super::prelude::*;
+use config::types::Output;
 
 macro_rules! print_info {
 	($a:expr, $b:expr) => {
@@ -55,16 +56,17 @@ fn print_pretty_package(package: &aur::Package) {
 }
 
 pub fn query(
+	_: GlobalConfig,
+	config: QueryConfig,
 	db: &mut db::Db,
 	aur: &mut aur::Aur,
-	opts: QueryOptions,
 ) -> Result<()> {
-	if opts.keywords.is_empty() {
+	if config.keywords.is_empty() {
 		let pkgs = db
 			.list_pkgs()
 			.context("Unable to get synced packages")?;
 
-		match opts.output {
+		match config.output {
 			Output::Pretty => {
 				for x in pkgs {
 					println!("{}", x.name());
@@ -93,19 +95,19 @@ pub fn query(
 
 	debug!("Requesting packages");
 
-	let packages = match opts.info {
-		true => aur.info(opts.keywords.iter()),
-		false => aur.search(opts.by, opts.keywords.iter()),
+	let packages = match config.info {
+		true => aur.info(config.keywords.iter()),
+		false => aur.search(config.by, config.keywords.iter()),
 	}
 	.context("Unable to request packages from AUR")?;
 
-	match opts.output {
+	match config.output {
 		Output::Json => {
 			serde_json::to_writer(std::io::stdout(), &packages)
 				.context("Cannot serialize JSON")?
 		},
 		Output::Pretty => {
-			if opts.info {
+			if config.info {
 				for package in &packages {
 					print_pretty_package(package);
 				}
