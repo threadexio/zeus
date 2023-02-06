@@ -73,60 +73,56 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v3
-        with:
-          fetch-depth: 0
-          set-safe-directory: true
 
       - name: Build info
+        id: info
         run: |
           set -e
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-          echo target:  ${{ matrix.job.target }}
-          echo profile: ${{ matrix.job.profile }}
 
           rustc --version
           cargo --version
           git version
           turboinstall --version
-          echo "zeus version:    $(./scripts/version.sh)"
-          echo "zeus build info: $(./scripts/build_info.sh)"
+
+          echo TARGET="${{ matrix.job.target }}" >> $GITHUB_OUTPUT
+          echo ARCH="$(cut -d- -f1 <<< "${{ matrix.job.target }}")"
+
+          echo PROFILE="${{ matrix.job.profile }}" >> $GITHUB_OUTPUT
+          echo VERSION="$(./scripts/version.sh)"
+          echo EXTRA="$(./scripts/build_info.sh)"
 
       - name: Build
         run: make build
 
       - name: Create tarball
-        id: tarball
+        id: tarpkg
         run: |
-          export O=zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}.tar.gz
+          export TARBALL="zeus-bin-${{ steps.info.outputs.VERSION }}-${{ steps.info.outputs.ARCH }}.tar.gz"
           make tar
-          echo PATH="$O" >> $GITHUB_OUTPUT
-          unset O
+          echo PATH="$TARBALL" >> $GITHUB_OUTPUT
 
-      - name: Create package
-        id: package
+      - name: Create arch package
+        id: archpkg
         run: |
-          export BUILDDIR="/build/work"
-          export SRCDEST="/build/src"
-          export PKGDEST="/build/out"
-
-          mkdir -p "$BUILDDIR" "$SRCDEST" "$PKGDEST"
-          chown -R builder:builder /build
+          export MAKEPKG_WORKDIR=/build
+          mkdir -- "$MAKEPKG_WORKDIR"
+          chown builder:builder /build
 
           function run_as {
-            sudo -u builder \
-              --preserve-env=BUILDDIR,SRCDEST,PKGDEST \
-              "$@"
+            sudo -u builder --preserve-env=MAKEPKG_WORKDIR "$@"
           }
 
-          run_as -s << EOF
+          run_as -s -- << EOF
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
-            make pkg
+            make arch-pkg
           EOF
 
-          package="$(run_as -- make MAKEPKG_ARGS='--packagelist' pkg | head -n1)"
-          mv "$package" ./
-          echo PATH="$(basename "$package")" >> $GITHUB_OUTPUT
+          find "$(MAKEPKG_WORKDIR)" \
+            -maxdepth 1 \
+            -type f \
+            -name 'zeus-bin-*.pkg.tar.zst' \
+            -printf 'PATH=%P\n' \
+            -exec mv {} ./ \;
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
@@ -134,8 +130,8 @@ jobs:
           name: zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}
           if-no-files-found: error
           path: |
-            ${{ steps.tarball.outputs.PATH }}
-            ${{ steps.package.outputs.PATH }}
+            ${{ steps.tarpkg.outputs.PATH }}
+            ${{ steps.archpkg.outputs.PATH }}
 
       - name: Create release
         uses: softprops/action-gh-release@v1
