@@ -73,6 +73,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          fetch-depth: ''
 
       - name: Build info
         id: info
@@ -85,12 +87,11 @@ jobs:
           git version
           turboinstall --version
 
-          echo TARGET="${{ matrix.job.target }}" >> $GITHUB_OUTPUT
-          echo ARCH="$(cut -d- -f1 <<< "${{ matrix.job.target }}")"
-
-          echo PROFILE="${{ matrix.job.profile }}" >> $GITHUB_OUTPUT
-          echo VERSION="$(./scripts/version.sh)"
-          echo EXTRA="$(./scripts/build_info.sh)"
+          echo TARGET="${{ matrix.job.target }}" | tee -a $GITHUB_OUTPUT
+          echo ARCH="$(cut -d- -f1 <<< "${{ matrix.job.target }}")" | tee -a $GITHUB_OUTPUT
+          echo PROFILE="${{ matrix.job.profile }}" | tee -a $GITHUB_OUTPUT
+          echo VERSION="$(./scripts/version.sh)" | tee -a $GITHUB_OUTPUT
+          echo EXTRA="$(./scripts/build_info.sh)" | tee -a $GITHUB_OUTPUT
 
       - name: Build
         run: make build
