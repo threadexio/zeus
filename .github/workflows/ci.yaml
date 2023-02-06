@@ -67,6 +67,7 @@ jobs:
         run: |
           mkdir -p -- \
             "${{ env.ARTIFACT_DIR }}"
+          chown builder:builder "${{ env.ARTIFACT_DIR }}"
 
           pacman --needed --noconfirm -Sy sudo fakeroot git
 
