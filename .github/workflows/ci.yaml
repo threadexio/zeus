@@ -100,7 +100,7 @@ jobs:
         id: tarpkg
         run: |
           export TARBALL="zeus-bin-${{ steps.info.outputs.VERSION }}-${{ steps.info.outputs.ARCH }}.tar.gz"
-          make tar
+          make tar-pkg
           echo PATH="$TARBALL" >> $GITHUB_OUTPUT
 
       - name: Create arch package
