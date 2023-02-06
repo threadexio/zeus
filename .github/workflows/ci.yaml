@@ -52,6 +52,7 @@ jobs:
 
     env:
       PROFILE: ${{ matrix.job.profile }}
+      ARTIFACT_DIR: /artifacts
 
     steps:
       - name: Setup toolchain
@@ -64,6 +65,9 @@ jobs:
 
       - name: Setup build env
         run: |
+          mkdir -p -- \
+            "${{ env.ARTIFACT_DIR }}"
+
           pacman --needed --noconfirm -Sy sudo fakeroot git
 
           useradd -m -d /build builder
@@ -74,7 +78,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
         with:
-          fetch-depth: ''
+          fetch-depth: 0
 
       - name: Build info
         id: info
@@ -87,21 +91,20 @@ jobs:
           git version
           turboinstall --version
 
-          echo TARGET="${{ matrix.job.target }}" | tee -a $GITHUB_OUTPUT
+          echo TARGET="${{ matrix.job.target }}"                    | tee -a $GITHUB_OUTPUT
           echo ARCH="$(cut -d- -f1 <<< "${{ matrix.job.target }}")" | tee -a $GITHUB_OUTPUT
-          echo PROFILE="${{ matrix.job.profile }}" | tee -a $GITHUB_OUTPUT
-          echo VERSION="$(./scripts/version.sh)" | tee -a $GITHUB_OUTPUT
-          echo EXTRA="$(./scripts/build_info.sh)" | tee -a $GITHUB_OUTPUT
+          echo PROFILE="${{ matrix.job.profile }}"                  | tee -a $GITHUB_OUTPUT
+          echo VERSION="$(./scripts/version.sh)"                    | tee -a $GITHUB_OUTPUT
+          echo EXTRA="$(./scripts/build_info.sh)"                   | tee -a $GITHUB_OUTPUT
 
       - name: Build
         run: make build
 
       - name: Create tarball
-        id: tarpkg
         run: |
           export TARBALL="zeus-bin-${{ steps.info.outputs.VERSION }}-${{ steps.info.outputs.ARCH }}.tar.gz"
           make tar-pkg
-          echo PATH="$TARBALL" >> $GITHUB_OUTPUT
+          mv -v -- "$TARBALL" "${{ env.ARTIFACT_DIR }}/"
 
       - name: Create arch package
         id: archpkg
@@ -116,15 +119,8 @@ jobs:
 
           run_as -s -- << EOF
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
-            make arch-pkg
+            make PKGDEST="${{ env.ARTIFACT_DIR }}" arch-pkg
           EOF
-
-          find "$MAKEPKG_WORKDIR" \
-            -maxdepth 1 \
-            -type f \
-            -name 'zeus-bin-*.pkg.tar.zst' \
-            -printf 'PATH=%P\n' \
-            -exec mv {} ./ \;
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
@@ -132,8 +128,7 @@ jobs:
           name: zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}
           if-no-files-found: error
           path: |
-            ${{ steps.tarpkg.outputs.PATH }}
-            ${{ steps.archpkg.outputs.PATH }}
+            ${{ env.ARTIFACT_DIR }}/*
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -143,5 +138,4 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            ${{ steps.tarball.outputs.PATH }}
-            ${{ steps.package.outputs.PATH }}
+            ${{ env.ARTIFACT_DIR }}/*

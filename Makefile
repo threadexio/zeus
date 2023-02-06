@@ -36,8 +36,6 @@ export O DESTDIR TARBALL PROFILE PROFILE_PATH
 
 # dont mess up the O variable
 undefine CARGO_TARGET_DIR
-# stop funny behavior with makepkg
-undefine SRCDEST SRCPKGDEST BUILDDIR PKGDEST
 
 PHONY += all
 all: build
