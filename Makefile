@@ -1,94 +1,137 @@
-MAKEFLAGS += --no-builtin-rules --warn-undefined-variables --no-keep-going --no-print-directory
+MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables --no-keep-going
+GNUMAKEFLAGS ?=
 
-CARGO ?= cargo
-CARGO_ARGS ?=
-
-PROFILE ?= dev
-export PROFILE
-
-DESTDIR ?= /
-export DESTDIR
-
-override CARGO_JOBS := -j$(shell expr $(shell nproc) + 2)
-override PROFILES := $(patsubst profiles/%.env,%,$(wildcard profiles/*.env))
-override PROFILE_FILE := profiles/$(PROFILE).env
-
-CARGO_ARGS += --profile $(PROFILE)
-
-V ?=
-ifeq ($(V),)
-	Q := @
-else
+V ?= 0
+ifeq ($(V),1)
 	Q :=
+else
+	Q := @
 endif
 
-###
-### Recipes
-###
+O ?= target
+DESTDIR ?= /
 
+PROFILE ?= dev
+profile-dir := profiles
+PROFILE_PATH := $(profile-dir)/$(PROFILE).env
+profiles := $(notdir $(wildcard $(profile-dir)/*.env))
+profiles := $(sort $(basename $(profiles)))
+
+ifeq ($(filter $(PROFILE),$(profiles)),)
+$(error Invalid profile '$(PROFILE)', available profiles: $(profiles))
+endif
+
+CARGO ?= cargo
+CARGO_JOBS ?= $(shell expr $(shell nproc) + 2)
+CARGO_BUILD_ARGS := --profile $(PROFILE) -j$(CARGO_JOBS)
+CARGO_ARGS := --target-dir $(O)
+
+MAKEPKG ?= makepkg
+MAKEPKG_ARGS ?= -fC --noconfirm --needed
+MAKEPKG_WORKDIR ?= $(O)/arch-pkg
+
+TARBALL ?= $(O)/tar-pkg/zeus-bin.tar.gz
+
+export O DESTDIR TARBALL PROFILE PROFILE_PATH
+
+# dont mess up the O variable
+undefine CARGO_TARGET_DIR
+# stop funny behavior with makepkg
+undefine SRCDEST SRCPKGDEST BUILDDIR PKGDEST
+
+PHONY += all
 all: build
+FORCE: ;
 
+PHONY += check
 check:
 	$(Q)$(CARGO) fmt --check --all
 	$(Q)$(CARGO) check --all
 	$(Q)$(CARGO) clippy
 
-build: $(PROFILE_FILE)
-	$(Q)$(CARGO) build $(CARGO_JOBS) $(CARGO_ARGS) --workspace
+PHONY += build
+build:
+	$(Q)$(CARGO) build $(CARGO_ARGS) $(CARGO_BUILD_ARGS) --workspace
 
-test: $(PROFILE_FILE)
-	$(Q)$(CARGO) test $(CARGO_JOBS) $(CARGO_ARGS) --workspace
+PHONY += test
+test:
+	$(Q)$(CARGO) test $(CARGO_ARGS) --workspace
 
+PHONY += clean
 clean:
-	$(Q)$(CARGO) clean
-	$(Q)rm -f -- ./build zeus.tar.gz pkg/*.pkg.tar.zst
+	$(Q)rm -f ./build
+	$(Q)$(CARGO) clean $(CARGO_ARGS)
 
+PHONY += completions
+completions:
+	$(Q)$(CARGO) run --bin=zeus -q $(CARGO_ARGS) $(CARGO_BUILD_ARGS) -- --config /dev/null --build-dir . completions -s bash > overlay/usr/share/bash-completion/completions/zeus
+	$(Q)$(CARGO) run --bin=zeus -q $(CARGO_ARGS) $(CARGO_BUILD_ARGS) -- --config /dev/null --build-dir . completions -s fish > overlay/usr/share/fish/vendor_completions.d/zeus.fish
+	$(Q)$(CARGO) run --bin=zeus -q $(CARGO_ARGS) $(CARGO_BUILD_ARGS) -- --config /dev/null --build-dir . completions -s zsh  > overlay/usr/share/zsh/site-functions/_zeus
+
+PHONY += version
+version:
+	$(Q)scripts/version.sh
+
+PHONY += buildinfo
+buildinfo:
+	$(Q)scripts/build_info.sh
+
+PHONY += doc
+doc:
+	$(Q)$(CARGO) doc --no-deps $(CARGO_ARGS) $(CARGO_BUILD_ARGS)
+
+PHONY += alldoc
+alldoc:
+	$(Q)$(CARGO) doc $(CARGO_ARGS) $(CARGO_BUILD_ARGS)
+
+PHONY += install
 install:
-	$(Q)./scripts/install.sh
+	$(Q)scripts/install.sh
 
-O ?= zeus.tar.gz
-tar:
-	$(Q)fakeroot ./scripts/tar.sh $(O)
+PHONY += tar-pkg
+tar-pkg:
+	$(Q)fakeroot scripts/tar.sh
 
-MAKEPKG_ARGS ?= -fC --noconfirm --needed
-pkg:
-	$(Q)cd pkg && makepkg $(MAKEPKG_ARGS)
+PHONY += arch-pkg
+.ONESHELL:
+arch-pkg:
+	$(Q)mkdir -p -- "$(MAKEPKG_WORKDIR)"
+	$(Q)ln -rsfT -- . "$(MAKEPKG_WORKDIR)/repo"
+	$(Q)cd -- "$(MAKEPKG_WORKDIR)"
+	$(Q)ln -sfT -- repo/pkg/PKGBUILD PKGBUILD
+	$(Q)$(MAKEPKG) $(MAKEPKG_ARGS)
 
-completions: build/zeus
-	$(Q)$< --config /dev/null --build-dir . completions -s bash > overlay/usr/share/bash-completion/completions/zeus
-	$(Q)$< --config /dev/null --build-dir . completions -s fish > overlay/usr/share/fish/vendor_completions.d/zeus.fish
-	$(Q)$< --config /dev/null --build-dir . completions -s zsh  > overlay/usr/share/zsh/site-functions/_zeus
-
-.PHONY: all check build test clean install tar pkg completions
-
-build/zeus:
-	$(Q)$(MAKE) build
-
-###
-### Misc
-###
-
+PHONY += help
 help:
-	@echo 'Variables:'
-	@echo '  CARGO                      - Path to the cargo executable (current: $(CARGO))'
-	@echo '  CARGO_ARGS                 - Extra arguments for cargo (current: $(CARGO_ARGS))'
-	@echo '  PROFILE                    - Build profile (current: $(PROFILE)) [possible values: $(PROFILES)]'
-	@echo '  DESTDIR                    - Install destination directory (current: $(DESTDIR))'
-	@echo '  V                          - Be verbose, set to show all commands'
+	@echo 'Generic targets:'
+	@echo '  all           - Build all targets with [*]'
+	@echo '  check         - Run linting tests'
+	@echo '* build         - Build the source'
+	@echo '  test          - Run code tests'
+	@echo '  clean         - Clean all build artifacts'
+	@echo '  completions   - Update completions in source tree'
+	@echo '  version       - Output the current version'
+	@echo '  buildinfo     - Output the current build info'
 	@echo ''
-	@echo '  O                          - Specify the output archive for `tar` (current: $(O))'
-	@echo '  MAKEPKG_ARGS               - Pass other arguments to makepkg (current: $(MAKEPKG_ARGS))'
-	@echo ''
-	@echo ''
-	@echo 'Build targets:'
-	@echo '  build                      - Build all binaries and runtimes'
-	@echo '  test                       - Build and run tests'
-	@echo ''
-	@echo 'Clean targets:'
-	@echo '  clean                      - Clean all build artifacts'
+	@echo 'Documentation targets:'
+	@echo '  doc           - Generate documentation only for this crate'
+	@echo '  alldoc        - Generate documentation for all crates'
 	@echo ''
 	@echo 'Install targets:'
-	@echo '  install                    - Install zeus into DESTDIR'
-	@echo '  completions                - Generate shell completions'
-	@echo '  tar                        - Create a gzipped tarball from the last build'
-	@echo '  pkg                        - Package zeus with makepkg'
+	@echo '  install       - Install last build'
+	@echo '                    DESTDIR="$(DESTDIR)" install root'
+	@echo '  tar-pkg       - Create a tarball from the last build'
+	@echo '                    TARBALL="$(TARBALL)" output archive'
+	@echo '  arch-pkg      - Use makepkg to create a package from the local build'
+	@echo '                    MAKEPKG="$(MAKEPKG)" path to makepkg'
+	@echo '                    MAKEPKG_ARGS="$(MAKEPKG_ARGS)" makepkg arguments'
+	@echo '                    MAKEPKG_WORKDIR="$(MAKEPKG_WORKDIR)" makepkg temp directory'
+	@echo ''
+	@echo 'Environment:'
+	@echo '  V=0|1         - Be verbose, set to show all commands'
+	@echo '  CARGO         - Path to the cargo executable (default: $(CARGO))'
+	@echo '  CARGO_JOBS    - Number of build jobs to create (default: $(CARGO_JOBS))'
+	@echo '  PROFILE       - Build profile (default: $(PROFILE))'
+	@echo '                  [possible values: $(profiles)]'
+
+.PHONY: $(PHONY)

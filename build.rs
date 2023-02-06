@@ -37,20 +37,29 @@ Stderr:
 }
 
 fn main() {
+	let build_root = Path::new(&env::var("OUT_DIR").unwrap())
+		.join("../../..") // a very hacky way to get the root build directory (`target/debug`)
+		.canonicalize()
+		.expect("build_dir does not exist");
+
+	let build_root = pathdiff::diff_paths(
+		&build_root,
+		env::current_dir().expect("cannot get cwd"),
+	)
+	.unwrap_or(build_root);
+
 	let profile =
-		env::var("PROFILE").expect("cargo did not set PROFILE");
+		match build_root.file_name().unwrap().to_str().unwrap() {
+			"debug" => "dev",
+			s => s,
+		}
+		.to_string();
 
 	set_var("PROFILE", &profile);
 	set_var("VERSION", &run_script("scripts/version.sh"));
 	set_var("BUILD_INFO", &run_script("scripts/build_info.sh"));
 
-	let file = Path::new("profiles").join(format!(
-		"{}.env",
-		match profile.as_str() {
-			"debug" => "dev",
-			p => p,
-		}
-	));
+	let file = Path::new("profiles").join(format!("{profile}.env"));
 
 	println!("cargo:rerun-if-changed={}", file.display());
 	let raw_env =
@@ -64,18 +73,7 @@ fn main() {
 		}
 	}
 
-	let build_root = Path::new(&env::var("OUT_DIR").unwrap())
-	.join("../../..") // a very hacky way to get the root build directory (`target/debug`)
-	.canonicalize()
-	.expect("build_dir does not exist");
-
-	let build_path = pathdiff::diff_paths(
-		&build_root,
-		env::current_dir().expect("cannot get cwd"),
-	)
-	.unwrap_or(build_root);
-
-	let _ = std::fs::remove_file("./build");
-	std::os::unix::fs::symlink(build_path, "./build")
-		.expect("unable to link latest build to /build")
+	let _ = std::fs::remove_file("build");
+	std::os::unix::fs::symlink(build_root, "./build")
+		.expect("unable to link latest build to ./build");
 }

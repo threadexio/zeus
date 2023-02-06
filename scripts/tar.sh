@@ -1,14 +1,19 @@
 #!/bin/bash
 set -eux
 
-mkdir -p ./build/pkgroot
+O="${O:?Output dir not set}"
+TARBALL="${TARBALL:?Output tarball path not set}"
 
-DESTDIR="$(realpath -e "./build/pkgroot")"
+WORKDIR="${O}/tar-pkg"
+DESTDIR="${WORKDIR}/pkg"
 export DESTDIR
 
-./scripts/install.sh
+mkdir -p \
+	"$WORKDIR" \
+	"$DESTDIR"
 
-tar -acvpf "${1:?Output archive not set}" \
+make install
+tar -acvpf "$TARBALL" \
 	-C "$DESTDIR" \
 	--no-acls \
 	--no-selinux \

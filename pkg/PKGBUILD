@@ -1,9 +1,10 @@
 # shellcheck shell=bash
 # Maintainer: threadexio <pzarganitis at gmail dot com>
-_zeus_repo="$(realpath -e ..)"
+_zeus_repo="$(realpath -e ./repo)"
+_zeus_repo="${_zeus_repo:?repo path not set}"
 
 pkgname="zeus-bin"
-pkgver="$(${_zeus_repo}/scripts/version.sh)"
+pkgver="$(make -sC "$_zeus_repo" version)"
 pkgrel=1
 pkgdesc="The containerized AUR helper"
 url="https://github.com/threadexio/zeus"

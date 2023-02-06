@@ -1,6 +1,8 @@
 # cargo
 target
-/build
+build
+out
+dist
 
 # Vscode
 /.vscode/*
@@ -8,5 +10,5 @@ target
 
 # other
 /.vagrant
-*.tar.gz
-*_history
+*.tar.*
+*history
