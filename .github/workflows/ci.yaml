@@ -106,9 +106,9 @@ jobs:
       - name: Create arch package
         id: archpkg
         run: |
-          export MAKEPKG_WORKDIR=/build
+          export MAKEPKG_WORKDIR="/zeus"
           mkdir -- "$MAKEPKG_WORKDIR"
-          chown builder:builder /build
+          chown builder:builder "$MAKEPKG_WORKDIR"
 
           function run_as {
             sudo -u builder --preserve-env=MAKEPKG_WORKDIR "$@"
