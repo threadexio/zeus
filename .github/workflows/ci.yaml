@@ -52,7 +52,7 @@ jobs:
 
     env:
       PROFILE: ${{ matrix.job.profile }}
-      ARTIFACT_DIR: /artifacts
+      WORK_DIR: "/zeus"
 
     steps:
       - name: Setup toolchain
@@ -65,14 +65,15 @@ jobs:
 
       - name: Setup build env
         run: |
-          mkdir -p -- \
-            "${{ env.ARTIFACT_DIR }}"
-          chown builder:builder "${{ env.ARTIFACT_DIR }}"
-
           pacman --needed --noconfirm -Sy sudo fakeroot git
 
           useradd -m -d /build builder
           echo 'builder ALL=(ALL:ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder
+
+          mkdir -p -- \
+            "${{ env.WORK_DIR }}" \
+            "${{ env.WORK_DIR }}/artifacts"
+          chown builder:builder -vR "${{ env.WORK_DIR }}"
 
           cargo install turboinstall
 
@@ -102,25 +103,18 @@ jobs:
         run: make build
 
       - name: Create tarball
+        id: tarpkg
         run: |
           export TARBALL="zeus-bin-${{ steps.info.outputs.VERSION }}-${{ steps.info.outputs.ARCH }}.tar.gz"
-          make tar-pkg
-          mv -v -- "$TARBALL" "${{ env.ARTIFACT_DIR }}/"
+          make TARBALL="${{ env.WORK_DIR }}/artifacts/$TARBALL" tar-pkg
+          echo NAME="$TARBALL" >> $GITHUB_OUTPUT
 
       - name: Create arch package
         id: archpkg
         run: |
-          export MAKEPKG_WORKDIR="/zeus"
-          mkdir -- "$MAKEPKG_WORKDIR"
-          chown builder:builder "$MAKEPKG_WORKDIR"
-
-          function run_as {
-            sudo -u builder --preserve-env=MAKEPKG_WORKDIR "$@"
-          }
-
-          run_as -s -- << EOF
+          sudo -u builder -s << EOF
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
-            make PKGDEST="${{ env.ARTIFACT_DIR }}" arch-pkg
+            make MAKEPKG_WORKDIR="${{ env.WORK_DIR }}" PKGDEST="${{ env.WORK_DIR }}/artifacts" arch-pkg
           EOF
 
       - name: Upload build artifacts
@@ -129,7 +123,7 @@ jobs:
           name: zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}
           if-no-files-found: error
           path: |
-            ${{ env.ARTIFACT_DIR }}/*
+            ${{ env.WORK_DIR }}/artifacts/*
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -139,4 +133,4 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            ${{ env.ARTIFACT_DIR }}/*
+            ${{ env.WORK_DIR }}/artifacts/*
