@@ -6,6 +6,13 @@ on:
       - "*"
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      release:
+        type: boolean
+        default: false
+        description: "Force create release"
+        required: false
 
 defaults:
   run:
@@ -55,17 +62,12 @@ jobs:
       WORK_DIR: "/zeus"
 
     steps:
-      - name: Setup toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          target: ${{ matrix.job.target }}
-          override: true
-          profile: minimal
-
       - name: Setup build env
         run: |
+          set -e
+
           pacman --needed --noconfirm -Sy sudo fakeroot git
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
           useradd -m -d /build builder
           echo 'builder ALL=(ALL:ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder
@@ -75,18 +77,40 @@ jobs:
             "${{ env.WORK_DIR }}/artifacts"
           chown builder:builder -vR "${{ env.WORK_DIR }}"
 
-          cargo install turboinstall
-
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
+      - name: Setup cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
+      - name: Setup toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          target: ${{ matrix.job.target }}
+          override: true
+          profile: minimal
+
+      - name: Install dependencies
+        run: |
+          cargo install --locked turboinstall || true
+
       - name: Build info
         id: info
         run: |
           set -e
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
           rustc --version
           cargo --version
@@ -114,7 +138,11 @@ jobs:
         run: |
           sudo -u builder -s << EOF
             git config --global --add safe.directory "$GITHUB_WORKSPACE"
-            make MAKEPKG_WORKDIR="${{ env.WORK_DIR }}" PKGDEST="${{ env.WORK_DIR }}/artifacts" arch-pkg
+            make \
+              MAKEPKG_WORKDIR="${{ env.WORK_DIR }}" \
+              PKGDEST="${{ env.WORK_DIR }}/artifacts" \
+              PROFILE="${{ env.PROFILE }}" \
+              arch-pkg
           EOF
 
       - name: Upload build artifacts
@@ -127,7 +155,7 @@ jobs:
 
       - name: Create release
         uses: softprops/action-gh-release@v1
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release
         with:
           draft: true
           fail_on_unmatched_files: true
