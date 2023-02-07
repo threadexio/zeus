@@ -4,6 +4,7 @@
 		"clippy",
 		"--no-deps",
 		"--message-format=json",
-		"--all-targets"
+		"--all-targets",
+		"--all"
 	],
 }
