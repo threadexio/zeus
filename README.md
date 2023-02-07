@@ -1,30 +1,23 @@
-<img src="img/out/optimized.social-image.svg" class="rounded">
-
-<br>
-
 <div align="center">
-  <a href="https://github.com/threadexio/zeus/releases/latest">
-   <img src="https://img.shields.io/github/v/release/threadexio/zeus?color=%238003fcff&label=version&style=for-the-badge">
-  </a>
-  <a href="https://github.com/threadexio/zeus/issues">
-   <img src="https://img.shields.io/github/issues/threadexio/zeus?style=for-the-badge">
-  </a>
-  <a href="https://github.com/threadexio/zeus/actions/workflows/build.yaml">
-   <img src="https://img.shields.io/github/workflow/status/threadexio/zeus/Build?style=for-the-badge">
-  </a>
-  <a href="https://github.com/threadexio/zeus/blob/master/LICENSE">
-   <img src="https://img.shields.io/github/license/threadexio/zeus?color=%230176ccff&style=for-the-badge">
-  </a>
 
-  <img src="https://img.shields.io/static/v1?label=built with&message=rust&color=tan&style=for-the-badge"/>
+  <img src="img/logo.svg" alt="logo image">
+
+  <h1>
+  Ζεύς
+  </h1>
+
+  <h3>
+  /zefs/
+  </h3>
+
+  [![GitHub release (latest by date)](https://img.shields.io/github/v/release/threadexio/zeus?style=for-the-badge&labelColor=%23292929&color=%236400bd&logo=github)](https://github.com/threadexio/zeus/releases/latest)
+  [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/threadexio/zeus/ci.yaml?style=for-the-badge&labelColor=%23292929&color=%236400bd&logo=github-actions&logoColor=white)](https://github.com/threadexio/zeus/actions/workflows/ci.yaml)
+  [![AUR votes](https://img.shields.io/aur/votes/zeus?style=for-the-badge&labelColor=%23292929&color=%23d6d6d6&logo=archlinux&logoColor=white)](https://aur.archlinux.org/packages/zeus)
+  [![GitHub](https://img.shields.io/github/license/threadexio/zeus?style=for-the-badge&color=%23d6d6d6&labelColor=%23292929&logo=unlicense&logoColor=%23d6d6d6)](https://github.com/threadexio/zeus)
+
 </div>
 
-<br>
-<br>
-
-<h1>
- <img src="img/out/optimized.logo.svg" height=25> What is zeus?
-</h1>
+<h1>What is zeus?</h1>
 
 **zeus** is a simple AUR helper which utilizes containers allowing developers and users alike to benefit from it's reproducible, clean and flexible builds.
 
@@ -73,13 +66,8 @@ A malicious actor that would want to cause damage would never use the build scri
 
 If you already have another AUR helper it is highly recommended you choose this method over the other. The `zeus-bin` packages installs binaries built in GitHub Actions, you can view the build [here](https://github.com/threadexio/zeus/actions/workflows/ci.yaml). The **zeus** package gets the latest release and builds it locally on your machine.
 
-<a href="https://aur.archlinux.org/packages/zeus" target="_blank">
- <img src="https://img.shields.io/aur/version/zeus?label=zeus&logo=archlinux&style=for-the-badge" alt="zeus">
-</a>
-
-<a href="https://aur.archlinux.org/packages/zeus-bin" target="_blank">
- <img src="https://img.shields.io/aur/version/zeus-bin?label=zeus-bin&logo=archlinux&style=for-the-badge" alt="zeus-bin">
- </a>
+[![zeus](https://img.shields.io/aur/version/zeus?style=for-the-badge&labelColor=%23292929&color=%236400bd&label=zeus&logo=archlinux&logoColor=%23d6d6d6)](https://aur.archlinux.org/packages/zeus)
+[![zeus-bin](https://img.shields.io/aur/version/zeus-bin?style=for-the-badge&labelColor=%23292929&color=%236400bd&label=zeus-bin&logo=archlinux&logoColor=%23d6d6d6)](https://aur.archlinux.org/packages/zeus-bin)
 
 ### pacman
 
