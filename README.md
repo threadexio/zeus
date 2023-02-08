@@ -1,6 +1,6 @@
 <div align="center">
 
-  <img src="img/logo.svg" alt="logo image">
+  <img src="img/logo.svg" width=300 alt="logo image">
 
   <h1>
   Ζεύς
