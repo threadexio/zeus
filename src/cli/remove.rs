@@ -8,22 +8,13 @@ pub fn remove(
 	db: db::DbGuard,
 ) -> Result<()> {
 	if config.packages.is_empty() {
-		error!("No packages specified");
-		return Ok(());
+		bail!("No packages specified")
 	}
 
-	config.packages.retain(|x| {
-		if db.pkg(x).is_ok() {
-			true
-		} else {
-			error!("Package {} is not synced", x);
-			false
-		}
-	});
-
-	if config.packages.is_empty() {
-		error!("No valid packages specified");
-		return Ok(());
+	for pkg in &config.packages {
+		db.pkg(pkg).with_context(|| {
+			format!("Package '{pkg}' not found in database")
+		})?;
 	}
 
 	if !inquire::Confirm::new("Proceed to remove packages?")
@@ -55,9 +46,7 @@ pub fn remove(
 			.status;
 
 		if !status.success() {
-			return Err(anyhow!(
-				"Failed to uninstall packages with pacman",
-			));
+			bail!("Unable to uninstall packages with pacman",);
 		}
 	}
 

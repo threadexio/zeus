@@ -72,28 +72,15 @@ pub fn query(
 					println!("{}", x.name());
 				}
 			},
-			Output::Json => {
-				println!(
-					"{}",
-					serde_json::to_string(
-						&pkgs
-							.iter()
-							.map(|x| x.name())
-							.collect::<Vec<_>>()
-					)
-					.context(
-						"Unable to serialize packages to JSON"
-					)?
-				);
-			},
+			Output::Json => serde_json::to_writer(
+				std::io::stdout(),
+				&pkgs.iter().map(|x| x.name()).collect::<Vec<_>>(),
+			)
+			.context("Unable to serialize JSON")?,
 		}
 
 		return Ok(());
 	}
-
-	debug!("Initializing AUR client");
-
-	debug!("Requesting packages");
 
 	let packages = match config.info {
 		true => aur.info(config.keywords.iter()),
@@ -104,7 +91,7 @@ pub fn query(
 	match config.output {
 		Output::Json => {
 			serde_json::to_writer(std::io::stdout(), &packages)
-				.context("Cannot serialize JSON")?
+				.context("Unable to serialize JSON")?
 		},
 		Output::Pretty => {
 			if config.info {
@@ -118,8 +105,7 @@ pub fn query(
 						package.name.bold(),
 						package.version.bright_blue(),
 						match package.description {
-							Some(ref desc) =>
-								format!("\n      {desc}"),
+							Some(ref desc) => format!("\n\t{desc}"),
 							None => "".to_string(),
 						}
 					);

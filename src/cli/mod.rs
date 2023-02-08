@@ -1,4 +1,5 @@
 use ::std::{env, path::Path};
+use std::path::PathBuf;
 
 mod prelude {
 	pub(crate) use crate::{
@@ -18,7 +19,7 @@ mod prelude {
 }
 use prelude::*;
 
-use config::{load, types::Color, AppConfig, Operation};
+use config::{self, types::Color, AppConfig, Operation};
 
 mod build;
 mod completions;
@@ -28,7 +29,8 @@ mod runtime;
 mod sync;
 
 pub fn init() -> Result<()> {
-	let AppConfig { global: global_config, operation } = load()?;
+	let AppConfig { global: global_config, operation } =
+		config::load()?;
 	init_global(&global_config)?;
 
 	trace!("global config = {:#?}", &global_config);
@@ -40,57 +42,60 @@ pub fn init() -> Result<()> {
 	let mut db =
 		db::Db::new(&global_config.build_dir).with_context(|| {
 			format!(
-				"Unable to initialize database {}",
+				"Unable to initialize database at '{}'",
 				&global_config.build_dir.display()
 			)
 		})?;
 
-	let get_lock =
-		|| db.lock().context("Unable to obtain lock on database");
-
-	let load_runtime = |name: &str| {
-		env::set_current_dir(Path::new(constants::DATA_DIR))
-			.with_context(|| {
-				format!("Unable to move into {}", constants::DATA_DIR)
-			})?;
-
-		Runtime::load(
-			Path::new(constants::LIB_DIR)
-				.join("runtimes")
-				.join(format!("librt_{name}.so")),
-		)
-		.context(format!("Unable to load runtime {name}"))
+	let get_lock = || {
+		db.lock().with_context(|| {
+			format!(
+				"Unable to obtain lock on database at '{}'",
+				&global_config.build_dir.display()
+			)
+		})
 	};
+
+	let init_runtime =
+		|runtime: &mut Runtime, global_config: &GlobalConfig| {
+			runtime
+				.init(global_config)
+				.context("Unable to initialize runtime")
+		};
 
 	match operation {
 		Operation::Sync(config) => {
+			let db_lock = get_lock()?;
+
 			let mut runtime = load_runtime(&global_config.runtime)?;
-			runtime.init(&global_config)?;
+			init_runtime(&mut runtime, &global_config)?;
 
 			sync::sync(
 				global_config,
 				config,
 				&mut runtime,
-				get_lock()?,
+				db_lock,
 				&mut aur,
 			)
 		},
 		Operation::Remove(config) => {
+			let db_lock = get_lock()?;
+
 			let mut runtime = load_runtime(&global_config.runtime)?;
-			runtime.init(&global_config)?;
+			init_runtime(&mut runtime, &global_config)?;
 
 			remove::remove(
 				global_config,
 				config,
 				&mut runtime,
-				get_lock()?,
+				db_lock,
 			)
 		},
 		Operation::Build(config) => {
 			get_lock()?;
 
 			let mut runtime = load_runtime(&global_config.runtime)?;
-			runtime.init(&global_config)?;
+			init_runtime(&mut runtime, &global_config)?;
 
 			build::build(global_config, config, &mut runtime)
 		},
@@ -181,4 +186,20 @@ pub(self) fn start_builder(
 		Ok(v) => v,
 		Err(_) => Err(anyhow!("Unable to join builder thread")),
 	}
+}
+
+pub(self) fn load_runtime(name: &str) -> Result<Runtime> {
+	env::set_current_dir(Path::new(constants::DATA_DIR))
+		.with_context(|| {
+			format!("Unable to move into {}", constants::DATA_DIR)
+		})?;
+
+	let mut rt_path = PathBuf::new();
+	rt_path.push(constants::LIB_DIR);
+	rt_path.push("runtimes");
+	rt_path.push(format!("librt_{name}.so"));
+
+	Runtime::load(&rt_path).with_context(|| {
+		format!("Unable to load runtime '{}'", rt_path.display())
+	})
 }

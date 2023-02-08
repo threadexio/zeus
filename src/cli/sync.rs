@@ -18,8 +18,7 @@ pub fn sync(
 	}
 
 	if config.packages.is_empty() {
-		error!("No packages specified");
-		return Ok(());
+		bail!("No packages specified")
 	}
 
 	let mut packages = aur
@@ -30,11 +29,14 @@ pub fn sync(
 		warning!("AUR returned more packages than requested. This might be a bug with zeus or the AUR!");
 	}
 
-	config.packages = packages.drain(..).map(|x| x.name).collect();
+	config.packages = packages
+		.drain(..)
+		.filter(|x| config.packages.contains(&x.name))
+		.map(|x| x.name)
+		.collect();
 
 	if config.packages.is_empty() {
-		error!("No valid packages specified");
-		return Ok(());
+		bail!("No valid packages specified")
 	}
 
 	if !inquire::Confirm::new(&format!(

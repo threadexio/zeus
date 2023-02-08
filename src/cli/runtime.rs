@@ -4,53 +4,48 @@ use super::prelude::*;
 
 pub fn runtime(_: GlobalConfig, config: RuntimeConfig) -> Result<()> {
 	if config.list {
-		let runtime_dir = Path::new(constants::LIB_DIR)
-			.join("runtimes")
-			.read_dir()?;
+		let runtime_dir =
+			Path::new(constants::LIB_DIR).join("runtimes");
 
-		for entry in runtime_dir {
-			let entry = match entry {
-				Ok(v) => v,
-				Err(_) => continue,
-			};
-
-			let entry_name_os = entry.file_name();
-
-			let entry_name = match entry_name_os.to_str() {
-				Some(v) => v,
-				None => continue,
-			};
-
-			if !entry_name.starts_with("librt_")
-				|| !entry_name.ends_with(".so")
-			{
-				continue;
-			}
-
-			if !entry.path().is_file() {
-				continue;
-			}
-
-			debug!("Test-loading runtime {}", entry_name);
-
-			let rt = match Runtime::load(&entry.path()) {
-				Ok(v) => v,
-				Err(e) => {
-					error!(
-						"Runtime {} cannot be loaded: {}",
-						entry_name, e
-					);
-					continue;
+		runtime_dir
+			.read_dir()
+			.with_context(|| {
+				format!(
+					"Unable to list runtime directory '{}'",
+					runtime_dir.display()
+				)
+			})?
+			.filter_map(|x| x.ok())
+			.map(|x| x.path())
+			.filter(|x| x.is_file())
+			.filter(|x| match x.file_name() {
+				Some(x) => {
+					let x = x.to_string_lossy();
+					x.starts_with("librt_") && x.ends_with(".so")
 				},
-			};
+				None => false,
+			})
+			.for_each(|path| {
+				debug!("Test-loading runtime '{}'", path.display());
 
-			info!(
-				"{} - {} v{}",
-				entry_name,
-				rt.name().bold(),
-				rt.version().yellow(),
-			);
-		}
+				let rt = match Runtime::load(&path) {
+					Ok(v) => v,
+					Err(e) => {
+						error!(
+							"Unable to load runtime '{}': {e}",
+							path.display()
+						);
+						return;
+					},
+				};
+
+				info!(
+					"{}: {} v{}",
+					path.display(),
+					rt.name().bold(),
+					rt.version().yellow(),
+				);
+			});
 	}
 
 	Ok(())
