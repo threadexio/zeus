@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use const_format::formatcp;
 
 macro_rules! from_env {

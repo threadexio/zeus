@@ -3,7 +3,7 @@ use ipc::Message;
 
 pub fn remove(
 	global_config: GlobalConfig,
-	mut config: RemoveConfig,
+	config: RemoveConfig,
 	runtime: &mut Runtime,
 	db: db::DbGuard,
 ) -> Result<()> {
