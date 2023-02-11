@@ -1539,8 +1539,6 @@ dependencies = [
 name = "zeus_rt_docker"
 version = "0.1.0"
 dependencies = [
- "serde",
- "serde_json",
  "zeus",
 ]
 

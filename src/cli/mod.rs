@@ -119,7 +119,7 @@ fn init_global(config: &GlobalConfig) -> Result<()> {
 		_ => {},
 	};
 
-	set_log_level!(config.log_level.clone());
+	set_log_level!(config.log_level);
 
 	debug!("Version: {}", constants::VERSION.bright_blue());
 

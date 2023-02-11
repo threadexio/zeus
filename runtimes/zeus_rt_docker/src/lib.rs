@@ -5,28 +5,38 @@
 use zeus::*;
 
 use std::env;
+use std::ffi::OsString;
 use std::io::BufRead;
-use std::process;
+use std::path::{Path, PathBuf};
+use std::process::{self, Stdio};
 
-mod models;
+const DOCKER_BIN: &str = "/usr/bin/docker";
 
-macro_rules! check_exit {
-	($output:expr) => {
-		if !$output.status.success() {
-			bail!(
-				"Docker failed: {}",
-				String::from_utf8_lossy(&$output.stderr[..])
-			);
+fn run_docker(mut cmd: process::Command) -> Result<process::Output> {
+	let output = cmd.output().with_context(|| {
+		let mut c = String::with_capacity(1024);
+		c.push_str(&cmd.get_program().to_string_lossy());
+		for arg in cmd.get_args() {
+			c.push_str(&arg.to_string_lossy());
 		}
-	};
+
+		format!("Failed to execute: `{c}`")
+	})?;
+
+	if !output.status.success() {
+		bail!(
+			"Docker failed with: {}",
+			output.status.code().unwrap_or(-1)
+		)
+	}
+
+	Ok(output)
 }
 
 #[derive(Default)]
 pub struct DockerRuntime {
-	docker_bin: String,
+	docker_bin: PathBuf,
 }
-
-runtime!(DockerRuntime::default);
 
 impl IRuntime for DockerRuntime {
 	fn name(&self) -> &'static str {
@@ -37,9 +47,14 @@ impl IRuntime for DockerRuntime {
 		env!("CARGO_PKG_VERSION", "must be built with cargo")
 	}
 
-	fn init(&mut self, _: &GlobalConfig) -> Result<()> {
-		self.docker_bin = env::var("DOCKER_BIN")
-			.unwrap_or_else(|_| String::from("/usr/bin/docker"));
+	fn init(&mut self, config: &GlobalConfig) -> Result<()> {
+		set_log_level!(config.log_level);
+
+		self.docker_bin = Path::new(
+			&env::var_os("DOCKER_BIN")
+				.unwrap_or_else(|| OsString::from(DOCKER_BIN)),
+		)
+		.to_path_buf();
 
 		Ok(())
 	}
@@ -47,26 +62,25 @@ impl IRuntime for DockerRuntime {
 	fn exit(&mut self) {}
 
 	fn list_images(&self) -> Result<Vec<String>> {
-		let child = process::Command::new(&self.docker_bin)
-			.args(["image", "ls"])
-			.args(["--format", models::IMAGE_FMT])
-			.output()
-			.context(DOCKER_EXEC_ERROR)?;
-
-		check_exit!(child);
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.stdout(Stdio::piped())
+			.arg("image")
+			.arg("ls")
+			.args(["--format", "{{.Repository}}"]);
+		let output = run_docker(cmd)?;
 
 		let mut images: Vec<String> = Vec::new();
 
-		for line in child.stdout.lines() {
-			let line = match line {
+		for line in output.stdout.lines() {
+			let image = match line {
 				Ok(v) => v,
-				Err(_) => continue,
+				Err(e) => {
+					warning!("Failed to parse image line: {e}");
+					continue;
+				},
 			};
 
-			let image: models::Image = serde_json::from_str(&line)
-				.context("Failed to parse docker output")?;
-
-			images.push(image.name);
+			images.push(image);
 		}
 
 		Ok(images)
@@ -75,61 +89,47 @@ impl IRuntime for DockerRuntime {
 	fn make_image(&mut self, image_name: &str) -> Result<()> {
 		let build_context = String::from("./");
 
-		let status = process::Command::new(&self.docker_bin)
-			.args(["build"])
-			.args(["--pull", "--rm"])
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.arg("build")
+			.arg("--pull")
+			.arg("--rm")
 			.args(["-t", image_name])
 			.arg("--")
-			.arg(build_context)
-			.status()
-			.context(DOCKER_EXEC_ERROR)?;
-
-		if !status.success() {
-			bail!(
-				"Error during image build: code {}",
-				status.code().unwrap_or_default()
-			);
-		}
+			.arg(build_context);
+		run_docker(cmd)?;
 
 		Ok(())
 	}
 
 	fn delete_image(&mut self, image_name: &str) -> Result<()> {
-		let child = process::Command::new(&self.docker_bin)
-			.args(["image", "rm"])
-			.arg("--")
-			.arg(image_name)
-			.output()
-			.context(DOCKER_EXEC_ERROR)?;
-
-		check_exit!(child);
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.arg("image").arg("rm").arg("--").arg(image_name);
+		run_docker(cmd)?;
 
 		Ok(())
 	}
 
 	fn list_machines(&self) -> Result<Vec<String>> {
-		let child = process::Command::new(&self.docker_bin)
-			.args(["container", "ls"])
-			.args(["-a"])
-			.args(["--format", models::CONTAINER_FMT])
-			.output()
-			.context(DOCKER_EXEC_ERROR)?;
-
-		check_exit!(child);
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.stdout(Stdio::piped())
+			.arg("container")
+			.arg("ls")
+			.arg("-a")
+			.args(["--format", "{{.Names}}"]);
+		let output = run_docker(cmd)?;
 
 		let mut containers: Vec<String> = Vec::new();
 
-		for line in child.stdout.lines() {
-			let line = match line {
+		for line in output.stdout.lines() {
+			let container = match line {
 				Ok(v) => v,
-				Err(_) => continue,
+				Err(e) => {
+					warning!("Failed to parse container line: {e}");
+					continue;
+				},
 			};
 
-			let container: models::Container =
-				serde_json::from_str(&line)
-					.context("Failed to parse docker output")?;
-
-			containers.push(container.name);
+			containers.push(container);
 		}
 
 		Ok(containers)
@@ -141,9 +141,11 @@ impl IRuntime for DockerRuntime {
 		image_name: &str,
 		opts: &GlobalConfig,
 	) -> Result<()> {
-		let child = process::Command::new(&self.docker_bin)
-			.args(["container", "create"])
-			.args(["-i", "-t"])
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.arg("container")
+			.arg("create")
+			.arg("-i")
+			.arg("-t")
 			.args(["--name", machine_name])
 			.args([
 				"-v",
@@ -156,67 +158,50 @@ impl IRuntime for DockerRuntime {
 					opts.build_dir.to_string_lossy()
 				),
 			])
-			.args([
-				"--cap-drop=all",
-				"--cap-add=CAP_SETUID",
-				"--cap-add=CAP_SETGID",
-				"--cap-add=CAP_SYS_CHROOT",
-			])
+			.arg("--cap-drop=all")
+			.arg("--cap-add=CAP_SETUID")
+			.arg("--cap-add=CAP_SETGID")
+			.arg("--cap-add=CAP_SYS_CHROOT")
 			.arg("--")
-			.arg(image_name)
-			.output()
-			.context(DOCKER_EXEC_ERROR)?;
-
-		check_exit!(child);
+			.arg(image_name);
+		run_docker(cmd)?;
 
 		Ok(())
 	}
 
 	fn start_machine(&mut self, machine_name: &str) -> Result<()> {
-		let status = process::Command::new(&self.docker_bin)
-			.args(["container", "start"])
-			.args(["-a", "-i"])
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.arg("container")
+			.arg("start")
+			.arg("-a")
+			.arg("-i")
 			.arg("--")
-			.arg(machine_name)
-			.status()
-			.context(DOCKER_EXEC_ERROR)?;
-
-		if !status.success() {
-			bail!(
-				"Failed to attach to container: code {}",
-				status.code().unwrap_or_default()
-			);
-		}
+			.arg(machine_name);
+		run_docker(cmd)?;
 
 		Ok(())
 	}
 
 	fn stop_machine(&mut self, machine_name: &str) -> Result<()> {
-		let child = process::Command::new(&self.docker_bin)
-			.args(["container", "kill"])
-			.arg("--")
-			.arg(machine_name)
-			.output()
-			.context(DOCKER_EXEC_ERROR)?;
-
-		check_exit!(child);
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.arg("container").arg("kill").arg("--").arg(machine_name);
+		run_docker(cmd)?;
 
 		Ok(())
 	}
 
 	fn delete_machine(&mut self, machine_name: &str) -> Result<()> {
-		let child = process::Command::new(&self.docker_bin)
-			.args(["container", "rm"])
-			.args(["-f", "-v"])
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.arg("container")
+			.arg("rm")
+			.arg("-f")
+			.arg("-v")
 			.arg("--")
-			.arg(machine_name)
-			.output()
-			.context(DOCKER_EXEC_ERROR)?;
-
-		check_exit!(child);
+			.arg(machine_name);
+		run_docker(cmd)?;
 
 		Ok(())
 	}
 }
 
-const DOCKER_EXEC_ERROR: &str = "Failed to execute docker";
+runtime!(DockerRuntime::default);

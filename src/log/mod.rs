@@ -3,6 +3,7 @@ pub mod macros;
 #[derive(
 	Debug,
 	Clone,
+	Copy,
 	PartialEq,
 	Eq,
 	PartialOrd,
