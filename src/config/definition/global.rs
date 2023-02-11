@@ -33,14 +33,6 @@ impl Config for GlobalConfig {
 					.value_parser(log::Level::value_parser()),
 			)
 			.arg(
-				Arg::new("build_dir")
-					.long("build-dir")
-					.help("Package build directory")
-					.value_name("path")
-					.value_hint(ValueHint::DirPath)
-					.value_parser(value_parser!(String)),
-			)
-			.arg(
 				Arg::new("aur_url")
 					.long("aur")
 					.help("AUR URL")
@@ -93,10 +85,7 @@ impl Config for GlobalConfig {
 			)
 			.context("invalid value for 'log.Level'")?,
 			build_dir: Path::new(
-				matches
-					.get_one::<String>("build_dir")
-					.map(|x| x.as_str())
-					.or(config_path!(config => zeus.BuildDir as str))
+				config_path!(config => zeus.BuildDir as str)
 					.unwrap_or(constants::BUILD_DIR),
 			)
 			.to_path_buf(),
