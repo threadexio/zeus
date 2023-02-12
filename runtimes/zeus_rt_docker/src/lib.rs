@@ -2,40 +2,62 @@
 //! Available user configuration is done by the
 //! following environment variables:
 //! - `DOCKER_BIN` - This must point to the docker cli tool. (default: `/usr/bin/docker`)
-use zeus::*;
+use zeus::{log::macros::*, runtime::*};
 
 use std::env;
-use std::ffi::OsString;
-use std::io::BufRead;
 use std::path::{Path, PathBuf};
 use std::process::{self, Stdio};
 
-const DOCKER_BIN: &str = "/usr/bin/docker";
-
 fn run_docker(mut cmd: process::Command) -> Result<process::Output> {
-	let output = cmd.output().with_context(|| {
+	let cmdline = {
 		let mut c = String::with_capacity(1024);
+
 		c.push_str(&cmd.get_program().to_string_lossy());
+		c.push(' ');
 		for arg in cmd.get_args() {
 			c.push_str(&arg.to_string_lossy());
+			c.push(' ');
 		}
+		c.pop();
+		c
+	};
 
-		format!("Failed to execute: `{c}`")
-	})?;
+	debug!("Running: {cmdline}");
+
+	let output = match cmd.output() {
+		Ok(v) => v,
+		Err(e) => {
+			return Err(Error::new(e.to_string()));
+		},
+	};
 
 	if !output.status.success() {
-		bail!(
-			"Docker failed with: {}",
+		return Err(Error::new(format!(
+			"docker exited with: {}",
 			output.status.code().unwrap_or(-1)
-		)
+		)));
 	}
 
 	Ok(output)
 }
 
-#[derive(Default)]
 pub struct DockerRuntime {
 	docker_bin: PathBuf,
+	build_context: PathBuf,
+	dockerfile: PathBuf,
+	pacman_cache: PathBuf,
+}
+
+impl Default for DockerRuntime {
+	fn default() -> Self {
+		Self {
+			docker_bin: Path::new("/usr/bin/docker").to_path_buf(),
+			build_context: Path::new("./").to_path_buf(),
+			dockerfile: Path::new("Dockerfile").to_path_buf(),
+			pacman_cache: Path::new("/var/cache/pacman/pkg")
+				.to_path_buf(),
+		}
+	}
 }
 
 impl IRuntime for DockerRuntime {
@@ -50,154 +72,117 @@ impl IRuntime for DockerRuntime {
 	fn init(&mut self, config: &GlobalConfig) -> Result<()> {
 		set_log_level!(config.log_level);
 
-		self.docker_bin = Path::new(
-			&env::var_os("DOCKER_BIN")
-				.unwrap_or_else(|| OsString::from(DOCKER_BIN)),
-		)
-		.to_path_buf();
+		let opts = &config.runtime_opts;
+
+		if let Some(v) = env::var_os("DOCKER_BIN")
+			.map(|x| Path::new(&x).to_path_buf())
+			.or(opts
+				.get("Program")
+				.map(|x| Path::new(&x).to_path_buf()))
+		{
+			self.docker_bin = v;
+		}
+
+		if let Some(v) = opts.get("Context") {
+			self.build_context = v.into();
+		}
+
+		if let Some(v) = opts.get("Dockerfile") {
+			self.dockerfile = v.into();
+		}
+
+		if let Some(v) = opts.get("PacmanCache") {
+			self.pacman_cache = v.into();
+		}
+
+		// this should fail if we dont have permission to access docker
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.stdin(Stdio::null())
+			.stdout(Stdio::null())
+			.stderr(Stdio::inherit())
+			.arg("version");
+		run_docker(cmd)?;
 
 		Ok(())
 	}
 
 	fn exit(&mut self) {}
 
-	fn list_images(&self) -> Result<Vec<String>> {
+	fn create_image(&mut self, config: &GlobalConfig) -> Result<()> {
 		let mut cmd = process::Command::new(&self.docker_bin);
-		cmd.stdout(Stdio::piped())
-			.arg("image")
-			.arg("ls")
-			.args(["--format", "{{.Repository}}"]);
-		let output = run_docker(cmd)?;
-
-		let mut images: Vec<String> = Vec::new();
-
-		for line in output.stdout.lines() {
-			let image = match line {
-				Ok(v) => v,
-				Err(e) => {
-					warning!("Failed to parse image line: {e}");
-					continue;
-				},
-			};
-
-			images.push(image);
-		}
-
-		Ok(images)
-	}
-
-	fn make_image(&mut self, image_name: &str) -> Result<()> {
-		let build_context = String::from("./");
-
-		let mut cmd = process::Command::new(&self.docker_bin);
-		cmd.arg("build")
+		cmd.stdin(Stdio::inherit())
+			.stdout(Stdio::inherit())
+			.stderr(Stdio::inherit())
+			.arg("build")
 			.arg("--pull")
-			.arg("--rm")
-			.args(["-t", image_name])
+			.arg("--force-rm")
+			.arg("-t")
+			.arg(&config.machine_image)
+			.arg("-f")
+			.arg(&self.dockerfile)
 			.arg("--")
-			.arg(build_context);
+			.arg(&self.build_context);
 		run_docker(cmd)?;
 
 		Ok(())
-	}
-
-	fn delete_image(&mut self, image_name: &str) -> Result<()> {
-		let mut cmd = process::Command::new(&self.docker_bin);
-		cmd.arg("image").arg("rm").arg("--").arg(image_name);
-		run_docker(cmd)?;
-
-		Ok(())
-	}
-
-	fn list_machines(&self) -> Result<Vec<String>> {
-		let mut cmd = process::Command::new(&self.docker_bin);
-		cmd.stdout(Stdio::piped())
-			.arg("container")
-			.arg("ls")
-			.arg("-a")
-			.args(["--format", "{{.Names}}"]);
-		let output = run_docker(cmd)?;
-
-		let mut containers: Vec<String> = Vec::new();
-
-		for line in output.stdout.lines() {
-			let container = match line {
-				Ok(v) => v,
-				Err(e) => {
-					warning!("Failed to parse container line: {e}");
-					continue;
-				},
-			};
-
-			containers.push(container);
-		}
-
-		Ok(containers)
 	}
 
 	fn create_machine(
 		&mut self,
-		machine_name: &str,
-		image_name: &str,
-		opts: &GlobalConfig,
+		config: &GlobalConfig,
 	) -> Result<()> {
 		let mut cmd = process::Command::new(&self.docker_bin);
-		cmd.arg("container")
+		cmd.stdin(Stdio::null())
+			.stdout(Stdio::null())
+			.stderr(Stdio::null())
+			.arg("container")
+			.arg("rm")
+			.arg("--")
+			.arg(&config.machine_name);
+		let _ = run_docker(cmd);
+
+		let mut cmd = process::Command::new(&self.docker_bin);
+		cmd.stdin(Stdio::inherit())
+			.stdout(Stdio::inherit())
+			.stderr(Stdio::inherit())
+			.arg("container")
 			.arg("create")
 			.arg("-i")
 			.arg("-t")
-			.args(["--name", machine_name])
-			.args([
-				"-v",
-				"/var/cache/pacman/pkg:/var/cache/pacman/pkg:rw",
-			])
-			.args([
-				"-v",
-				&format!(
-					"{}:/build:rw",
-					opts.build_dir.to_string_lossy()
-				),
-			])
+			.arg("--name")
+			.arg(&config.machine_name)
+			.arg("-v")
+			.arg(format!(
+				"{}:/var/cache/pacman/pkg:rw",
+				self.pacman_cache.to_string_lossy()
+			))
+			.arg("-v")
+			.arg(format!(
+				"{}:/build:rw",
+				config.build_dir.to_string_lossy()
+			))
 			.arg("--cap-drop=all")
 			.arg("--cap-add=CAP_SETUID")
 			.arg("--cap-add=CAP_SETGID")
 			.arg("--cap-add=CAP_SYS_CHROOT")
 			.arg("--")
-			.arg(image_name);
+			.arg(&config.machine_image);
 		run_docker(cmd)?;
 
 		Ok(())
 	}
 
-	fn start_machine(&mut self, machine_name: &str) -> Result<()> {
+	fn start_machine(&mut self, config: &GlobalConfig) -> Result<()> {
 		let mut cmd = process::Command::new(&self.docker_bin);
-		cmd.arg("container")
+		cmd.stdin(Stdio::inherit())
+			.stdout(Stdio::inherit())
+			.stderr(Stdio::inherit())
+			.arg("container")
 			.arg("start")
 			.arg("-a")
 			.arg("-i")
 			.arg("--")
-			.arg(machine_name);
-		run_docker(cmd)?;
-
-		Ok(())
-	}
-
-	fn stop_machine(&mut self, machine_name: &str) -> Result<()> {
-		let mut cmd = process::Command::new(&self.docker_bin);
-		cmd.arg("container").arg("kill").arg("--").arg(machine_name);
-		run_docker(cmd)?;
-
-		Ok(())
-	}
-
-	fn delete_machine(&mut self, machine_name: &str) -> Result<()> {
-		let mut cmd = process::Command::new(&self.docker_bin);
-		cmd.arg("container")
-			.arg("rm")
-			.arg("-f")
-			.arg("-v")
-			.arg("--")
-			.arg(machine_name);
+			.arg(&config.machine_name);
 		run_docker(cmd)?;
 
 		Ok(())

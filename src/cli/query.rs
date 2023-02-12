@@ -55,7 +55,7 @@ fn print_pretty_package(package: &aur::Package) {
 	println!();
 }
 
-pub fn query(
+pub(crate) fn query(
 	_: GlobalConfig,
 	config: QueryConfig,
 	db: &mut db::Db,

@@ -2,7 +2,10 @@ use ::std::path::Path;
 
 use super::prelude::*;
 
-pub fn runtime(_: GlobalConfig, config: RuntimeConfig) -> Result<()> {
+pub(crate) fn runtime(
+	_: GlobalConfig,
+	config: RuntimeConfig,
+) -> Result<()> {
 	if config.list {
 		let runtime_dir =
 			Path::new(constants::LIB_DIR).join("runtimes");

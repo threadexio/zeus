@@ -1,7 +1,7 @@
 use super::prelude::*;
 use ipc::Message;
 
-pub fn remove(
+pub(crate) fn remove(
 	global_config: GlobalConfig,
 	config: RemoveConfig,
 	runtime: &mut Runtime,

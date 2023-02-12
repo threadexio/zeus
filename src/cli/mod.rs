@@ -56,19 +56,10 @@ pub fn init() -> Result<()> {
 		})
 	};
 
-	let init_runtime =
-		|runtime: &mut Runtime, global_config: &GlobalConfig| {
-			runtime
-				.init(global_config)
-				.context("Unable to initialize runtime")
-		};
-
 	match operation {
 		Operation::Sync(config) => {
 			let db_lock = get_lock()?;
-
 			let mut runtime = load_runtime(&global_config.runtime)?;
-			init_runtime(&mut runtime, &global_config)?;
 
 			sync::sync(
 				global_config,
@@ -80,9 +71,7 @@ pub fn init() -> Result<()> {
 		},
 		Operation::Remove(config) => {
 			let db_lock = get_lock()?;
-
 			let mut runtime = load_runtime(&global_config.runtime)?;
-			init_runtime(&mut runtime, &global_config)?;
 
 			remove::remove(
 				global_config,
@@ -93,9 +82,7 @@ pub fn init() -> Result<()> {
 		},
 		Operation::Build(config) => {
 			get_lock()?;
-
 			let mut runtime = load_runtime(&global_config.runtime)?;
-			init_runtime(&mut runtime, &global_config)?;
 
 			build::build(global_config, config, &mut runtime)
 		},
@@ -154,10 +141,8 @@ pub(self) fn start_builder(
 
 	use ::std::thread;
 
-	let machine_name = global_config.machine_name.clone();
-
 	let builder = thread::Builder::new()
-		.spawn(move || -> Result<Response> {
+		.spawn({let global_config = global_config.clone(); move || -> Result<Response> {
 			use crate::ipc::Listener;
 
 			let mut ipc =
@@ -174,11 +159,11 @@ pub(self) fn start_builder(
 				Message::Response(res) => Ok(res),
 				r => Err(anyhow!("received unexpected response from builder: {r:#?}")),
 			}
-		})
+		}})
 		.context("Unable to create builder thread")?;
 
 	runtime
-		.start_machine(&machine_name)
+		.start_machine(&global_config)
 		.context("Unable to start machine")?;
 
 	debug!("Waiting for builder thread to finish...");
@@ -188,7 +173,7 @@ pub(self) fn start_builder(
 	}
 }
 
-pub(self) fn load_runtime(name: &str) -> Result<Runtime> {
+fn load_runtime(name: &str) -> Result<Runtime> {
 	env::set_current_dir(Path::new(constants::DATA_DIR))
 		.with_context(|| {
 			format!("Unable to move into {}", constants::DATA_DIR)
@@ -199,7 +184,13 @@ pub(self) fn load_runtime(name: &str) -> Result<Runtime> {
 	rt_path.push("runtimes");
 	rt_path.push(format!("librt_{name}.so"));
 
-	Runtime::load(&rt_path).with_context(|| {
+	let runtime = Runtime::load(&rt_path).with_context(|| {
 		format!("Unable to load runtime '{}'", rt_path.display())
-	})
+	})?;
+
+	Ok(runtime)
+
+	//runtime
+	//	.init(global_config)
+	//	.context("Unable to initialize runtime")
 }

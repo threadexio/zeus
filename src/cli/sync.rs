@@ -1,7 +1,7 @@
 use super::prelude::*;
 use ipc::Message;
 
-pub fn sync(
+pub(crate) fn sync(
 	global_config: GlobalConfig,
 	mut config: SyncConfig,
 	runtime: &mut Runtime,

@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-pub fn completions(
+pub(crate) fn completions(
 	_: GlobalConfig,
 	config: CompletionsConfig,
 ) -> Result<()> {

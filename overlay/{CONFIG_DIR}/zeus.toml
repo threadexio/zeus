@@ -3,35 +3,6 @@
 ##     To make any changes bellow, you should remove the '#' in front.
 
 ##
-## This section configures the logger for zeus.
-##
-[log]
-# The default log level. (--level)
-#Level = "info"
-
-##
-## This section configures the AUR
-## zeus will try and communicate with.
-##
-[aur]
-# The default AUR url. (--aur)
-#Url = "https://aur.archlinux.org"
-
-##
-## This section configures the
-## runtime zeus will use.
-##
-[runtime]
-# The runtime that will be used by default. (--runtime)
-#Name = "docker"
-
-# The builder's name. (--name)
-#BuilderName = "zeus-builder"
-
-# The builder's base image. (--image)
-#BuilderImage = "zeus-builder"
-
-##
 ## This section configures the
 ## general environment of zeus.
 ##
@@ -98,3 +69,52 @@
 #  fish
 #  zsh
 #Shell = "bash"
+
+##
+## This section configures the logger for zeus.
+##
+[log]
+# The default log level. (--level)
+#Level = "info"
+
+##
+## This section configures the AUR
+## zeus will try and communicate with.
+##
+[aur]
+# The default AUR url. (--aur)
+#Url = "https://aur.archlinux.org"
+
+##
+## This section configures the
+## runtime zeus will use.
+##
+[runtime]
+# The runtime that will be used by default. (--rt)
+#Name = "docker"
+
+# The builder's name. (--name)
+#Builder = "zeus-builder"
+
+# The builder's base image. (--image)
+#Image = "zeus-builder"
+
+##
+## This section configures the
+## docker runtime.
+##
+[runtime.docker]
+# Path to the docker executable.
+# Can also be set per-run with the environment variable `DOCKER_BIN`.
+#Program = "/usr/bin/docker"
+
+# The build context used for building the base image.
+#Context = "/usr/share/zeus"
+
+# Path to the dockerfile used for building the base image.
+# Relative to `/usr/share/zeus`.
+#Dockerfile = "Dockerfile"
+
+# Path to the pacman package cache. If unsure leave it
+# at the default path.
+#PacmanCache = "/var/cache/pacman/pkg"

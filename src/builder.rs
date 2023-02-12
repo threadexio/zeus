@@ -40,7 +40,7 @@ fn init() -> Result<()> {
 			_ => {},
 		}
 
-		set_log_level!(opts.log_level.clone());
+		set_log_level!(opts.log_level);
 
 		gopts = opts;
 	} else {

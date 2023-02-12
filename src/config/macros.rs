@@ -19,6 +19,9 @@ macro_rules! config_path {
 	(@primitive_type $value:expr, integer) => {
 		$value.as_integer()
 	};
+	(@primitive_type $value:expr, table) => {
+		$value.as_table()
+	};
 	// Type handlers
 	// primitive types are represented with only one token
 	(@type $value:expr, array<$inner:tt>) => {
