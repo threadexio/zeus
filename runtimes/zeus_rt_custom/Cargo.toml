@@ -1,0 +1,14 @@
+[package]
+name = "zeus_rt_custom"
+version = "0.1.0"
+edition = "2021"
+authors = ["threadexio"]
+description = "Custom Runtime for the Zeus AUR helper"
+license = "GPL-3.0-or-later"
+
+[lib]
+name = "rt_custom"
+crate-type = ["cdylib"]
+
+[dependencies.zeus]
+path = "../../"

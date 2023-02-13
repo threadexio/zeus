@@ -118,3 +118,12 @@
 # Path to the pacman package cache. If unsure leave it
 # at the default path.
 #PacmanCache = "/var/cache/pacman/pkg"
+
+##
+## This section configures the
+## custom runtime
+##
+[runtime.custom]
+# Path to the directory contraining the scripts or executables.
+# Relative to `/usr/share/zeus`.
+#ScriptDir = "scripts"

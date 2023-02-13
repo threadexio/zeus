@@ -26,7 +26,11 @@ name = "builder"
 path = "src/builder.rs"
 
 [workspace]
-members = ["runtimes/zeus_rt_docker", "runtimes/zeus_rt_null"]
+members = [
+	"runtimes/zeus_rt_docker",
+	"runtimes/zeus_rt_null",
+	"runtimes/zeus_rt_custom",
+]
 
 [dependencies]
 thiserror = "1.0"

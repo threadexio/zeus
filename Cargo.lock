@@ -1536,6 +1536,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "zeus_rt_custom"
+version = "0.1.0"
+dependencies = [
+ "zeus",
+]
+
+[[package]]
 name = "zeus_rt_docker"
 version = "0.1.0"
 dependencies = [
