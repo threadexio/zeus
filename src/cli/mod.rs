@@ -59,7 +59,7 @@ pub fn init() -> Result<()> {
 	match operation {
 		Operation::Sync(config) => {
 			let db_lock = get_lock()?;
-			let mut runtime = load_runtime(&global_config.runtime)?;
+			let mut runtime = load_runtime(&global_config)?;
 
 			sync::sync(
 				global_config,
@@ -71,7 +71,7 @@ pub fn init() -> Result<()> {
 		},
 		Operation::Remove(config) => {
 			let db_lock = get_lock()?;
-			let mut runtime = load_runtime(&global_config.runtime)?;
+			let mut runtime = load_runtime(&global_config)?;
 
 			remove::remove(
 				global_config,
@@ -82,7 +82,7 @@ pub fn init() -> Result<()> {
 		},
 		Operation::Build(config) => {
 			get_lock()?;
-			let mut runtime = load_runtime(&global_config.runtime)?;
+			let mut runtime = load_runtime(&global_config)?;
 
 			build::build(global_config, config, &mut runtime)
 		},
@@ -173,7 +173,7 @@ pub(self) fn start_builder(
 	}
 }
 
-fn load_runtime(name: &str) -> Result<Runtime> {
+fn load_runtime(config: &GlobalConfig) -> Result<Runtime> {
 	env::set_current_dir(Path::new(constants::DATA_DIR))
 		.with_context(|| {
 			format!("Unable to move into {}", constants::DATA_DIR)
@@ -182,15 +182,15 @@ fn load_runtime(name: &str) -> Result<Runtime> {
 	let mut rt_path = PathBuf::new();
 	rt_path.push(constants::LIB_DIR);
 	rt_path.push("runtimes");
-	rt_path.push(format!("librt_{name}.so"));
+	rt_path.push(format!("librt_{}.so", config.runtime));
 
-	let runtime = Runtime::load(&rt_path).with_context(|| {
+	let mut runtime = Runtime::load(&rt_path).with_context(|| {
 		format!("Unable to load runtime '{}'", rt_path.display())
 	})?;
 
-	Ok(runtime)
+	runtime
+		.init(config)
+		.context("Unable to initialize runtime")?;
 
-	//runtime
-	//	.init(global_config)
-	//	.context("Unable to initialize runtime")
+	Ok(runtime)
 }
