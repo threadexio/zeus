@@ -1,4 +1,5 @@
 pub use crate::config::GlobalConfig;
+pub use crate::term::Terminal;
 
 #[derive(Debug, thiserror::Error)]
 #[error("{description}")]
@@ -35,17 +36,32 @@ pub trait IRuntime {
 	fn version(&self) -> &'static str;
 
 	/// Called when the runtime is first loaded.
-	fn init(&mut self, config: &GlobalConfig) -> Result<()>;
+	fn init(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()>;
 	/// Called when the runtime is unloaded.
 	fn exit(&mut self);
 
 	/// Create/update base image
-	fn create_image(&mut self, config: &GlobalConfig) -> Result<()>;
+	fn create_image(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()>;
 
 	/// Create  a new machine or update an existing one.
-	fn create_machine(&mut self, config: &GlobalConfig)
-		-> Result<()>;
+	fn create_machine(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()>;
 
 	/// Start and attach machine to stdin, stdout, stderr.
-	fn start_machine(&mut self, config: &GlobalConfig) -> Result<()>;
+	fn start_machine(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()>;
 }

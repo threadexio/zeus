@@ -1,29 +1,27 @@
 use super::prelude::*;
 use config::types::Output;
 
-macro_rules! print_info {
-	($a:expr, $b:expr) => {
-		println!("{0: <16}: {1}", $a, $b);
-	};
-}
+use std::io::Write;
 
-macro_rules! print_if_some {
-	($a:expr,$b:expr) => {{
+macro_rules! print_info {
+	($term:expr, $a:expr, $b:expr) => {
+		let _ = $term.writeln(format!("{0: <16}: {1}", $a, $b));
+	};
+
+	(@option $term:expr, $a:expr, $b:expr) => {{
 		match $b {
 			None => {},
 			Some(v) => {
-				print_info!($a, v);
+				print_info!($term, $a, v);
 			},
 		}
 	}};
-}
 
-macro_rules! print_vec {
-	($a:expr,$b:expr) => {{
+	(@vec $term:expr, $a:expr, $b:expr) => {{
 		match $b {
 			Some(v) => {
 				if !v.is_empty() {
-					print_info!($a, v.join(" "));
+					print_info!($term, $a, v.join(" "));
 				}
 			},
 			None => {},
@@ -31,26 +29,26 @@ macro_rules! print_vec {
 	}};
 }
 
-fn print_pretty_package(package: &aur::Package) {
-	print_info!("Name", &package.name);
-	print_info!("Version", &package.version);
-	print_if_some!("Description", &package.description);
-	print_info!("Last Modified", &package.last_modified);
-	print_info!("First Submitted", &package.first_submitted);
-	print_info!("Popularity", &package.popularity);
-	print_info!("Votes", &package.num_votes);
+fn print_pretty_package(term: &mut Terminal, package: &aur::Package) {
+	print_info!(term, "Name", &package.name);
+	print_info!(term, "Version", &package.version);
+	print_info!(@option term, "Description", &package.description);
+	print_info!(term, "Last Modified", &package.last_modified);
+	print_info!(term, "First Submitted", &package.first_submitted);
+	print_info!(term, "Popularity", &package.popularity);
+	print_info!(term, "Votes", &package.num_votes);
 
-	print_vec!("License", &package.license);
-	print_vec!("Groups", &package.groups);
-	print_vec!("Provides", &package.provides);
-	print_vec!("Depends On", &package.depends);
-	print_vec!("Optional Deps", &package.opt_depends);
-	print_vec!("Conflicts", &package.conflicts);
-	print_vec!("Replaces", &package.replaces);
+	print_info!(@vec term, "License", &package.license);
+	print_info!(@vec term, "Groups", &package.groups);
+	print_info!(@vec term, "Provides", &package.provides);
+	print_info!(@vec term, "Depends On", &package.depends);
+	print_info!(@vec term, "Optional Deps", &package.opt_depends);
+	print_info!(@vec term, "Conflicts", &package.conflicts);
+	print_info!(@vec term, "Replaces", &package.replaces);
 
-	print_if_some!("URL", &package.url);
-	print_if_some!("Maintainer", &package.maintainer);
-	print_if_some!("Out Of Date", &package.out_of_date);
+	print_info!(@option term, "URL", &package.url);
+	print_info!(@option term, "Maintainer", &package.maintainer);
+	print_info!(@option term, "Out Of Date", &package.out_of_date);
 
 	println!();
 }
@@ -58,6 +56,7 @@ fn print_pretty_package(package: &aur::Package) {
 pub(crate) fn query(
 	_: GlobalConfig,
 	config: QueryConfig,
+	term: &mut Terminal,
 	db: &mut db::Db,
 	aur: &mut aur::Aur,
 ) -> Result<()> {
@@ -69,7 +68,11 @@ pub(crate) fn query(
 		match config.output {
 			Output::Pretty => {
 				for x in pkgs {
-					println!("{}", x.name());
+					writeln!(
+						unsafe { term.raw_out() },
+						"{}",
+						x.name()
+					)?;
 				}
 			},
 			Output::Json => serde_json::to_writer(
@@ -89,26 +92,27 @@ pub(crate) fn query(
 	.context("Unable to request packages from AUR")?;
 
 	match config.output {
-		Output::Json => {
-			serde_json::to_writer(std::io::stdout(), &packages)
-				.context("Unable to serialize JSON")?
-		},
+		Output::Json => serde_json::to_writer(
+			unsafe { term.raw_out() },
+			&packages,
+		)
+		.context("Unable to serialize JSON")?,
 		Output::Pretty => {
 			if config.info {
 				for package in &packages {
-					print_pretty_package(package);
+					print_pretty_package(term, package);
 				}
 			} else {
 				for package in &packages {
-					info!(
+					term.info(format!(
 						"{} - {}{}",
 						package.name.bold(),
 						package.version.bright_blue(),
 						match package.description {
 							Some(ref desc) => format!("\n\t{desc}"),
 							None => "".to_string(),
-						}
-					);
+						},
+					))?;
 				}
 			}
 		},

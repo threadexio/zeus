@@ -1,4 +1,4 @@
-use zeus::{log::macros::*, runtime::*};
+use zeus::runtime::*;
 
 #[derive(Default)]
 struct NullRuntime;
@@ -12,42 +12,60 @@ impl IRuntime for NullRuntime {
 		env!("CARGO_PKG_VERSION", "must be built with cargo")
 	}
 
-	fn init(&mut self, config: &GlobalConfig) -> Result<()> {
-		set_log_level!(config.log_level);
+	fn init(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()> {
+		let _ = term.info("Hello world!");
 
-		info!("Hello world!");
-
-		warning!(
-			"This runtime does nothing! It is only used for testing."
+		let _ = term.warn(
+			"This runtime does nothing! It is only used for testing.",
 		);
 
-		trace!("runtime options = {:#?}", config.runtime_opts);
+		let _ = term.trace(format!(
+			"runtime options = {:#?}",
+			config.runtime_opts
+		));
 
 		Ok(())
 	}
 
-	fn exit(&mut self) {
-		debug!("Goodbye cruel world!");
-	}
+	fn exit(&mut self) {}
 
-	fn create_image(&mut self, config: &GlobalConfig) -> Result<()> {
-		debug!("create_image(image = `{}`)", config.machine_image);
+	fn create_image(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()> {
+		let _ = term.debug(format!(
+			"create_image(image = `{}`)",
+			config.machine_image
+		));
 		Ok(())
 	}
 
 	fn create_machine(
 		&mut self,
 		config: &GlobalConfig,
+		term: &mut Terminal,
 	) -> Result<()> {
-		debug!(
+		let _ = term.debug(format!(
 			"create_machine(image = `{}`, machine = `{}`)",
 			config.machine_image, config.machine_name
-		);
+		));
 		Ok(())
 	}
 
-	fn start_machine(&mut self, config: &GlobalConfig) -> Result<()> {
-		debug!("start_machine(machine = `{}`)", config.machine_name);
+	fn start_machine(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()> {
+		let _ = term.debug(format!(
+			"start_machine(machine = `{}`)",
+			config.machine_name
+		));
 		Ok(())
 	}
 }

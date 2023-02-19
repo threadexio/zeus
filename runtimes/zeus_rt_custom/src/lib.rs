@@ -2,7 +2,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{self, Stdio};
 
-use zeus::{log::macros::*, runtime::*};
+use zeus::runtime::*;
 
 struct CustomRuntime {
 	script_dir: PathBuf,
@@ -55,9 +55,11 @@ impl IRuntime for CustomRuntime {
 		env!("CARGO_PKG_VERSION", "must be built with cargo")
 	}
 
-	fn init(&mut self, config: &GlobalConfig) -> Result<()> {
-		set_log_level!(config.log_level);
-
+	fn init(
+		&mut self,
+		config: &GlobalConfig,
+		_: &mut Terminal,
+	) -> Result<()> {
 		let opts = &config.runtime_opts;
 
 		if let Some(v) = env::var_os("SCRIPT_DIR")
@@ -76,17 +78,29 @@ impl IRuntime for CustomRuntime {
 
 	fn exit(&mut self) {}
 
-	fn create_image(&mut self, _: &GlobalConfig) -> Result<()> {
+	fn create_image(
+		&mut self,
+		_: &GlobalConfig,
+		_: &mut Terminal,
+	) -> Result<()> {
 		self.run_script(self.script("create_image"))?;
 		Ok(())
 	}
 
-	fn create_machine(&mut self, _: &GlobalConfig) -> Result<()> {
+	fn create_machine(
+		&mut self,
+		_: &GlobalConfig,
+		_: &mut Terminal,
+	) -> Result<()> {
 		self.run_script(self.script("create_machine"))?;
 		Ok(())
 	}
 
-	fn start_machine(&mut self, _: &GlobalConfig) -> Result<()> {
+	fn start_machine(
+		&mut self,
+		_: &GlobalConfig,
+		_: &mut Terminal,
+	) -> Result<()> {
 		self.run_script(self.script("create_machine"))?;
 		Ok(())
 	}

@@ -3,12 +3,13 @@ use super::prelude::*;
 pub(crate) fn completions(
 	_: GlobalConfig,
 	config: CompletionsConfig,
+	term: &mut Terminal,
 ) -> Result<()> {
 	clap_complete::generate(
 		clap_complete::Shell::from(config.shell),
 		&mut config::command(),
 		constants::NAME.to_string(),
-		&mut std::io::stdout(),
+		unsafe { term.raw_out() },
 	);
 
 	Ok(())

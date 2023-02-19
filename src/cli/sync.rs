@@ -4,6 +4,7 @@ use ipc::Message;
 pub(crate) fn sync(
 	global_config: GlobalConfig,
 	mut config: SyncConfig,
+	term: &mut Terminal,
 	runtime: &mut Runtime,
 	db: db::DbGuard,
 	aur: &mut aur::Aur,
@@ -26,7 +27,7 @@ pub(crate) fn sync(
 		.context("Unable to request package data from AUR")?;
 
 	if packages.len() > config.packages.len() {
-		warning!("AUR returned more packages than requested. This might be a bug with zeus or the AUR!");
+		term.warn("AUR returned more packages than requested. This might be a bug with zeus or the AUR!")?;
 	}
 
 	config.packages = packages
@@ -39,31 +40,27 @@ pub(crate) fn sync(
 		bail!("No valid packages specified")
 	}
 
-	if !inquire::Confirm::new(&format!(
-		"Proceed to {} {} packages? {}",
-		if config.upgrade {
-			"upgrade"
-		} else {
-			"sync"
-		},
-		packages.len(),
-		config.packages.join(" ").bold()
-	))
-	.with_default(true)
-	.prompt()?
-	{
-		info!("Aborting...");
+	term.writeln(format!(
+		"{} ({}):\n    {}\n",
+		"Packages".bold(),
+		config.packages.len(),
+		config.packages.join("\n    ").trim()
+	))?;
+
+	if !term.confirm("Proceed with installation?", true)? {
+		term.writeln("Aborting.".bold())?;
 		return Ok(());
 	}
 
 	let res = super::start_builder(
 		global_config,
 		Message::Sync(config.clone()),
+		term,
 		runtime,
 	)
 	.context("Unable to start builder")?;
 
-	trace!("synced packages: {:#?}", &res.packages);
+	//trace!("synced packages: {:#?}", &res.packages);
 
 	if config.install {
 		let status = db::tools::Pacman::default()

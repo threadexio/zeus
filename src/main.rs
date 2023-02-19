@@ -13,11 +13,14 @@ mod config;
 mod constants;
 mod db;
 mod ipc;
-mod log;
 mod runtime;
+mod term;
 
 fn main() {
-	if let Err(e) = cli::init() {
-		fatal!("{:#}", e);
+	let mut term = term::Terminal::new();
+
+	if let Err(e) = cli::init(&mut term) {
+		term.fatal(format!("{:#}", e))
+			.expect("cannot write to stdout");
 	}
 }

@@ -3,16 +3,20 @@ use super::prelude::*;
 pub(crate) fn build(
 	global_config: GlobalConfig,
 	_: BuildConfig,
+	term: &mut Terminal,
 	runtime: &mut Runtime,
 ) -> Result<()> {
-	debug!("Making new image");
+	if !term.confirm("Proceed with build?", true)? {
+		term.writeln("Aborting.".bold())?;
+		return Ok(());
+	}
 
 	runtime
-		.create_image(&global_config)
+		.create_image(&global_config, term)
 		.context("Unable to make image")?;
 
 	runtime
-		.create_machine(&global_config)
+		.create_machine(&global_config, term)
 		.context("Unable to create new builder")?;
 
 	Ok(())

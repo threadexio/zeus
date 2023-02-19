@@ -5,6 +5,7 @@ use super::prelude::*;
 pub(crate) fn runtime(
 	_: GlobalConfig,
 	config: RuntimeConfig,
+	term: &mut Terminal,
 ) -> Result<()> {
 	if config.list {
 		let runtime_dir =
@@ -28,27 +29,32 @@ pub(crate) fn runtime(
 				},
 				None => false,
 			})
-			.for_each(|path| {
-				debug!("Test-loading runtime '{}'", path.display());
+			.try_for_each(|path| -> Result<()> {
+				term.debug(format!(
+					"Test-loading runtime '{}'",
+					path.display()
+				))?;
 
 				let rt = match Runtime::load(&path) {
 					Ok(v) => v,
 					Err(e) => {
-						error!(
+						term.error(format!(
 							"Unable to load runtime '{}': {e}",
 							path.display()
-						);
-						return;
+						))?;
+						return Ok(());
 					},
 				};
 
-				info!(
+				term.info(format!(
 					"{}: {} v{}",
 					path.display(),
 					rt.name().bold(),
 					rt.version().yellow(),
-				);
-			});
+				))?;
+
+				Ok(())
+			})?;
 	}
 
 	Ok(())

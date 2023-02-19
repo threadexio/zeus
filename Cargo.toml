@@ -45,7 +45,7 @@ toml = "0.7"
 
 clap = { version = "4.1.4" }
 clap_complete = { version = "4.1.1" }
-inquire = "0.4"
+atty = "0.2"
 colored = "2"
 
 nix = { version = "0.26", features = ["fs"] }

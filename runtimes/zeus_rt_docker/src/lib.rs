@@ -2,13 +2,16 @@
 //! Available user configuration is done by the
 //! following environment variables:
 //! - `DOCKER_BIN` - This must point to the docker cli tool. (default: `/usr/bin/docker`)
-use zeus::{log::macros::*, runtime::*};
+use zeus::runtime::*;
 
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process::{self, Stdio};
 
-fn run_docker(mut cmd: process::Command) -> Result<process::Output> {
+fn run_docker(
+	term: &mut Terminal,
+	mut cmd: process::Command,
+) -> Result<process::Output> {
 	let cmdline = {
 		let mut c = String::with_capacity(1024);
 
@@ -22,7 +25,7 @@ fn run_docker(mut cmd: process::Command) -> Result<process::Output> {
 		c
 	};
 
-	debug!("Running: {cmdline}");
+	let _ = term.debug(format!("Running: {cmdline}"));
 
 	let output = match cmd.output() {
 		Ok(v) => v,
@@ -69,9 +72,11 @@ impl IRuntime for DockerRuntime {
 		env!("CARGO_PKG_VERSION", "must be built with cargo")
 	}
 
-	fn init(&mut self, config: &GlobalConfig) -> Result<()> {
-		set_log_level!(config.log_level);
-
+	fn init(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()> {
 		let opts = &config.runtime_opts;
 
 		if let Some(v) = env::var_os("DOCKER_BIN")
@@ -101,14 +106,18 @@ impl IRuntime for DockerRuntime {
 			.stdout(Stdio::null())
 			.stderr(Stdio::inherit())
 			.arg("version");
-		run_docker(cmd)?;
+		run_docker(term, cmd)?;
 
 		Ok(())
 	}
 
 	fn exit(&mut self) {}
 
-	fn create_image(&mut self, config: &GlobalConfig) -> Result<()> {
+	fn create_image(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()> {
 		let mut cmd = process::Command::new(&self.docker_bin);
 		cmd.stdin(Stdio::inherit())
 			.stdout(Stdio::inherit())
@@ -122,7 +131,7 @@ impl IRuntime for DockerRuntime {
 			.arg(&self.dockerfile)
 			.arg("--")
 			.arg(&self.build_context);
-		run_docker(cmd)?;
+		run_docker(term, cmd)?;
 
 		Ok(())
 	}
@@ -130,6 +139,7 @@ impl IRuntime for DockerRuntime {
 	fn create_machine(
 		&mut self,
 		config: &GlobalConfig,
+		term: &mut Terminal,
 	) -> Result<()> {
 		let mut cmd = process::Command::new(&self.docker_bin);
 		cmd.stdin(Stdio::null())
@@ -139,7 +149,7 @@ impl IRuntime for DockerRuntime {
 			.arg("rm")
 			.arg("--")
 			.arg(&config.machine_name);
-		let _ = run_docker(cmd);
+		let _ = run_docker(term, cmd);
 
 		let mut cmd = process::Command::new(&self.docker_bin);
 		cmd.stdin(Stdio::inherit())
@@ -167,12 +177,16 @@ impl IRuntime for DockerRuntime {
 			.arg("--cap-add=CAP_SYS_CHROOT")
 			.arg("--")
 			.arg(&config.machine_image);
-		run_docker(cmd)?;
+		run_docker(term, cmd)?;
 
 		Ok(())
 	}
 
-	fn start_machine(&mut self, config: &GlobalConfig) -> Result<()> {
+	fn start_machine(
+		&mut self,
+		config: &GlobalConfig,
+		term: &mut Terminal,
+	) -> Result<()> {
 		let mut cmd = process::Command::new(&self.docker_bin);
 		cmd.stdin(Stdio::inherit())
 			.stdout(Stdio::inherit())
@@ -183,7 +197,7 @@ impl IRuntime for DockerRuntime {
 			.arg("-i")
 			.arg("--")
 			.arg(&config.machine_name);
-		run_docker(cmd)?;
+		run_docker(term, cmd)?;
 
 		Ok(())
 	}

@@ -4,7 +4,7 @@ use anyhow::Result;
 use clap::{builder::PossibleValuesParser, ArgMatches, Command};
 use toml::Value;
 
-use crate::{aur, log};
+use crate::{aur, term};
 
 pub trait Config {
 	fn command() -> Command;
@@ -77,7 +77,7 @@ impl ConfigEnum for super::types::Shell {
 	}
 }
 
-impl ConfigEnum for log::Level {
+impl ConfigEnum for term::Level {
 	fn possible_values() -> &'static [&'static str] {
 		&["fatal", "error", "warn", "info", "debug", "trace"]
 	}

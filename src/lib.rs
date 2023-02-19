@@ -59,9 +59,7 @@
 mod aur;
 mod constants;
 
-#[doc(hidden)]
-pub mod log;
-
 mod config;
+mod term;
 
 pub mod runtime;

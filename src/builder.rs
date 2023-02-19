@@ -12,37 +12,42 @@ mod config;
 mod constants;
 mod db;
 mod ipc;
-mod log;
+mod term;
+
+use term::Terminal;
 
 use anyhow::{anyhow, Context, Result};
 
 fn main() {
-	if let Err(e) = init() {
-		fatal!(target: "builder", "{}", e);
+	let mut term = Terminal::new();
+
+	if let Err(e) = init(&mut term) {
+		term.fatal(format!("{:#}", e))
+			.expect("cannot write to stdout");
 	}
 }
 
-fn init() -> Result<()> {
+fn init(term: &mut Terminal) -> Result<()> {
 	use ipc::Message;
 
 	let mut ipc = ipc::Client::new(".zeus.sock")
 		.context("Unable to connect to zeus")?;
 
-	let gopts;
-	if let Message::Init(opts) = ipc
+	let global_config;
+	if let Message::Init(config) = ipc
 		.recv()
 		.context("Unable to receive initialization packet")?
 	{
 		use config::types::Color;
-		match opts.color {
-			Color::Always => log::set_color_enabled(true),
-			Color::Never => log::set_color_enabled(false),
+		match config.color {
+			Color::Always => Terminal::set_color_enabled(true),
+			Color::Never => Terminal::set_color_enabled(false),
 			_ => {},
 		}
 
-		set_log_level!(opts.log_level);
+		term.set_log_level(config.log_level);
 
-		gopts = opts;
+		global_config = config;
 	} else {
 		return Err(anyhow!(
 			"This is a bug! Received unexpected packet",
@@ -61,8 +66,12 @@ fn init() -> Result<()> {
 		.recv()
 		.context("Unable to receive operation packet")?
 	{
-		Message::Sync(opts) => sync::sync(db, gopts, opts),
-		Message::Remove(opts) => remove::remove(db, gopts, opts),
+		Message::Sync(config) => {
+			sync::sync(global_config, config, term, db)
+		},
+		Message::Remove(config) => {
+			remove::remove(global_config, config, term, db)
+		},
 		p => Err(anyhow!(
 			"This is a bug! Received unexpected packet: {p:#?}"
 		)),
@@ -83,19 +92,25 @@ mod sync {
 	use config::SyncConfig;
 
 	pub fn sync(
+		global_config: GlobalConfig,
+		config: SyncConfig,
+		term: &mut Terminal,
 		mut db: db::DbGuard,
-		gopts: GlobalConfig,
-		opts: SyncConfig,
 	) -> Result<Response> {
 		let mut res = Response::default();
 
-		for pkg_name in &opts.packages {
+		for pkg_name in &config.packages {
 			match sync_package(
-				&mut res, pkg_name, &mut db, &gopts, &opts,
+				&global_config,
+				&config,
+				term,
+				&mut db,
+				pkg_name,
+				&mut res,
 			) {
 				Ok(_) => {},
 				Err(e) => {
-					error!("{}", e);
+					term.error(format!("{:#}", e))?;
 					continue;
 				},
 			}
@@ -105,19 +120,20 @@ mod sync {
 	}
 
 	fn sync_package(
-		res: &mut Response,
-		name: &str,
+		global_config: &GlobalConfig,
+		config: &SyncConfig,
+		term: &mut Terminal,
 		db: &mut db::DbGuard,
-		gopts: &GlobalConfig,
-		opts: &SyncConfig,
+		name: &str,
+		res: &mut Response,
 	) -> Result<()> {
 		let trans = Transaction::new()
 			.clone_pkg(
 				name,
-				format!("{}/{}.git", gopts.aur_url, name),
-				opts.upgrade,
+				format!("{}/{}.git", global_config.aur_url, name),
+				config.upgrade,
 			)
-			.build_pkg(name, opts.build_args.iter());
+			.build_pkg(name, config.build_args.iter());
 
 		db.commit(trans)
 			.context(format!("Unable to sync package {name}"))?;
@@ -139,9 +155,11 @@ mod sync {
 						}),
 				);
 			},
-			_ => warning!(
-				"Package {name} synced but is not found in database"
-			),
+			_ => {
+				term.warn(format!(
+					"Package {name} synced but is not found in database"
+				))?;
+			},
 		}
 
 		Ok(())
@@ -153,13 +171,14 @@ mod remove {
 	use config::RemoveConfig;
 
 	pub fn remove(
+		_: GlobalConfig,
+		config: RemoveConfig,
+		_: &mut Terminal,
 		mut db: db::DbGuard,
-		_gopts: GlobalConfig,
-		opts: RemoveConfig,
 	) -> Result<Response> {
 		let mut transaction = Transaction::new();
 
-		for pkg in &opts.packages {
+		for pkg in &config.packages {
 			transaction = transaction.remove_pkg(pkg);
 		}
 
@@ -167,7 +186,7 @@ mod remove {
 			.context("Unable to remove all packages")?;
 
 		let res = Response {
-			packages: opts.packages,
+			packages: config.packages,
 			..Default::default()
 		};
 

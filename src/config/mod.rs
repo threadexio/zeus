@@ -14,8 +14,6 @@ use traits::Config;
 mod definition;
 pub use definition::*;
 
-use crate::log::macros::warning;
-
 #[derive(Debug)]
 pub enum Operation {
 	Sync(SyncConfig),
@@ -86,15 +84,8 @@ pub fn load() -> Result<AppConfig> {
 
 	let config = match try_load_config_file() {
 		Ok(v) => v,
-		Err(e) => {
-			warning!(
-				"Unable to load config file '{}': {e}",
-				config_file.display()
-			);
-
-			toml::from_str("")
-				.expect("failed to create an empty toml::Value")
-		},
+		Err(_) => toml::from_str("")
+			.expect("failed to create an empty toml::Value"),
 	};
 
 	Ok(AppConfig {

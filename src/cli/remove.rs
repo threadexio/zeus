@@ -4,6 +4,7 @@ use ipc::Message;
 pub(crate) fn remove(
 	global_config: GlobalConfig,
 	config: RemoveConfig,
+	term: &mut Terminal,
 	runtime: &mut Runtime,
 	db: db::DbGuard,
 ) -> Result<()> {
@@ -17,22 +18,27 @@ pub(crate) fn remove(
 		})?;
 	}
 
-	if !inquire::Confirm::new("Proceed to remove packages?")
-		.with_default(true)
-		.prompt()?
-	{
-		info!("Aborting...");
+	term.writeln(format!(
+		"{} ({}):\n    {}\n",
+		"Packages".bold(),
+		config.packages.len(),
+		config.packages.join("\n    ").trim()
+	))?;
+
+	if !term.confirm("Do you want to remove these packages?", true)? {
+		term.writeln("Aborting.".bold())?;
 		return Ok(());
 	}
 
 	let res = super::start_builder(
 		global_config,
 		Message::Remove(config.clone()),
+		term,
 		runtime,
 	)
 	.context("Unable to start builder")?;
 
-	trace!("removed packages: {:#?}", &res.packages);
+	term.trace(format!("removed packages: {:#?}", &res.packages))?;
 
 	if config.uninstall {
 		let status = db::tools::Pacman::default()

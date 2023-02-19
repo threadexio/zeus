@@ -3,14 +3,14 @@ use std::collections::HashMap;
 use anyhow::Context;
 
 use super::prelude::*;
-use crate::log;
+use crate::term;
 
 pub type RuntimeOpts = HashMap<String, String>;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GlobalConfig {
 	pub color: Color,
-	pub log_level: log::Level,
+	pub log_level: term::Level,
 	pub build_dir: PathBuf,
 	pub aur_url: String,
 	pub runtime: String,
@@ -35,7 +35,7 @@ impl Config for GlobalConfig {
 					.long("level")
 					.help("Set log level")
 					.value_name("level")
-					.value_parser(log::Level::value_parser()),
+					.value_parser(term::Level::value_parser()),
 			)
 			.arg(
 				Arg::new("build_dir")
@@ -97,7 +97,7 @@ impl Config for GlobalConfig {
 		)
 		.context("invalid value for 'zeus.Color'")?;
 
-		let log_level = log::Level::from_value(
+		let log_level = term::Level::from_value(
 			matches
 				.get_one::<String>("log_level")
 				.map(|x| x.as_str())
