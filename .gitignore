@@ -5,8 +5,7 @@ out
 dist
 
 # Vscode
-/.vscode/*
-!/.vscode/settings.json
+/.vscode
 
 # other
 /.vagrant
