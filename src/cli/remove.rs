@@ -14,18 +14,30 @@ pub(crate) fn remove(
 
 	for pkg in &config.packages {
 		db.pkg(pkg).with_context(|| {
-			format!("Package '{pkg}' not found in database")
+			format!("Package not found in database: {pkg}")
 		})?;
 	}
 
 	term.writeln(format!(
-		"{} ({}):\n    {}\n",
-		"Packages".bold(),
+		"{} ({}):{}",
+		"📦 Packages".bold(),
 		config.packages.len(),
-		config.packages.join("\n    ").trim()
+		config.packages.iter().fold(
+			String::with_capacity(256),
+			|mut a, x| {
+				a.push_str(&format!(
+					"\n    {} {x}",
+					"●".bright_green()
+				));
+				a
+			}
+		)
 	))?;
 
-	if !term.confirm("Do you want to remove these packages?", true)? {
+	if !term.confirm(
+		"Do you want to remove these packages?".underline(),
+		true,
+	)? {
 		term.writeln("Aborting.".bold())?;
 		return Ok(());
 	}

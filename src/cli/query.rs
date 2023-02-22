@@ -5,7 +5,8 @@ use std::io::Write;
 
 macro_rules! print_info {
 	($term:expr, $a:expr, $b:expr) => {
-		let _ = $term.writeln(format!("{0: <16}: {1}", $a, $b));
+		let _ =
+			$term.writeln(format!("{0: <16}: {1}", $a.bold(), $b));
 	};
 
 	(@option $term:expr, $a:expr, $b:expr) => {{
@@ -33,8 +34,8 @@ fn print_pretty_package(term: &mut Terminal, package: &aur::Package) {
 	print_info!(term, "Name", &package.name);
 	print_info!(term, "Version", &package.version);
 	print_info!(@option term, "Description", &package.description);
-	print_info!(term, "Last Modified", &package.last_modified);
-	print_info!(term, "First Submitted", &package.first_submitted);
+	print_info!(@option term, "URL", &package.url);
+	print_info!(@option term, "Maintainer", &package.maintainer);
 	print_info!(term, "Popularity", &package.popularity);
 	print_info!(term, "Votes", &package.num_votes);
 
@@ -46,8 +47,9 @@ fn print_pretty_package(term: &mut Terminal, package: &aur::Package) {
 	print_info!(@vec term, "Conflicts", &package.conflicts);
 	print_info!(@vec term, "Replaces", &package.replaces);
 
-	print_info!(@option term, "URL", &package.url);
-	print_info!(@option term, "Maintainer", &package.maintainer);
+	print_info!(term, "Last Modified", &package.last_modified);
+	print_info!(term, "First Submitted", &package.first_submitted);
+
 	print_info!(@option term, "Out Of Date", &package.out_of_date);
 
 	println!();
@@ -104,12 +106,13 @@ pub(crate) fn query(
 				}
 			} else {
 				for package in &packages {
-					term.info(format!(
-						"{} - {}{}",
+					term.writeln(format!(
+						"{}{} {}{}",
+						"aur/".bright_purple().bold(),
 						package.name.bold(),
-						package.version.bright_blue(),
+						package.version.bright_green().bold(),
 						match package.description {
-							Some(ref desc) => format!("\n\t{desc}"),
+							Some(ref desc) => format!("\n    {desc}"),
 							None => "".to_string(),
 						},
 					))?;

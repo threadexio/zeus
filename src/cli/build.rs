@@ -6,7 +6,8 @@ pub(crate) fn build(
 	term: &mut Terminal,
 	runtime: &mut Runtime,
 ) -> Result<()> {
-	if !term.confirm("Proceed with build?", true)? {
+	if !term.confirm("⚒️  Proceed with build?".underline(), true)?
+	{
 		term.writeln("Aborting.".bold())?;
 		return Ok(());
 	}

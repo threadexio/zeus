@@ -30,24 +30,38 @@ pub(crate) fn sync(
 		term.warn("AUR returned more packages than requested. This might be a bug with zeus or the AUR!")?;
 	}
 
-	config.packages = packages
-		.drain(..)
-		.filter(|x| config.packages.contains(&x.name))
-		.map(|x| x.name)
-		.collect();
+	let packages: Vec<_> =
+		packages.drain(..).map(|x| x.name).collect();
+
+	config.packages.retain(|x| {
+		if !packages.contains(x) {
+			let _ = term.warn(format!("Package not found: {x}"));
+			false
+		} else {
+			true
+		}
+	});
 
 	if config.packages.is_empty() {
 		bail!("No valid packages specified")
 	}
 
 	term.writeln(format!(
-		"{} ({}):\n    {}\n",
-		"Packages".bold(),
+		"{} ({}):{}",
+		"📦 Packages".bold(),
 		config.packages.len(),
-		config.packages.join("\n    ").trim()
+		config.packages.iter().fold(
+			String::with_capacity(256),
+			|mut a, x| {
+				a.push_str(&format!("\n    {} {x}", "●".green()));
+				a
+			}
+		)
 	))?;
 
-	if !term.confirm("Proceed with installation?", true)? {
+	if !term
+		.confirm("Proceed with installation?".underline(), true)?
+	{
 		term.writeln("Aborting.".bold())?;
 		return Ok(());
 	}
