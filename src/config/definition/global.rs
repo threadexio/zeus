@@ -17,6 +17,7 @@ pub struct GlobalConfig {
 	pub machine_name: String,
 	pub machine_image: String,
 	pub runtime_opts: RuntimeOpts,
+	pub no_confirm: bool,
 }
 
 impl Config for GlobalConfig {
@@ -84,6 +85,12 @@ impl Config for GlobalConfig {
 					.value_name("key=value")
 					.value_hint(ValueHint::Other)
 					.action(ArgAction::Append),
+			)
+			.arg(
+				Arg::new("no_confirm")
+					.long("noconfirm")
+					.help("Do not ask for any confirmation")
+					.action(ArgAction::SetTrue),
 			)
 	}
 
@@ -174,6 +181,8 @@ impl Config for GlobalConfig {
 			opts
 		};
 
+		let no_confirm = matches.get_flag("no_confirm");
+
 		Ok(Self {
 			color,
 			log_level,
@@ -183,6 +192,7 @@ impl Config for GlobalConfig {
 			machine_name,
 			machine_image,
 			runtime_opts,
+			no_confirm,
 		})
 	}
 }

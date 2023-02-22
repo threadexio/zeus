@@ -40,8 +40,8 @@ fn init(term: &mut Terminal) -> Result<()> {
 	{
 		use config::types::Color;
 		match config.color {
-			Color::Always => Terminal::set_color_enabled(true),
-			Color::Never => Terminal::set_color_enabled(false),
+			Color::Always => term.set_color_enabled(true),
+			Color::Never => term.set_color_enabled(false),
 			_ => {},
 		}
 

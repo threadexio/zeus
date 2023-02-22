@@ -60,8 +60,6 @@ pub(crate) fn sync(
 	)
 	.context("Unable to start builder")?;
 
-	//trace!("synced packages: {:#?}", &res.packages);
-
 	if config.install {
 		let status = db::tools::Pacman::default()
 			.attach(true)

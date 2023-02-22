@@ -27,40 +27,55 @@ pub enum Level {
 	Trace,
 }
 
+#[derive(Debug)]
 pub struct Terminal {
 	t_in: io::Stdin,
 	t_out: io::Stdout,
 	t_err: io::Stderr,
+
 	read_buf: Vec<u8>,
 	max_level: Level,
-	is_terminal: bool,
+
+	terminal: bool,
+	interactive: bool,
 }
 
 impl Terminal {
 	#[allow(clippy::new_without_default)]
 	pub fn new() -> Self {
-		let is_terminal = atty::is(atty::Stream::Stdin)
-			&& atty::is(atty::Stream::Stderr);
+		let interactive = atty::is(atty::Stream::Stdin);
+		let terminal = atty::is(atty::Stream::Stderr);
 
-		if !is_terminal {
-			Self::set_color_enabled(false);
-		}
-
-		Self {
+		let mut term = Self {
 			t_in: io::stdin(),
 			t_out: io::stdout(),
 			t_err: io::stderr(),
 			read_buf: Vec::with_capacity(2048),
 			max_level: Level::Info,
-			is_terminal,
+			terminal,
+			interactive,
+		};
+
+		if !term.is_terminal() {
+			term.set_color_enabled(false);
 		}
+
+		term
 	}
 
 	pub fn is_terminal(&self) -> bool {
-		self.is_terminal
+		self.terminal
 	}
 
-	pub fn set_color_enabled(enabled: bool) {
+	pub fn is_interactive(&self) -> bool {
+		self.interactive
+	}
+
+	pub fn set_interactive(&mut self, yes: bool) {
+		self.interactive = yes;
+	}
+
+	pub fn set_color_enabled(&mut self, enabled: bool) {
 		colored::control::set_override(enabled)
 	}
 
@@ -82,6 +97,10 @@ impl Terminal {
 
 impl Terminal {
 	pub fn read_line(&mut self, max_len: usize) -> Result<String> {
+		if !self.is_interactive() {
+			bail!("Input is not a terminal")
+		}
+
 		if max_len > self.read_buf.len() {
 			self.read_buf.resize(max_len, 0);
 		}
@@ -130,6 +149,10 @@ impl Terminal {
 		M: fmt::Display,
 	{
 		if !self.is_terminal() {
+			bail!("Output is not a terminal")
+		}
+
+		if !self.is_interactive() {
 			return Ok(default);
 		}
 
@@ -162,6 +185,10 @@ impl Terminal {
 		D: fmt::Display,
 	{
 		if !self.is_terminal() {
+			bail!("Output is not a terminal")
+		}
+
+		if !self.is_interactive() {
 			return Ok(default.to_string());
 		}
 

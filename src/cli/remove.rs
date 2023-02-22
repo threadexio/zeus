@@ -38,8 +38,6 @@ pub(crate) fn remove(
 	)
 	.context("Unable to start builder")?;
 
-	term.trace(format!("removed packages: {:#?}", &res.packages))?;
-
 	if config.uninstall {
 		let status = db::tools::Pacman::default()
 			.attach(true)

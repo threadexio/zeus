@@ -33,19 +33,20 @@ pub fn init(term: &mut Terminal) -> Result<()> {
 		config::load()?;
 
 	match global_config.color {
-		Color::Always => Terminal::set_color_enabled(true),
-		Color::Never => Terminal::set_color_enabled(false),
+		Color::Always => term.set_color_enabled(true),
+		Color::Never => term.set_color_enabled(false),
 		_ => {},
 	};
 	term.set_log_level(global_config.log_level);
+
+	if term.is_interactive() {
+		term.set_interactive(!global_config.no_confirm);
+	}
 
 	term.debug(format!(
 		"Version: {}",
 		constants::VERSION.bright_blue()
 	))?;
-
-	term.trace(format!("global config = {:#?}", &global_config))?;
-	term.trace(format!("operation = {:#?}", &operation))?;
 
 	let mut db =
 		db::Db::new(&global_config.build_dir).with_context(|| {
