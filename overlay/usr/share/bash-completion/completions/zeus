@@ -37,7 +37,7 @@ _zeus() {
 
     case "${cmd}" in
         zeus)
-            opts="-l -h -V --color --level --build-dir --aur --rt --name --image --config --help --version sync remove build query runtime completions"
+            opts="-l -h -V --color --level --build-dir --aur --rt --name --image --rtcfg --noconfirm --config --help --version sync remove build query runtime completions"
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -72,6 +72,10 @@ _zeus() {
                     return 0
                     ;;
                 --image)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                --rtcfg)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;

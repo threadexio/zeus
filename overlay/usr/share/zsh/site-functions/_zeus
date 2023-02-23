@@ -23,7 +23,9 @@ _zeus() {
 '--rt=[Specify runtime to use]:name:( )' \
 '--name=[Builder machine name]:name:( )' \
 '--image=[Builder machine image]:image:( )' \
+'*--rtcfg=[Set an option for the runtime]:key=value:( )' \
 '--config=[Set an alternate configuration file]:path:_files' \
+'--noconfirm[Do not ask for any confirmation]' \
 '-h[Print help]' \
 '--help[Print help]' \
 '-V[Print version]' \

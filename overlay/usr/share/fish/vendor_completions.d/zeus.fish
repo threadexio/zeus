@@ -5,7 +5,9 @@ complete -c zeus -n "__fish_use_subcommand" -l aur -d 'AUR URL' -r -f
 complete -c zeus -n "__fish_use_subcommand" -l rt -d 'Specify runtime to use' -r -f
 complete -c zeus -n "__fish_use_subcommand" -l name -d 'Builder machine name' -r -f
 complete -c zeus -n "__fish_use_subcommand" -l image -d 'Builder machine image' -r -f
+complete -c zeus -n "__fish_use_subcommand" -l rtcfg -d 'Set an option for the runtime' -r -f
 complete -c zeus -n "__fish_use_subcommand" -l config -d 'Set an alternate configuration file' -r -F
+complete -c zeus -n "__fish_use_subcommand" -l noconfirm -d 'Do not ask for any confirmation'
 complete -c zeus -n "__fish_use_subcommand" -s h -l help -d 'Print help'
 complete -c zeus -n "__fish_use_subcommand" -s V -l version -d 'Print version'
 complete -c zeus -n "__fish_use_subcommand" -f -a "sync" -d 'Sync packages'
