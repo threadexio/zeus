@@ -40,16 +40,16 @@ const_format = { version = "0.2" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.11", features = ["json", "blocking"] }
-channels = { version = "0.6.1" }
+channels = { version = "0.6.7" }
 toml = "0.7"
 
-clap = { version = "4.1.4" }
-clap_complete = { version = "4.1.1" }
+clap = { version = "4.1.6" }
+clap_complete = { version = "4.1.2" }
 atty = "0.2"
 colored = "2"
 
 nix = { version = "0.26", features = ["fs"] }
-fs4 = { version = "0.6.2" }
+fs4 = { version = "0.6.3" }
 libloading = "0.7"
 
 [build-dependencies]
