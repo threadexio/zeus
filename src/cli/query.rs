@@ -55,6 +55,15 @@ fn print_pretty_package(term: &mut Terminal, package: &aur::Package) {
 	println!();
 }
 
+fn format_timestamp(timestamp: u64) -> Option<String> {
+	let d = chrono::NaiveDateTime::from_timestamp_opt(
+		timestamp.try_into().ok()?,
+		0,
+	)?;
+
+	Some(d.format("%c").to_string())
+}
+
 pub(crate) fn query(
 	_: GlobalConfig,
 	config: QueryConfig,
@@ -107,13 +116,23 @@ pub(crate) fn query(
 			} else {
 				for package in &packages {
 					term.writeln(format!(
-						"{}{} {}{}",
+						"{}{} {} {}{}",
 						"aur/".bright_purple().bold(),
 						package.name.bold(),
 						package.version.bright_green().bold(),
+						match package.out_of_date {
+							Some(timestamp) => format!(
+								" [out of date: {}] ",
+								format_timestamp(timestamp)
+									.unwrap_or("orphaned".to_string())
+									.bold()
+							),
+							None => String::new(),
+						}
+						.bright_red(),
 						match package.description {
 							Some(ref desc) => format!("\n    {desc}"),
-							None => "".to_string(),
+							None => String::new(),
 						},
 					))?;
 				}
