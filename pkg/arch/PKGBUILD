@@ -1,10 +1,10 @@
 # shellcheck shell=bash
 # Maintainer: threadexio <pzarganitis at gmail dot com>
-_zeus_repo="$(realpath -e ./repo)"
-_zeus_repo="${_zeus_repo:?repo path not set}"
+_zeus_repo="${repo:-./}"
+_zeus_version="$($_zeus_repo/scripts/version.sh)"
 
 pkgname="zeus-bin"
-pkgver="$(make -sC "$_zeus_repo" version)"
+pkgver="${_zeus_version:?_zeus_version not set}"
 pkgrel=1
 pkgdesc="The containerized AUR helper"
 url="https://github.com/threadexio/zeus"
@@ -18,6 +18,8 @@ conflicts=('zeus')
 backup=('etc/zeus/zeus.toml')
 
 package() {
-	cd "$_zeus_repo" || exit 1
-	make DESTDIR="${pkgdir:?}" PROFILE="${PROFILE:-release}" install
+	make -C "$_zeus_repo" \
+		DESTDIR="${pkgdir:?}" \
+		PROFILE="${PROFILE:-release}" \
+		install
 }

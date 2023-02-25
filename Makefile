@@ -1,5 +1,6 @@
-MAKEFLAGS += --no-builtin-rules --no-builtin-variables --warn-undefined-variables --no-keep-going
-GNUMAKEFLAGS ?=
+MAKEFLAGS += --no-builtin-rules --no-builtin-variables --no-print-directory --no-keep-going
+
+undefine CARGO_TARGET_DIR
 
 V ?= 0
 ifeq ($(V),1)
@@ -8,34 +9,29 @@ else
 	Q := @
 endif
 
-O ?= target
-DESTDIR ?= /
+export V Q
 
-PROFILE ?= dev
-profile-dir := profiles
-PROFILE_PATH := $(profile-dir)/$(PROFILE).env
-profiles := $(notdir $(wildcard $(profile-dir)/*.env))
-profiles := $(sort $(basename $(profiles)))
+repo        := $(patsubst %/,%,$(dir $(realpath $(lastword $(MAKEFILE_LIST)))))
+DESTDIR     ?= /
+O           ?= $(repo)/target
+package-dir := $(repo)/pkg
+
+export repo O DESTDIR
+
+PROFILE      ?= dev
+profile-dir  := $(repo)/profiles
+profile-path := $(profile-dir)/$(PROFILE).env
+profiles     := $(sort $(basename $(notdir $(wildcard $(profile-dir)/*.env))))
 
 ifeq ($(filter $(PROFILE),$(profiles)),)
 $(error Invalid profile '$(PROFILE)', available profiles: $(profiles))
 endif
 
-CARGO ?= cargo
-CARGO_JOBS ?= $(shell expr $(shell nproc) + 2)
-CARGO_BUILD_ARGS := --profile $(PROFILE) -j$(CARGO_JOBS)
-CARGO_ARGS := --target-dir $(O)
+export PROFILE profile-path
 
-MAKEPKG ?= makepkg
-MAKEPKG_ARGS ?= -fC --noconfirm --needed
-MAKEPKG_WORKDIR ?= $(O)/arch-pkg
-
-TARBALL ?= $(O)/tar-pkg/zeus-bin.tar.gz
-
-export O DESTDIR TARBALL PROFILE PROFILE_PATH
-
-# dont mess up the O variable
-undefine CARGO_TARGET_DIR
+CARGO            ?= cargo
+CARGO_ARGS       := --target-dir $(O)
+CARGO_BUILD_ARGS := --profile $(PROFILE)
 
 PHONY += all
 all: build
@@ -84,20 +80,13 @@ alldoc:
 
 PHONY += install
 install:
-	$(Q)scripts/install.sh
+	$(Q)turboinstall -p $(profile-path) -- $(DESTDIR) $(repo)/overlay
+	$(Q)find runtimes/ \
+		-maxdepth 2 -type d -name overlay \
+		-exec turboinstall -p $(profile-path) -- $(DESTDIR) {} \;
 
-PHONY += tar-pkg
-tar-pkg:
-	$(Q)fakeroot scripts/tar.sh
-
-PHONY += arch-pkg
-.ONESHELL:
-arch-pkg:
-	$(Q)mkdir -p -- "$(MAKEPKG_WORKDIR)"
-	$(Q)ln -rsfT -- . "$(MAKEPKG_WORKDIR)/repo"
-	$(Q)cd -- "$(MAKEPKG_WORKDIR)"
-	$(Q)ln -sfT -- repo/pkg/PKGBUILD PKGBUILD
-	$(Q)$(MAKEPKG) $(MAKEPKG_ARGS)
+%pkg: FORCE
+	$(Q)$(MAKE) -C $(package-dir) $@
 
 PHONY += help
 help:
@@ -118,18 +107,15 @@ help:
 	@echo 'Install targets:'
 	@echo '  install       - Install last build'
 	@echo '                    DESTDIR="$(DESTDIR)" install root'
-	@echo '  tar-pkg       - Create a tarball from the last build'
-	@echo '                    TARBALL="$(TARBALL)" output archive'
-	@echo '  arch-pkg      - Use makepkg to create a package from the local build'
-	@echo '                    MAKEPKG="$(MAKEPKG)" path to makepkg'
-	@echo '                    MAKEPKG_ARGS="$(MAKEPKG_ARGS)" makepkg arguments'
-	@echo '                    MAKEPKG_WORKDIR="$(MAKEPKG_WORKDIR)" makepkg temp directory'
+	@echo ''
+	@echo 'Packaging targets:'
+	@$(MAKE) -C $(package-dir) help
 	@echo ''
 	@echo 'Environment:'
 	@echo '  V=0|1         - Be verbose, set to show all commands'
 	@echo '  CARGO         - Path to the cargo executable (default: $(CARGO))'
 	@echo '  CARGO_JOBS    - Number of build jobs to create (default: $(CARGO_JOBS))'
-	@echo '  PROFILE       - Build profile (default: $(PROFILE))'
+	@echo '  PROFILE       - Build PROFILE (default: $(PROFILE))'
 	@echo '                  [possible values: $(profiles)]'
 
 .PHONY: $(PHONY)

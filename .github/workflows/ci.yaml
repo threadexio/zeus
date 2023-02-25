@@ -20,8 +20,6 @@ defaults:
 
 jobs:
   test:
-    if: ${{ !startsWith(github.event.head_commit.message, '[no-ci]') }}
-
     name: Check & Test
     container: docker.io/archlinux:base-devel
     runs-on: ubuntu-latest
@@ -53,29 +51,24 @@ jobs:
         job:
           - { target: x86_64-unknown-linux-gnu, profile: release }
 
-    name: Build ${{ matrix.job.profile }}
+    name: Build ${{ matrix.job.profile }} for ${{ matrix.job.target }}
     container: docker.io/archlinux:base-devel
     runs-on: ubuntu-latest
 
     env:
-      PROFILE: ${{ matrix.job.profile }}
-      WORK_DIR: "/zeus"
+      O: /build
 
     steps:
       - name: Setup build env
+        id: setup
         run: |
           set -e
 
-          pacman --needed --noconfirm -Sy sudo fakeroot git
+          pacman --needed --noconfirm -Sy base-devel sudo fakeroot git
           git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
-          useradd -m -d /build builder
+          useradd -m -d "$O" builder
           echo 'builder ALL=(ALL:ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder
-
-          mkdir -p -- \
-            "${{ env.WORK_DIR }}" \
-            "${{ env.WORK_DIR }}/artifacts"
-          chown builder:builder -vR "${{ env.WORK_DIR }}"
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -92,8 +85,6 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-
 
       - name: Setup toolchain
         uses: actions-rs/toolchain@v1
@@ -106,6 +97,7 @@ jobs:
       - name: Install dependencies
         run: |
           cargo install --locked turboinstall || true
+          cp "$(command -v turboinstall)" /usr/local/bin
 
       - name: Build info
         id: info
@@ -117,33 +109,21 @@ jobs:
           git version
           turboinstall --version
 
-          echo TARGET="${{ matrix.job.target }}"                    | tee -a $GITHUB_OUTPUT
-          echo ARCH="$(cut -d- -f1 <<< "${{ matrix.job.target }}")" | tee -a $GITHUB_OUTPUT
-          echo PROFILE="${{ matrix.job.profile }}"                  | tee -a $GITHUB_OUTPUT
-          echo VERSION="$(./scripts/version.sh)"                    | tee -a $GITHUB_OUTPUT
-          echo EXTRA="$(./scripts/build_info.sh)"                   | tee -a $GITHUB_OUTPUT
-
       - name: Build
-        run: make build
+        run: |
+          unset O
+          make build
+          sudo -u builder -- git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Create tarball
         id: tarpkg
         run: |
-          export TARBALL="zeus-bin-${{ steps.info.outputs.VERSION }}-${{ steps.info.outputs.ARCH }}.tar.gz"
-          make TARBALL="${{ env.WORK_DIR }}/artifacts/$TARBALL" tar-pkg
-          echo NAME="$TARBALL" >> $GITHUB_OUTPUT
+          sudo -u builder -- make tarpkg
 
       - name: Create arch package
         id: archpkg
         run: |
-          sudo -u builder -s << EOF
-            git config --global --add safe.directory "$GITHUB_WORKSPACE"
-            make \
-              MAKEPKG_WORKDIR="${{ env.WORK_DIR }}" \
-              PKGDEST="${{ env.WORK_DIR }}/artifacts" \
-              PROFILE="${{ env.PROFILE }}" \
-              arch-pkg
-          EOF
+          sudo -u builder -- make archpkg
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
@@ -151,7 +131,7 @@ jobs:
           name: zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}
           if-no-files-found: error
           path: |
-            ${{ env.WORK_DIR }}/artifacts/*
+            ${{ env.O }}/package/zeus-bin-*
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -161,4 +141,4 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            ${{ env.WORK_DIR }}/artifacts/*
+            ${{ env.O }}/package/zeus-bin-*
