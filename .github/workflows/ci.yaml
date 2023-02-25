@@ -57,6 +57,7 @@ jobs:
 
     env:
       O: /build
+      PROFILE: ${{ matrix.job.profile }}
 
     steps:
       - name: Setup build env
