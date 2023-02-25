@@ -116,7 +116,7 @@ pub(crate) fn query(
 			} else {
 				for package in &packages {
 					term.writeln(format!(
-						"{}{} {} {}{}",
+						"{}{} {} {}{}{}",
 						"aur/".bright_purple().bold(),
 						package.name.bold(),
 						package.version.bright_green().bold(),
@@ -130,6 +130,12 @@ pub(crate) fn query(
 							None => String::new(),
 						}
 						.bright_red(),
+						match package.maintainer {
+							None => " [orphan] ",
+							Some(_) => "",
+						}
+						.bright_red()
+						.bold(),
 						match package.description {
 							Some(ref desc) => format!("\n    {desc}"),
 							None => String::new(),
