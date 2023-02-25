@@ -79,10 +79,8 @@ jobs:
         uses: actions/cache@v3
         with:
           path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
+            ~/.cargo
+            !~/.cargo/credentials
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
 
@@ -96,7 +94,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cargo install --locked turboinstall || true
+          cargo install --locked turboinstall
           cp "$(command -v turboinstall)" /usr/local/bin
 
       - name: Build info
@@ -118,12 +116,12 @@ jobs:
       - name: Create tarball
         id: tarpkg
         run: |
-          sudo -u builder -- make tarpkg
+          sudo -u builder -- make O="$O" tarpkg
 
       - name: Create arch package
         id: archpkg
         run: |
-          sudo -u builder -- make archpkg
+          sudo -u builder -- make O="$O" archpkg
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
