@@ -46,7 +46,7 @@ pub fn init(term: &mut Terminal) -> Result<()> {
 	term.debug(format!(
 		"Version: {}",
 		constants::VERSION.bright_blue()
-	))?;
+	));
 
 	let mut db =
 		db::Db::new(&global_config.build_dir).with_context(|| {

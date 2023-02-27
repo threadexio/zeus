@@ -22,8 +22,7 @@ fn main() {
 	let mut term = Terminal::new();
 
 	if let Err(e) = init(&mut term) {
-		term.fatal(format!("{:#}", e))
-			.expect("cannot write to stdout");
+		term.fatal(format!("{:#}", e));
 	}
 }
 
@@ -110,7 +109,7 @@ mod sync {
 			) {
 				Ok(_) => {},
 				Err(e) => {
-					term.error(format!("{:#}", e))?;
+					term.error(format!("{:#}", e));
 					continue;
 				},
 			}
@@ -158,7 +157,7 @@ mod sync {
 			_ => {
 				term.warn(format!(
 					"Package {name} synced but is not found in database"
-				))?;
+				));
 			},
 		}
 

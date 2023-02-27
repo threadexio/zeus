@@ -25,7 +25,7 @@ fn run_docker(
 		c
 	};
 
-	let _ = term.debug(format!("Running: {cmdline}"));
+	term.debug(format!("Running: {cmdline}"));
 
 	let output = match cmd.output() {
 		Ok(v) => v,

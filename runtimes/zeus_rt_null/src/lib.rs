@@ -17,13 +17,13 @@ impl IRuntime for NullRuntime {
 		config: &GlobalConfig,
 		term: &mut Terminal,
 	) -> Result<()> {
-		let _ = term.info("Hello world!");
+		term.info("Hello world!");
 
-		let _ = term.warn(
+		term.warn(
 			"This runtime does nothing! It is only used for testing.",
 		);
 
-		let _ = term.trace(format!(
+		term.trace(format!(
 			"runtime options = {:#?}",
 			config.runtime_opts
 		));
@@ -38,7 +38,7 @@ impl IRuntime for NullRuntime {
 		config: &GlobalConfig,
 		term: &mut Terminal,
 	) -> Result<()> {
-		let _ = term.debug(format!(
+		term.debug(format!(
 			"create_image(image = `{}`)",
 			config.machine_image
 		));
@@ -50,7 +50,7 @@ impl IRuntime for NullRuntime {
 		config: &GlobalConfig,
 		term: &mut Terminal,
 	) -> Result<()> {
-		let _ = term.debug(format!(
+		term.debug(format!(
 			"create_machine(image = `{}`, machine = `{}`)",
 			config.machine_image, config.machine_name
 		));
@@ -62,7 +62,7 @@ impl IRuntime for NullRuntime {
 		config: &GlobalConfig,
 		term: &mut Terminal,
 	) -> Result<()> {
-		let _ = term.debug(format!(
+		term.debug(format!(
 			"start_machine(machine = `{}`)",
 			config.machine_name
 		));

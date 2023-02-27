@@ -27,7 +27,7 @@ pub(crate) fn sync(
 		.context("Unable to request package data from AUR")?;
 
 	if packages.len() > config.packages.len() {
-		term.warn("AUR returned more packages than requested. This might be a bug with zeus or the AUR!")?;
+		term.warn("AUR returned more packages than requested. This might be a bug with zeus or the AUR!");
 	}
 
 	let packages: Vec<_> =
@@ -35,7 +35,7 @@ pub(crate) fn sync(
 
 	config.packages.retain(|x| {
 		if !packages.contains(x) {
-			let _ = term.warn(format!("Package not found: {x}"));
+			term.warn(format!("Package not found: {x}"));
 			false
 		} else {
 			true
@@ -57,12 +57,10 @@ pub(crate) fn sync(
 				a
 			}
 		)
-	))?;
+	));
 
-	if !term
-		.confirm("Proceed with installation?".underline(), true)?
-	{
-		term.writeln("Aborting.".bold())?;
+	if !term.confirm("Proceed with installation?".underline(), true) {
+		term.writeln("Aborting.".bold());
 		return Ok(());
 	}
 

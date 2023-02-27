@@ -140,7 +140,7 @@ pub(crate) fn query(
 							Some(ref desc) => format!("\n    {desc}"),
 							None => String::new(),
 						},
-					))?;
+					));
 				}
 			}
 		},

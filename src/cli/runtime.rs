@@ -33,7 +33,7 @@ pub(crate) fn runtime(
 				term.debug(format!(
 					"Test-loading runtime '{}'",
 					path.display()
-				))?;
+				));
 
 				let rt = match Runtime::load(&path) {
 					Ok(v) => v,
@@ -41,7 +41,7 @@ pub(crate) fn runtime(
 						term.error(format!(
 							"Unable to load runtime '{}': {e}",
 							path.display()
-						))?;
+						));
 						return Ok(());
 					},
 				};
@@ -51,7 +51,7 @@ pub(crate) fn runtime(
 					path.display(),
 					rt.name().bold(),
 					rt.version().yellow(),
-				))?;
+				));
 
 				Ok(())
 			})?;

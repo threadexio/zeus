@@ -4,7 +4,6 @@ use std::io;
 use std::io::prelude::*;
 use std::str;
 
-use anyhow::{bail, Result};
 use colored::Colorize;
 
 #[derive(
@@ -96,110 +95,62 @@ impl Terminal {
 }
 
 impl Terminal {
-	pub fn read_line(&mut self, max_len: usize) -> Result<String> {
+	pub fn read_line(&mut self, hint: Option<usize>) -> String {
+		let mut s = String::with_capacity(hint.unwrap_or(16));
+
 		if !self.is_interactive() {
-			bail!("Input is not a terminal")
+			return s;
 		}
 
-		if max_len > self.read_buf.len() {
-			self.read_buf.resize(max_len, 0);
-		}
-		let line_bytes = &mut self.read_buf[..max_len];
+		let _ = self.t_in.read_line(&mut s);
 
-		let i = self.t_in.read(line_bytes)?;
-		if i == 0 {
-			bail!(io::Error::from(io::ErrorKind::UnexpectedEof));
-		}
-
-		let mut line = str::from_utf8(line_bytes)?;
-		if let Some(end) = line.find('\0') {
-			line = &line[..end];
-		}
-
-		let line = line.trim();
-
-		Ok(line.to_string())
+		s.trim().to_string()
 	}
 
-	pub fn write<M>(&mut self, m: M) -> io::Result<()>
+	pub fn write<M>(&mut self, m: M)
 	where
 		M: fmt::Display,
 	{
-		self.t_err.write_all(format!("{m}").as_bytes())?;
-		self.t_err.flush()?;
-		Ok(())
+		let _ = self.t_err.write_all(format!("{m}").as_bytes());
+		let _ = self.t_err.flush();
 	}
 
-	pub fn writeln<M>(&mut self, m: M) -> io::Result<()>
+	pub fn writeln<M>(&mut self, m: M)
 	where
 		M: fmt::Display,
 	{
-		self.t_err.write_all(format!("{m}\n").as_bytes())?;
-		Ok(())
+		let _ = self.t_err.write_all(format!("{m}\n").as_bytes());
 	}
 }
 
 impl Terminal {
-	pub fn confirm<M>(
-		&mut self,
-		message: M,
-		default: bool,
-	) -> Result<bool>
+	pub fn confirm<M>(&mut self, message: M, default: bool) -> bool
 	where
 		M: fmt::Display,
 	{
-		if !self.is_terminal() {
-			bail!("Output is not a terminal")
-		}
-
-		if !self.is_interactive() {
-			return Ok(default);
-		}
-
 		self.write(format!(
 			"{} [{}] ",
 			Self::log_fmt(Level::Info, message.to_string().bold()),
 			if default {
-				"Y/n".bold()
+				"Y/n"
 			} else {
-				"y/N".bold()
+				"y/N"
 			}
-		))?;
+			.dimmed()
+		));
 
-		let answer = self.read_line(8)?;
+		if !self.is_interactive() || !self.is_terminal() {
+			self.writeln("");
+			return default;
+		}
+
+		let answer = self.read_line(Some(8));
 
 		match answer.as_str() {
-			"" => Ok(default),
-			"y" | "Y" | "yes" | "YES" => Ok(true),
-			_ => Ok(false),
+			"" => default,
+			"y" | "Y" | "yes" | "YES" => true,
+			_ => false,
 		}
-	}
-
-	pub fn prompt<M, D>(
-		&mut self,
-		message: M,
-		default: D,
-	) -> Result<String>
-	where
-		M: fmt::Display,
-		D: fmt::Display,
-	{
-		if !self.is_terminal() {
-			bail!("Output is not a terminal")
-		}
-
-		if !self.is_interactive() {
-			return Ok(default.to_string());
-		}
-
-		self.write(format!(
-			"{} ({}) ",
-			Self::log_fmt(Level::Info, message.to_string().bold()),
-			default.to_string().bold()
-		))?;
-
-		let answer = self.read_line(2048)?;
-		Ok(answer)
 	}
 }
 
@@ -221,15 +172,13 @@ impl Terminal {
 		)
 	}
 
-	fn imp_log<M>(&mut self, level: Level, message: M) -> Result<()>
+	fn imp_log<M>(&mut self, level: Level, message: M)
 	where
 		M: fmt::Display,
 	{
 		if level <= self.max_level {
-			self.writeln(Self::log_fmt(level, message))?;
+			self.writeln(Self::log_fmt(level, message));
 		}
-
-		Ok(())
 	}
 
 	pub fn set_log_level(&mut self, level: Level) {
@@ -237,7 +186,7 @@ impl Terminal {
 	}
 
 	#[inline]
-	pub fn trace<M>(&mut self, message: M) -> Result<()>
+	pub fn trace<M>(&mut self, message: M)
 	where
 		M: fmt::Display,
 	{
@@ -245,7 +194,7 @@ impl Terminal {
 	}
 
 	#[inline]
-	pub fn debug<M>(&mut self, message: M) -> Result<()>
+	pub fn debug<M>(&mut self, message: M)
 	where
 		M: fmt::Display,
 	{
@@ -253,7 +202,7 @@ impl Terminal {
 	}
 
 	#[inline]
-	pub fn info<M>(&mut self, message: M) -> Result<()>
+	pub fn info<M>(&mut self, message: M)
 	where
 		M: fmt::Display,
 	{
@@ -261,7 +210,7 @@ impl Terminal {
 	}
 
 	#[inline]
-	pub fn warn<M>(&mut self, message: M) -> Result<()>
+	pub fn warn<M>(&mut self, message: M)
 	where
 		M: fmt::Display,
 	{
@@ -269,7 +218,7 @@ impl Terminal {
 	}
 
 	#[inline]
-	pub fn error<M>(&mut self, message: M) -> Result<()>
+	pub fn error<M>(&mut self, message: M)
 	where
 		M: fmt::Display,
 	{
@@ -277,7 +226,7 @@ impl Terminal {
 	}
 
 	#[inline]
-	pub fn fatal<M>(&mut self, message: M) -> Result<()>
+	pub fn fatal<M>(&mut self, message: M)
 	where
 		M: fmt::Display,
 	{

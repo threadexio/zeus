@@ -32,13 +32,13 @@ pub(crate) fn remove(
 				a
 			}
 		)
-	))?;
+	));
 
 	if !term.confirm(
 		"Do you want to remove these packages?".underline(),
 		true,
-	)? {
-		term.writeln("Aborting.".bold())?;
+	) {
+		term.writeln("Aborting.".bold());
 		return Ok(());
 	}
 

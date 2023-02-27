@@ -20,7 +20,6 @@ fn main() {
 	let mut term = term::Terminal::new();
 
 	if let Err(e) = cli::init(&mut term) {
-		term.fatal(format!("{:#}", e))
-			.expect("cannot write to stdout");
+		term.fatal(format!("{:#}", e));
 	}
 }
