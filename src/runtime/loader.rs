@@ -34,7 +34,10 @@ unsafe impl Send for Runtime {}
 unsafe impl Sync for Runtime {}
 
 impl Runtime {
-	pub fn load<P: AsRef<Path>>(path: P) -> Result<Self> {
+	pub fn load<P>(path: P) -> Result<Self>
+	where
+		P: AsRef<Path>,
+	{
 		unsafe {
 			let library = Library::new(path.as_ref())?;
 
@@ -47,7 +50,7 @@ impl Runtime {
 				bail!("incompatible runtime version")
 			}
 
-			let runtime = (runtime_meta.constructor)();
+			let runtime = Box::from_raw((runtime_meta.constructor)());
 
 			Ok(Self { library, runtime })
 		}
@@ -60,14 +63,21 @@ impl Runtime {
 /// ```rust,ignore
 /// zeus::runtime!(/* runtime constructor */);
 /// ```
-#[macro_export(local_inner_macros)]
+#[macro_export]
 macro_rules! runtime {
 	($constructor:path) => {
 		#[doc(hidden)]
 		#[no_mangle]
 		pub static _RUNTIME: $crate::runtime::_private::RuntimeMeta =
 			$crate::runtime::_private::RuntimeMeta {
-				constructor: || Box::new($constructor()),
+				constructor: {
+					unsafe extern "C" fn _runtime_constructor_wrapper(
+					) -> *mut dyn $crate::runtime::IRuntime {
+						Box::into_raw(Box::new($constructor()))
+					}
+
+					_runtime_constructor_wrapper
+				},
 				version: $crate::runtime::_private::RUNTIME_VERSION,
 			};
 	};
@@ -82,8 +92,9 @@ pub mod _private {
 
 	pub const RUNTIME_VERSION: u32 = 0;
 
+	#[repr(C)]
 	pub struct RuntimeMeta {
-		pub constructor: fn() -> Box<dyn IRuntime>,
+		pub constructor: unsafe extern "C" fn() -> *mut dyn IRuntime,
 		pub version: u32,
 	}
 }
