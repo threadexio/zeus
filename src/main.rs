@@ -17,6 +17,11 @@ mod runtime;
 mod term;
 
 fn main() {
+	{
+		use nix::sys::stat::{umask, Mode};
+		umask(Mode::S_IRWXO);
+	}
+
 	let mut term = term::Terminal::new();
 
 	if let Err(e) = cli::init(&mut term) {

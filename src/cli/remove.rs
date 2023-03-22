@@ -6,14 +6,14 @@ pub(crate) fn remove(
 	config: RemoveConfig,
 	term: &mut Terminal,
 	runtime: &mut Runtime,
-	db: db::DbGuard,
+	db: &mut db::Db,
 ) -> Result<()> {
 	if config.packages.is_empty() {
 		bail!("No packages specified")
 	}
 
 	for pkg in &config.packages {
-		db.pkg(pkg).with_context(|| {
+		db.package(pkg).with_context(|| {
 			format!("Package not found in database: {pkg}")
 		})?;
 	}
@@ -51,13 +51,16 @@ pub(crate) fn remove(
 	.context("Unable to start builder")?;
 
 	if config.uninstall {
-		let status = db::tools::Pacman::default()
-			.attach(true)
-			.remove()
-			.cascade()
-			.recursive()
+		use std::process::{Command, Stdio};
+
+		let status = Command::new("pacman")
+			.stdin(Stdio::inherit())
+			.stdout(Stdio::inherit())
+			.stderr(Stdio::inherit())
+			.arg("-R")
+			.arg("-s")
 			.args(res.packages)
-			.wait()
+			.output()
 			.context("Unable to run pacman")?
 			.status;
 

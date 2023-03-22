@@ -18,6 +18,8 @@ pub struct GlobalConfig {
 	pub machine_image: String,
 	pub runtime_opts: RuntimeOpts,
 	pub no_confirm: bool,
+
+	pub db_key: u32,
 }
 
 impl Config for GlobalConfig {
@@ -193,6 +195,7 @@ impl Config for GlobalConfig {
 			machine_image,
 			runtime_opts,
 			no_confirm,
+			db_key: 0,
 		})
 	}
 }

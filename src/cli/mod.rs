@@ -29,7 +29,7 @@ mod runtime;
 mod sync;
 
 pub fn init(term: &mut Terminal) -> Result<()> {
-	let AppConfig { global: global_config, operation } =
+	let AppConfig { global: mut global_config, operation } =
 		config::load()?;
 
 	match global_config.color {
@@ -48,6 +48,9 @@ pub fn init(term: &mut Terminal) -> Result<()> {
 		constants::VERSION.bright_blue()
 	));
 
+	global_config.db_key = rand::random();
+	term.trace(format!("Database key: {}", global_config.db_key));
+
 	let mut db =
 		db::Db::new(&global_config.build_dir).with_context(|| {
 			format!(
@@ -58,15 +61,6 @@ pub fn init(term: &mut Terminal) -> Result<()> {
 
 	let mut aur = aur::Aur::new(&global_config.aur_url)
 		.context("Unable to initialize AUR client")?;
-
-	let get_lock = || -> Result<db::DbGuard> {
-		db.lock().with_context(|| {
-			format!(
-				"Unable to obtain lock on database at '{}'",
-				&global_config.build_dir.display()
-			)
-		})
-	};
 
 	let mut init_runtime = || -> Result<Runtime> {
 		env::set_current_dir(Path::new(constants::DATA_DIR))
@@ -94,9 +88,15 @@ pub fn init(term: &mut Terminal) -> Result<()> {
 		Ok(runtime)
 	};
 
+	db.lock(global_config.db_key).with_context(|| {
+		format!(
+			"Unable to obtain lock on database at '{}'",
+			db.path().display()
+		)
+	})?;
+
 	match operation {
 		Operation::Sync(config) => {
-			let db_lock = get_lock()?;
 			let mut runtime = init_runtime()?;
 
 			sync::sync(
@@ -104,12 +104,11 @@ pub fn init(term: &mut Terminal) -> Result<()> {
 				config,
 				term,
 				&mut runtime,
-				db_lock,
+				&mut db,
 				&mut aur,
 			)
 		},
 		Operation::Remove(config) => {
-			let db_lock = get_lock()?;
 			let mut runtime = init_runtime()?;
 
 			remove::remove(
@@ -117,11 +116,10 @@ pub fn init(term: &mut Terminal) -> Result<()> {
 				config,
 				term,
 				&mut runtime,
-				db_lock,
+				&mut db,
 			)
 		},
 		Operation::Build(config) => {
-			get_lock()?;
 			let mut runtime = init_runtime()?;
 
 			build::build(global_config, config, term, &mut runtime)

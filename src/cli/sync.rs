@@ -6,14 +6,13 @@ pub(crate) fn sync(
 	mut config: SyncConfig,
 	term: &mut Terminal,
 	runtime: &mut Runtime,
-	db: db::DbGuard,
+	db: &mut db::Db,
 	aur: &mut aur::Aur,
 ) -> Result<()> {
 	if config.upgrade && config.packages.is_empty() {
 		config.packages = db
-			.list_pkgs()
+			.list()
 			.context("Unable to list local packages")?
-			.drain(..)
 			.map(|x| x.name().to_string())
 			.collect();
 	}
@@ -73,11 +72,15 @@ pub(crate) fn sync(
 	.context("Unable to start builder")?;
 
 	if config.install {
-		let status = db::tools::Pacman::default()
-			.attach(true)
-			.upgrade()
-			.args(res.files.iter().map(|x| db.root().join(x)))
-			.wait()
+		use std::process::{Command, Stdio};
+
+		let status = Command::new("pacman")
+			.stdin(Stdio::inherit())
+			.stdout(Stdio::inherit())
+			.stderr(Stdio::inherit())
+			.arg("-U")
+			.args(res.files.iter().map(|x| db.path().join(x)))
+			.output()
 			.context("Unable to run pacman")?
 			.status;
 

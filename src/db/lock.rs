@@ -1,54 +1,89 @@
-use ::std::{
-	fs::File,
-	io,
-	path::{Path, PathBuf},
-};
+use std::fs::{self, File};
+use std::io::{self, Error, ErrorKind, Result};
+use std::path::{Path, PathBuf};
 
-use ::fs4::FileExt;
-
+#[derive(Debug)]
 pub struct Lock {
-	handle: Option<File>,
+	owner: bool,
 	path: PathBuf,
+	handle: Option<File>,
 }
 
 impl Lock {
-	/// Create a new unlocked lock
-	pub fn new<P: AsRef<Path>>(path: P) -> Self {
-		Self { handle: None, path: path.as_ref().to_path_buf() }
+	pub fn new<P>(path: P) -> Self
+	where
+		P: Into<PathBuf>,
+	{
+		Self { handle: None, owner: false, path: path.into() }
 	}
 
-	/// Check whether the lock is engaged
-	pub fn locked(&self) -> bool {
-		self.handle.is_some()
-	}
-
-	/// Get the path of the lock on disk
 	pub fn path(&self) -> &Path {
 		&self.path
 	}
 
-	/// Engage the lock
-	pub fn lock(&mut self) -> io::Result<()> {
+	pub fn locked(&self) -> bool {
+		self.handle.is_some()
+	}
+
+	pub fn lock(&mut self, key: u32) -> Result<()> {
 		if self.locked() {
 			return Ok(());
 		}
 
-		let handle = File::options()
+		use io::{Read, Write};
+
+		let mut handle = File::options()
+			.read(true)
 			.write(true)
 			.create(true)
 			.open(&self.path)?;
 
-		handle.try_lock_exclusive()?;
+		let lock_result = {
+			let mut lkey: [u8; 4] = [0; 4];
+			match handle.read_exact(&mut lkey) {
+				Err(e) if e.kind() == ErrorKind::UnexpectedEof => {
+					self.owner = true;
+					handle.write_all(&key.to_ne_bytes())?;
+				},
+				Err(e) => return Err(e),
+				Ok(_) => {},
+			};
 
-		self.handle = Some(handle);
+			if !self.owner {
+				let lkey = u32::from_ne_bytes(lkey);
+				if key != lkey {
+					return Err(Error::new(
+						ErrorKind::Other,
+						"wrong lock key",
+					));
+				}
+			}
 
-		Ok(())
+			Ok(())
+		};
+
+		match lock_result {
+			Ok(_) => {
+				self.handle = Some(handle);
+
+				Ok(())
+			},
+			Err(e) => {
+				drop(handle);
+				let _ = fs::remove_file(&self.path);
+
+				Err(e)
+			},
+		}
 	}
 
-	/// Disengage the lock
-	pub fn unlock(&mut self) -> io::Result<()> {
-		if let Some(handle) = self.handle.take() {
-			handle.unlock()?;
+	pub fn unlock(&mut self) -> Result<()> {
+		if !self.locked() {
+			return Ok(());
+		}
+
+		if self.owner {
+			fs::remove_file(&self.path)?;
 		}
 
 		Ok(())
@@ -58,44 +93,5 @@ impl Lock {
 impl Drop for Lock {
 	fn drop(&mut self) {
 		let _ = self.unlock();
-	}
-}
-
-impl std::fmt::Debug for Lock {
-	fn fmt(
-		&self,
-		f: &mut std::fmt::Formatter<'_>,
-	) -> std::fmt::Result {
-		f.debug_struct("Lock")
-			.field("path", &self.path)
-			.field("locked", &self.locked())
-			.finish()
-	}
-}
-
-#[cfg(test)]
-mod tests {
-	use super::*;
-
-	#[test]
-	fn test_lock() {
-		let mut lock1 = Lock::new("/tmp/a.lock");
-		let mut lock2 = Lock::new("/tmp/a.lock");
-
-		assert!(!lock1.locked());
-		assert!(!lock2.locked());
-
-		lock1.lock().expect("failed to lock lock1");
-
-		assert!(lock1.locked());
-		assert!(!lock2.locked());
-
-		assert!(lock2.lock().is_err());
-
-		assert!(lock1.locked());
-		assert!(!lock2.locked());
-
-		lock1.unlock().expect("failed to unlock lock1");
-		assert!(!lock1.locked());
 	}
 }

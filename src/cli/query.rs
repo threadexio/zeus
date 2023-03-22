@@ -72,9 +72,8 @@ pub(crate) fn query(
 	aur: &mut aur::Aur,
 ) -> Result<()> {
 	if config.keywords.is_empty() {
-		let pkgs = db
-			.list_pkgs()
-			.context("Unable to get synced packages")?;
+		let pkgs =
+			db.list().context("Unable to get synced packages")?;
 
 		match config.output {
 			Output::Pretty => {
@@ -88,7 +87,9 @@ pub(crate) fn query(
 			},
 			Output::Json => serde_json::to_writer(
 				std::io::stdout(),
-				&pkgs.iter().map(|x| x.name()).collect::<Vec<_>>(),
+				&pkgs
+					.map(|x| x.name().to_string())
+					.collect::<Vec<_>>(),
 			)
 			.context("Unable to serialize JSON")?,
 		}

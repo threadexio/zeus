@@ -19,6 +19,11 @@ use term::Terminal;
 use anyhow::{anyhow, Context, Result};
 
 fn main() {
+	{
+		use nix::sys::stat::{umask, Mode};
+		umask(Mode::S_IRWXO);
+	}
+
 	let mut term = Terminal::new();
 
 	if let Err(e) = init(&mut term) {
@@ -53,13 +58,14 @@ fn init(term: &mut Terminal) -> Result<()> {
 		));
 	}
 
-	let db = db::Db::new(
+	let mut db = db::Db::new(
 		std::env::current_dir()
 			.context("Unable to get current directory")?,
 	)
 	.context("Unable to initialize database")?;
 
-	let db = unsafe { db.unlocked_guard() };
+	db.lock(global_config.db_key)
+		.context("Cannot obtain shared lock on database")?;
 
 	let r = match ipc
 		.recv()
@@ -83,7 +89,6 @@ fn init(term: &mut Terminal) -> Result<()> {
 }
 
 use config::GlobalConfig;
-use db::Transaction;
 use ipc::Response;
 
 mod sync {
@@ -94,7 +99,7 @@ mod sync {
 		global_config: GlobalConfig,
 		config: SyncConfig,
 		term: &mut Terminal,
-		mut db: db::DbGuard,
+		mut db: db::Db,
 	) -> Result<Response> {
 		let mut res = Response::default();
 
@@ -121,45 +126,49 @@ mod sync {
 	fn sync_package(
 		global_config: &GlobalConfig,
 		config: &SyncConfig,
-		term: &mut Terminal,
-		db: &mut db::DbGuard,
+		_: &mut Terminal,
+		db: &mut db::Db,
 		name: &str,
 		res: &mut Response,
 	) -> Result<()> {
-		let trans = Transaction::new()
-			.clone_pkg(
+		let mut package = if !db.exists(name) {
+			db.clone(
 				name,
 				format!("{}/{}.git", global_config.aur_url, name),
-				config.upgrade,
 			)
-			.build_pkg(name, config.build_args.iter());
+			.with_context(|| {
+				format!("Unable to clone package '{name}'")
+			})?
+		} else {
+			db.package(name).with_context(|| {
+				format!("Unable to retrieve local package '{name}'")
+			})?
+		};
 
-		db.commit(trans)
-			.context(format!("Unable to sync package {name}"))?;
+		if config.upgrade {
+			package.update().with_context(|| {
+				format!("Unable to update package '{name}'")
+			})?;
+		}
+
+		package.build(config.build_args.iter()).with_context(
+			|| format!("Unable to build package '{name}'"),
+		)?;
 
 		res.packages.push(name.to_string());
-
-		match db.pkg(name) {
-			Ok(pkg) => {
-				res.files.extend(
-					pkg.files()
-						.context(format!(
-							"Unable to get package files for {name}"
-						))?
-						.drain(..)
-						.filter_map(|x| {
-							x.strip_prefix(db.root())
-								.map(|x| x.to_path_buf())
-								.ok()
-						}),
-				);
-			},
-			_ => {
-				term.warn(format!(
-					"Package {name} synced but is not found in database"
-				));
-			},
-		}
+		res.files.extend(
+			package
+				.files()
+				.context(format!(
+					"Unable to get package files for '{name}'"
+				))?
+				.drain(..)
+				.filter_map(|x| {
+					x.strip_prefix(db.path())
+						.map(|x| x.to_path_buf())
+						.ok()
+				}),
+		);
 
 		Ok(())
 	}
@@ -173,16 +182,16 @@ mod remove {
 		_: GlobalConfig,
 		config: RemoveConfig,
 		_: &mut Terminal,
-		mut db: db::DbGuard,
+		db: db::Db,
 	) -> Result<Response> {
-		let mut transaction = Transaction::new();
-
-		for pkg in &config.packages {
-			transaction = transaction.remove_pkg(pkg);
+		for mut package in
+			config.packages.iter().filter_map(|x| db.package(x).ok())
+		{
+			let name = package.name().to_string();
+			package.remove().with_context(|| {
+				format!("Unable to remove package '{name}'",)
+			})?
 		}
-
-		db.commit(transaction)
-			.context("Unable to remove all packages")?;
 
 		let res = Response {
 			packages: config.packages,
