@@ -46,11 +46,18 @@ impl Runtime {
 					.get(_private::RUNTIME_META_SYMBOL_NAME)
 					.context("failed to find runtime data symbol")?;
 
+			if runtime_meta.abi_version != _private::abi_version() {
+				bail!(
+					"incompatible abi: required {}",
+					crate::constants::RUSTC_VERSION
+				)
+			}
+
 			if runtime_meta.version != _private::RUNTIME_VERSION {
 				bail!("incompatible runtime version")
 			}
 
-			let runtime = Box::from_raw((runtime_meta.constructor)());
+			let runtime = (runtime_meta.constructor)();
 
 			Ok(Self { library, runtime })
 		}
@@ -68,18 +75,15 @@ macro_rules! runtime {
 	($constructor:path) => {
 		#[doc(hidden)]
 		#[no_mangle]
-		pub static _RUNTIME: $crate::runtime::_private::RuntimeMeta =
-			$crate::runtime::_private::RuntimeMeta {
-				constructor: {
-					unsafe extern "C" fn _runtime_constructor_wrapper(
-					) -> *mut dyn $crate::runtime::IRuntime {
-						Box::into_raw(Box::new($constructor()))
-					}
+		pub static _RUNTIME: $crate::runtime::_private::RuntimeMeta = {
+			use $crate::runtime::_private;
 
-					_runtime_constructor_wrapper
-				},
-				version: $crate::runtime::_private::RUNTIME_VERSION,
-			};
+			_private::RuntimeMeta {
+				abi_version: _private::abi_version(),
+				version: _private::RUNTIME_VERSION,
+				constructor: || Box::new($constructor()),
+			}
+		};
 	};
 }
 pub use runtime;
@@ -92,9 +96,19 @@ pub mod _private {
 
 	pub const RUNTIME_VERSION: u32 = 0;
 
+	pub const fn abi_version() -> u64 {
+		use xxhash_rust::const_xxh3::xxh3_64_with_seed;
+
+		xxh3_64_with_seed(
+			crate::constants::RUSTC_VERSION.as_bytes(),
+			42,
+		)
+	}
+
 	#[repr(C)]
 	pub struct RuntimeMeta {
-		pub constructor: unsafe extern "C" fn() -> *mut dyn IRuntime,
+		pub abi_version: u64,
 		pub version: u32,
+		pub constructor: fn() -> Box<dyn IRuntime>,
 	}
 }

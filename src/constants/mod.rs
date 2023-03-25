@@ -28,6 +28,7 @@ from_env!(AUTHORS, "CARGO_PKG_AUTHORS");
 
 from_env!(VERSION);
 from_env!(BUILD_INFO);
+from_env!(RUSTC_VERSION);
 
 from_env!(CONFIG_DIR);
 from_env!(BUILD_DIR);

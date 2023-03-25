@@ -59,6 +59,14 @@ fn main() {
 	set_var("VERSION", &run_script("scripts/version.sh"));
 	set_var("BUILD_INFO", &run_script("scripts/build_info.sh"));
 
+	{
+		let output =
+			Command::new("rustc").arg("--version").output().unwrap();
+		let version = core::str::from_utf8(&output.stdout).unwrap();
+
+		set_var("RUSTC_VERSION", version);
+	}
+
 	let file = Path::new("profiles").join(format!("{profile}.env"));
 
 	println!("cargo:rerun-if-changed={}", file.display());
