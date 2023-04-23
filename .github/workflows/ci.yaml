@@ -24,15 +24,16 @@ jobs:
     runs-on: ubuntu-latest
     container: docker.io/archlinux:base-devel
     steps:
-      - name: Install dependencies
-        run: |
-          pacman --needed --noconfirm -Syy archlinux-keyring
-          pacman --needed --noconfirm -Syu git
-
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+
+      - name: Install dependencies
+        run: |
+          pacman --needed --noconfirm -Syy archlinux-keyring
+          pacman --needed --noconfirm -Syu git
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Setup toolchain
         uses: actions-rs/toolchain@v1
@@ -43,13 +44,22 @@ jobs:
           components: rustfmt, clippy
 
       - name: cargo check
-        run: cargo check --workspace
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --workspace
 
       - name: cargo clippy
-        run: cargo clippy --workspace
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace
 
       - name: cargo test
-        run: cargo test --workspace
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --workspace
 
   build:
     needs: ["test"]
