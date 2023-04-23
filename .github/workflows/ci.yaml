@@ -21,9 +21,8 @@ defaults:
 jobs:
   test:
     name: Check & Test
-    container: docker.io/archlinux:base-devel
     runs-on: ubuntu-latest
-
+    container: docker.io/archlinux:base-devel
     steps:
       - name: Install dependencies
         run: |
@@ -32,6 +31,8 @@ jobs:
 
       - name: Checkout
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Setup toolchain
         uses: actions-rs/toolchain@v1

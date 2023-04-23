@@ -3,12 +3,17 @@ use std::env;
 use std::fmt::Display;
 use std::fs::File;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 lazy_static::lazy_static! {
 	static ref RUSTC_VERSION: String = {
 		let output =
-		Command::new("rustc").arg("--version").output().unwrap();
+		Command::new("rustc")
+			.arg("--version")
+			.stdin(Stdio::null())
+			.stderr(Stdio::inherit())
+			.output()
+			.unwrap();
 		if !output.status.success() { panic!("rustc exited with: {:?}", output.status.code()) }
 		String::from_utf8_lossy(&output.stdout).trim().to_string()
 	};
@@ -44,6 +49,8 @@ fn version() -> String {
 		.arg("--always")
 		.arg("--dirty")
 		.arg("--broken")
+		.stdin(Stdio::null())
+		.stderr(Stdio::inherit())
 		.output()
 		.unwrap();
 	if !output.status.success() {
