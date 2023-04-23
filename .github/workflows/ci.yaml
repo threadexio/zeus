@@ -43,22 +43,13 @@ jobs:
           components: rustfmt, clippy
 
       - name: cargo check
-        uses: actions-rs/cargo@v1
-        with:
-          command: check
-          args: --workspace
+        run: cargo check --workspace
 
       - name: cargo clippy
-        uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: --workspace
+        run: cargo clippy --workspace
 
       - name: cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --workspace
+        run: cargo test --workspace
 
   build:
     needs: ["test"]
