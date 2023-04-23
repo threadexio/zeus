@@ -25,6 +25,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Install dependencies
+        run: |
+          pacman --needed --noconfirm -Syy archlinux-keyring
+          pacman --needed --noconfirm -Syu git
+
       - name: Checkout
         uses: actions/checkout@v3
 
