@@ -1,3 +1,6 @@
+[alias]
+xtask = "run --package xtask --"
+
 [profile.dev]
 opt-level = 0
 lto = false
@@ -11,6 +14,5 @@ opt-level = "s"
 lto = true
 debug = false
 debug-assertions = false
-overflow-checks = false
+overflow-checks = true
 strip = true
-panic = "abort"

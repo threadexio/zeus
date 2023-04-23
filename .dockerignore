@@ -1,0 +1,7 @@
+/.github
+/.vagrant
+/.vscode
+
+/build
+/target
+

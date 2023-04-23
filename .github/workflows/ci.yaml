@@ -36,11 +36,23 @@ jobs:
           profile: minimal
           components: rustfmt, clippy
 
-      - name: Check
-        run: make check
+      - name: cargo check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --workspace
 
-      - name: Run tests
-        run: make test
+      - name: cargo clippy
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --workspace
+
+      - name: cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --workspace
 
   build:
     needs: ["test"]
@@ -52,77 +64,32 @@ jobs:
           - { target: x86_64-unknown-linux-gnu, profile: release }
 
     name: Build ${{ matrix.job.profile }} for ${{ matrix.job.target }}
-    container: docker.io/archlinux:base-devel
     runs-on: ubuntu-latest
-
-    env:
-      O: /build
-      PROFILE: ${{ matrix.job.profile }}
-
     steps:
-      - name: Setup build env
-        id: setup
+      - name: Setup build environment
         run: |
-          set -e
-
-          pacman --needed --noconfirm -Sy base-devel sudo fakeroot git
-          git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-          useradd -m -d "$O" builder
-          echo 'builder ALL=(ALL:ALL) NOPASSWD: /usr/bin/pacman' > /etc/sudoers.d/builder
+          mkdir -p /build
+          chmod -v 777 /build
 
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Setup cache
-        uses: actions/cache@v3
+      - name: Setup Docker BuildX
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build CI docker image
+        uses: docker/build-push-action@v4
         with:
-          path: |
-            ~/.cargo
-            !~/.cargo/credentials
-            target/
-          key: ${{ runner.os }}-cargo-${{ hashFiles('Cargo.lock') }}
+          push: false
+          tags: zeus-ci:latest
 
-      - name: Setup toolchain
-        uses: actions-rs/toolchain@v1
+      - name: Run CI docker image
+        uses: addnab/docker-run-action@v3
         with:
-          toolchain: stable
-          target: ${{ matrix.job.target }}
-          override: true
-          profile: minimal
-
-      - name: Install dependencies
-        run: |
-          cargo install --locked turboinstall
-          cp "$(command -v turboinstall)" /usr/local/bin
-
-      - name: Build info
-        id: info
-        run: |
-          set -e
-
-          rustc --version
-          cargo --version
-          git version
-          turboinstall --version
-
-      - name: Build
-        run: |
-          unset O
-          make build
-          sudo -u builder -- git config --global --add safe.directory "$GITHUB_WORKSPACE"
-
-      - name: Create tarball
-        id: tarpkg
-        run: |
-          sudo -u builder -- make O="$O" tarpkg
-
-      - name: Create arch package
-        id: archpkg
-        run: |
-          sudo -u builder -- make O="$O" archpkg
+          image: zeus-ci:latest
+          options: -v /build:/app/target
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
@@ -130,7 +97,7 @@ jobs:
           name: zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}
           if-no-files-found: error
           path: |
-            ${{ env.O }}/package/zeus-bin-*
+            /build/package/zeus-bin-*
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -140,4 +107,4 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            ${{ env.O }}/package/zeus-bin-*
+            /build/package/zeus-bin-*
