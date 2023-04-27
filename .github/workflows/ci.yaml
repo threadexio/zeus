@@ -91,6 +91,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           push: false
+          load: true
           file: docker/Dockerfile
           tags: zeus-ci:latest
 
