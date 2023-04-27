@@ -94,6 +94,11 @@ jobs:
           file: docker/Dockerfile
           tags: zeus-ci:latest
 
+      - name: List Docker images
+        run: |
+          set -eu
+          docker image ls --all
+
       - name: Run CI docker image
         uses: addnab/docker-run-action@v3
         with:
