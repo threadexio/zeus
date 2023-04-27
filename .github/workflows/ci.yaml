@@ -112,7 +112,7 @@ jobs:
           name: zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}
           if-no-files-found: error
           path: |
-            "$GITHUB_WORKSPACE"/build/package/zeus-bin-*
+            ${{ github.workspace }}/build/package/zeus-bin-*
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -122,4 +122,4 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            "$GITHUB_WORKSPACE"/build/package/zeus-bin-*
+            ${{ github.workspace }}/build/package/zeus-bin-*
