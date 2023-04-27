@@ -74,10 +74,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup build environment
+        id: setup
         run: |
-          cd "$GITHUB_WORKSPACE"
-          mkdir -p build
-          chmod -v 777 build
+          set -eu
+
+          build_dir="$GITHUB_WORKSPACE"/build
+          mkdir -p -- "$build_dir"
+          chmod -v 777 -- "$build_dir"
+
+          echo "target_dir=$build_dir" >> $GITHUB_OUTPUT
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -104,7 +109,7 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: zeus-ci:latest
-          options: -v ${{ github.workspace }}/build:/app/target
+          options: -v ${{ steps.setup.outputs.target_dir }}:/app/target
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
@@ -112,7 +117,7 @@ jobs:
           name: zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}
           if-no-files-found: error
           path: |
-            ${{ github.workspace }}/build/package/zeus-bin-*
+            ${{ steps.setup.outputs.target_dir }}/package/zeus-bin-*
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -122,4 +127,4 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            ${{ github.workspace }}/build/package/zeus-bin-*
+            ${{ steps.setup.outputs.target_dir }}/package/zeus-bin-*
