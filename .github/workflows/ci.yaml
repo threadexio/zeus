@@ -104,7 +104,7 @@ jobs:
         uses: addnab/docker-run-action@v3
         with:
           image: zeus-ci:latest
-          options: -v "$GITHUB_WORKSPACE"/build:/app/target
+          options: -v ${{ github.workspace }}/build:/app/target
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
