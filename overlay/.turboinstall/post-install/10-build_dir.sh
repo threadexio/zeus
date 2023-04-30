@@ -10,4 +10,3 @@ chmod -v 6770 "$dst/$BUILD_DIR"
 # 7 -> rwx  for owner
 # 7 -> rwx  for group
 # 0 -> ---  for anyone else
-

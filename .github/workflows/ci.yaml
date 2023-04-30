@@ -72,44 +72,37 @@ jobs:
 
     name: Build ${{ matrix.job.profile }} for ${{ matrix.job.target }}
     runs-on: ubuntu-latest
+    container: docker.io/archlinux:base-devel
     steps:
-      - name: Setup build environment
-        id: setup
-        run: |
-          set -eu
-
-          build_dir="$GITHUB_WORKSPACE"/build
-          mkdir -p -- "$build_dir"
-          chmod -v 777 -- "$build_dir"
-
-          echo "target_dir=$build_dir" >> $GITHUB_OUTPUT
-
       - name: Checkout
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Setup Docker BuildX
-        uses: docker/setup-buildx-action@v2
-
-      - name: Build CI docker image
-        uses: docker/build-push-action@v4
-        with:
-          push: false
-          load: true
-          file: docker/Dockerfile
-          tags: zeus-ci:latest
-
-      - name: List Docker images
+      - name: Install dependencies
+        id: setup
         run: |
           set -eu
-          docker image ls --all
+          pacman --needed --noconfirm -Syy archlinux-keyring
+          pacman --needed --noconfirm -Syu git sudo fakeroot rustup
+          git config --system --add safe.directory "$GITHUB_WORKSPACE"
 
-      - name: Run CI docker image
-        uses: addnab/docker-run-action@v3
-        with:
-          image: zeus-ci:latest
-          options: -v ${{ steps.setup.outputs.target_dir }}:/app/target
+          useradd -m builduser
+          echo 'builduser ALL=(ALL:ALL) NOPASSWD: ALL' > /etc/sudoers.d/builduser
+
+          target_dir="/build"
+          echo "target_dir=$target_dir" >> $GITHUB_OUTPUT
+
+          mkdir -p "$target_dir"
+          chown builduser:builduser "$target_dir"
+
+      - name: Build
+        id: build
+        run: |
+          set -eu
+          echo "pkg_pattern=${{ steps.setup.outputs.target_dir }}/release/package/zeus-bin*" >> $GITHUB_OUTPUT
+
+          sudo -u builduser -- env -- CARGO_TARGET_DIR=/build cargo xtask ci
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v3
@@ -117,7 +110,7 @@ jobs:
           name: zeus-${{ matrix.job.profile }}-${{ matrix.job.target }}
           if-no-files-found: error
           path: |
-            ${{ steps.setup.outputs.target_dir }}/package/zeus-bin-*
+            ${{ steps.build.outputs.pkg_pattern }}
 
       - name: Create release
         uses: softprops/action-gh-release@v1
@@ -127,4 +120,4 @@ jobs:
           fail_on_unmatched_files: true
           generate_release_notes: true
           files: |
-            ${{ steps.setup.outputs.target_dir }}/package/zeus-bin-*
+            ${{ steps.build.outputs.pkg_pattern }}

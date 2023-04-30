@@ -1,92 +1,53 @@
-use std::collections::HashMap;
-use std::env::{self, Args};
+use std::env;
 use std::fs;
 use std::io;
 use std::io::Write;
-use std::path::{Path, PathBuf};
-use std::process::{self, Command, Output, Stdio};
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::ExitCode;
 
 use anyhow::{bail, Context, Result};
 
-fn cargo<F>(prepare: F) -> Result<Output>
-where
-	F: FnOnce(&mut Command) -> &mut Command,
-{
-	prepare(
-		Command::new("cargo")
-			.stdin(Stdio::inherit())
-			.stdout(Stdio::inherit())
-			.stderr(Stdio::inherit()),
-	)
-	.output()
-	.context("failed to execute cargo")
-}
+mod tools;
+use tools::*;
 
-fn cargo_metadata() -> Result<serde_json::Value> {
-	let c = cargo(|c| {
-		c.stdout(Stdio::piped())
-			.arg("metadata")
-			.arg("--format-version=1")
-	})?;
+const TARGET_DIR: &str = env!("TARGET_DIR");
 
-	if !c.status.success() {
-		bail!(
-			"failed to get cargo metadata: exited with: {}",
-			c.status.code().unwrap_or(-1)
-		);
-	}
-	let output = String::from_utf8(c.stdout)
-		.context("cargo metadata did not emit valid utf8")?;
-
-	serde_json::from_str::<serde_json::Value>(&output)
-		.context("failed to parse cargo metadata json")
-}
-
-fn clean() -> Result<()> {
-	cargo(|c| c.arg("clean"))?;
-	if let Err(e) = fs::remove_file("./build") {
-		if e.kind() != io::ErrorKind::NotFound {
-			return Err(e)
-				.context("failed to remove link to build directory");
-		}
-	}
-
-	Ok(())
+fn get_build_root(profile: &str) -> PathBuf {
+	Path::new(TARGET_DIR).join(match profile {
+		"dev" => "debug",
+		p => p,
+	})
 }
 
 fn completions() -> Result<()> {
-	let mut shells: HashMap<String, PathBuf> = HashMap::new();
-	shells.insert(
-		"bash".into(),
-		"overlay/usr/share/bash-completion/completions/zeus".into(),
-	);
-	shells.insert(
-		"fish".into(),
-		"overlay/usr/share/fish/vendor_completions.d/zeus.fish"
-			.into(),
-	);
-	shells.insert(
-		"zsh".into(),
-		"overlay/usr/share/zsh/site-functions/_zeus".into(),
-	);
+	for (shell, out_path) in [
+		(
+			"bash",
+			"overlay/usr/share/bash-completion/completions/zeus",
+		),
+		(
+			"fish",
+			"overlay/usr/share/fish/vendor_completions.d/zeus.fish",
+		),
+		("zsh", "overlay/usr/share/zsh/site-functions/_zeus"),
+	] {
+		let output = Cargo::new()
+			.args([
+				"run",
+				"--bin=zeus",
+				"-q",
+				"--",
+				"--config=/dev/null",
+				"--build-dir=.",
+				"completions",
+				"-s",
+			])
+			.arg(shell)
+			.with_stdout()?;
 
-	for (shell, out_path) in shells {
-		let output = cargo(|c| {
-			c.stdout(Stdio::piped())
-				.args([
-					"run",
-					"--bin=zeus",
-					"-q",
-					"--",
-					"--config=/dev/null",
-					"--build-dir=.",
-					"completions",
-					"-s",
-				])
-				.arg(&shell)
-		})?;
 		if !output.status.success() {
-			bail!("failed to generate completions for {}: zeus exited with {}", &shell, output.status.code().unwrap_or(-1))
+			bail!("failed to generate completions for {}: zeus exited with {}", &shell, output.status.code().unwrap_or(-1));
 		}
 
 		let mut out = fs::File::options()
@@ -103,34 +64,11 @@ fn completions() -> Result<()> {
 	Ok(())
 }
 
-fn check_tool_exists(tool: &str) -> Result<bool> {
-	if let Err(e) = Command::new(tool).output() {
-		if e.kind() == io::ErrorKind::NotFound {
-			Ok(false)
-		} else {
-			Err(e)
-				.with_context(|| format!("failed to execute {tool}"))
-		}
-	} else {
-		Ok(true)
-	}
-}
-
-fn install(destdir: &Path, profile: &str) -> Result<()> {
-	fn turboinstall<F>(prepare: F) -> Result<Output>
-	where
-		F: FnOnce(&mut Command) -> &mut Command,
-	{
-		prepare(
-			Command::new("turboinstall")
-				.stdin(Stdio::inherit())
-				.stdout(Stdio::inherit())
-				.stderr(Stdio::inherit()),
-		)
-		.output()
-		.context("failed to execute turboinstall")
-	}
-
+fn install(
+	destdir: &Path,
+	profile: &str,
+	fakeroot_save_file: Option<&Path>,
+) -> Result<()> {
 	let profile_path = Path::new("profiles")
 		.join(format!("{profile}.json"))
 		.canonicalize()
@@ -139,16 +77,26 @@ fn install(destdir: &Path, profile: &str) -> Result<()> {
 	let destdir =
 		destdir.canonicalize().context("failed to find destdir")?;
 
-	if !turboinstall(|c| {
-		c.arg("--profile")
-			.arg(&profile_path)
-			.arg("--")
-			.arg(&destdir)
-			.arg("./overlay")
-	})?
-	.status
-	.success()
-	{
+	let build_root = get_build_root(profile);
+	env::set_var("BUILD_ROOT", build_root);
+
+	let mut c = Turboinstall::new();
+	c.arg("--profile")
+		.arg(&profile_path)
+		.arg("--")
+		.arg(&destdir)
+		.arg("./overlay");
+
+	let mut c = match fakeroot_save_file {
+		None => c.into_inner(),
+		Some(_) => {
+			let mut fakeroot = Fakeroot::new(fakeroot_save_file);
+			fakeroot.arg("--").embed_command(&c);
+			fakeroot.into_inner()
+		},
+	};
+
+	if !c.output()?.status.success() {
 		bail!("failed to install primary overlay");
 	}
 
@@ -161,16 +109,23 @@ fn install(destdir: &Path, profile: &str) -> Result<()> {
 		.filter(|x| x.file_name().to_string_lossy() == "overlay")
 		.map(|x| x.path().to_path_buf())
 	{
-		if !turboinstall(|c| {
-			c.arg("--profile")
-				.arg(&profile_path)
-				.arg("--")
-				.arg(&destdir)
-				.arg(&overlay)
-		})?
-		.status
-		.success()
-		{
+		let mut c = Turboinstall::new();
+		c.arg("--profile")
+			.arg(&profile_path)
+			.arg("--")
+			.arg(&destdir)
+			.arg(&overlay);
+
+		let mut c = match fakeroot_save_file {
+			None => c.into_inner(),
+			Some(_) => {
+				let mut fakeroot = Fakeroot::new(fakeroot_save_file);
+				fakeroot.arg("--").embed_command(&c);
+				fakeroot.into_inner()
+			},
+		};
+
+		if !c.output()?.status.success() {
 			bail!("failed to install runtime overlay `{overlay:?}`")
 		}
 	}
@@ -178,109 +133,157 @@ fn install(destdir: &Path, profile: &str) -> Result<()> {
 	Ok(())
 }
 
-fn install_command_wrapper(args: &mut Args) -> Result<()> {
-	let destdir = args.next().context("expected destdir")?;
-	let profile = args.next().context("expected profile")?;
-	install(Path::new(&destdir), &profile)
-}
+fn package(package_type: &str, profile: &str) -> Result<()> {
+	fn package_tar(out: &Path, profile: &str) -> Result<()> {
+		if !Fakeroot::exists() {
+			bail!("fakeroot was not found: tar packages can only be built with fakeroot");
+		}
 
-fn package_arch(out: &Path) -> Result<()> {
-	if !check_tool_exists("makepkg")? {
-		bail!("makepkg was not found. arch packages can only be built in arch-based systems");
+		let tar_out = out.join("tar");
+		fs::create_dir_all(&tar_out)
+			.context("failed to create tar package work directory")?;
+
+		let tar_root = tar_out.join("root");
+		fs::create_dir_all(&tar_root)
+			.context("failed to create tar package root directory")?;
+
+		let fakeroot_save_file = tar_out.join("fakeroot.save");
+		if let Err(e) = fs::remove_file(&fakeroot_save_file) {
+			if e.kind() != io::ErrorKind::NotFound {
+				return Err(e).context(
+					"failed to remove fakeroot save from previous build",
+				);
+			}
+		}
+
+		install(&tar_root, profile, Some(&fakeroot_save_file))
+			.context("failed to install to tar root")?;
+
+		if !Fakeroot::new(Some(&fakeroot_save_file))
+			.arg("--")
+			.embed_command(
+				Tar::new()
+					.arg("--auto-compress")
+					.arg("--create")
+					.arg("--verbose")
+					.arg("--preserve-permissions")
+					.arg("--file")
+					.arg(out.join("zeus-bin.tar.gz"))
+					.arg("--directory")
+					.arg(tar_root)
+					.arg("--no-acls")
+					.arg("--no-selinux")
+					.arg("--no-xattrs")
+					.arg("--")
+					.arg("."),
+			)
+			.output()?
+			.status
+			.success()
+		{
+			bail!("failed to archive tar root");
+		}
+
+		Ok(())
 	}
 
-	let arch_out = out.join("arch");
-	fs::create_dir_all(&arch_out)
-		.context("failed to create arch package work directory")?;
+	fn package_arch(out: &Path, profile: &str) -> Result<()> {
+		if !Makepkg::exists() {
+			bail!("makepkg was not found: arch packages can only be built in arch-based systems");
+		}
 
-	fs::copy("pkg/arch/PKGBUILD", arch_out.join("PKGBUILD"))
-		.context("failed to copy PKGBUILD to work directory")?;
+		let arch_out = out.join("arch");
+		fs::create_dir_all(&arch_out).context(
+			"failed to create arch package work directory",
+		)?;
 
-	let repo_path =
-		env::current_dir().context("failed to get current dir")?;
+		fs::copy("pkg/arch/PKGBUILD", arch_out.join("PKGBUILD"))
+			.context("failed to copy PKGBUILD to work directory")?;
 
-	env::set_current_dir(&arch_out)
-		.context("failed to move into package work directory")?;
+		let repo_path = env::current_dir()
+			.context("failed to get current dir")?;
 
-	let r = Command::new("makepkg")
-		.stdin(Stdio::inherit())
-		.stdout(Stdio::inherit())
-		.stderr(Stdio::inherit())
-		.env("PKGDEST", out)
-		.env("_zeus_repo", repo_path)
-		.arg("--force")
-		.arg("--cleanbuild")
-		.output()
-		.context("failed to execute makepkg")?;
+		env::set_current_dir(&arch_out)
+			.context("failed to move into package work directory")?;
 
-	if !r.status.success() {
-		bail!(
-			"failed to build arch package: makepkg exited with: {}",
-			r.status.code().unwrap_or(-1)
-		);
+		let r = Makepkg::new()
+			.env("PKGDEST", out)
+			.env("_zeus_repo", repo_path)
+			.env("_zeus_profile", profile)
+			.arg("--force")
+			.arg("--cleanbuild")
+			.output()
+			.context("failed to execute makepkg")?;
+
+		if !r.status.success() {
+			bail!(
+				"failed to build arch package: makepkg exited with: {}",
+				r.status.code().unwrap_or(-1)
+			);
+		}
+
+		Ok(())
 	}
 
-	Ok(())
-}
-
-fn package(args: &mut Args) -> Result<()> {
-	if !check_tool_exists("turboinstall")? {
-		let install_succeeded =
-			cargo(|c| c.args(["install", "turboinstall"]))?
-				.status
-				.success();
+	if !Turboinstall::exists() {
+		let install_succeeded = Cargo::new()
+			.args(["install", "turboinstall"])
+			.output()?
+			.status
+			.success();
 
 		if !install_succeeded {
-			bail!("failed to install turboinstall with cargo. Refusing to continue...");
+			bail!("failed to install turboinstall with cargo");
 		}
 	}
 
-	let mut out_path = {
-		if let Ok(v) = env::var("CARGO_TARGET_DIR") {
-			PathBuf::from(v)
-		} else if let Some(v) = cargo_metadata()?
-			.as_object()
-			.and_then(|x| x.get("target_directory"))
-			.and_then(|x| x.as_str())
-			.map(|x| x.to_string())
-		{
-			PathBuf::from(v)
-		} else {
-			eprintln!("warning: using hardcoded target path");
-			PathBuf::from("target")
-		}
-	};
+	let mut out_path = get_build_root(profile);
 	out_path.push("package");
 	fs::create_dir_all(&out_path)
 		.context("failed to create package out dir")?;
 
-	match args.next() {
-		Some(v) => match v.as_str() {
-			"arch" => package_arch(&out_path),
-			_ => bail!("Unknown package type: {v}"),
-		},
-		None => {
-			package_arch(&out_path)?;
+	macro_rules! package_select {
+		($ptype:expr => ( $arg1:expr, $arg2:expr ) {
+			$($type:expr => $fn:ident)*
+		}) => {
+			match $ptype {
+				$(
+					$type => $fn($arg1, $arg2),
+				)*
+				"all" => {
+					$(
+						$fn($arg1, $arg2)?;
+					)*
 
-			Ok(())
-		},
+					Ok(())
+				}
+				_ => bail!("unknown package type"),
+			}
+		};
 	}
+
+	package_select!(
+		package_type => (&out_path, profile) {
+			"tar" => package_tar
+			"arch" => package_arch
+		}
+	)
 }
 
 fn ci_flow() -> Result<()> {
-	if !cargo(|c| c.args(["build", "--workspace"]))?
+	if !Cargo::new()
+		.arg("build")
+		.arg("--workspace")
+		.arg("--profile")
+		.arg("release")
+		.output()?
 		.status
 		.success()
 	{
 		bail!("failed to build workspace");
 	}
 
-	if !cargo(|c| c.args(["xtask", "package", "arch"]))?
-		.status
-		.success()
-	{
-		bail!("failed to package for arch");
-	}
+	package("all", "release")?;
 
 	Ok(())
 }
@@ -299,11 +302,24 @@ fn try_main() -> Result<()> {
 	};
 
 	match command.as_str() {
-		"distclean" => clean(),
 		"compgen" => completions(),
-		"install" => install_command_wrapper(&mut args),
-		"package" => package(&mut args),
+		"install" => {
+			let destdir = args.next().context("expected destdir")?;
+			let profile = args.next().context("expected profile")?;
+			install(Path::new(&destdir), &profile, None)
+		},
+		"package" => {
+			let package_type =
+				args.next().context("expected package type")?;
+			let profile = args.next().context("expected profile")?;
+			package(&package_type, &profile)
+		},
 		"ci" => ci_flow(),
+
+		"help" => {
+			print_help();
+			Ok(())
+		},
 		_ => {
 			eprintln!("Error: Unknown target: {command}");
 			print_help();
@@ -312,10 +328,12 @@ fn try_main() -> Result<()> {
 	}
 }
 
-fn main() {
+fn main() -> ExitCode {
 	if let Err(e) = try_main() {
 		eprintln!("{e:?}");
-		process::exit(1);
+		ExitCode::FAILURE
+	} else {
+		ExitCode::SUCCESS
 	}
 }
 
@@ -324,15 +342,17 @@ fn print_help() {
 		"\
 Targets:
 --------
-  distclean                           - Clean all build artifacts
   compgen [shell]                     - Generate shell completions
                                           [shell]: one of: bash, fish, zsh
   install [destdir] [profile]         - Install the package
                                           [destdir]: install root (path)
-                                          [profile]: one of the filenames inside `profiles/` without the extension
-  package [type]                      - Create a package
-                                          [type]: one of: arch
-  ci                                  - Run the ci workflow
+  package [type] [profile]            - Create a package
+                                          [type]: one of: arch, tar
+  ci                                  - Run the CI flow
+
+Arguments:
+----------
+  [profile]: cargo profile, must also have a definition inside `profiles/`
 "
 	);
 }

@@ -55,8 +55,6 @@ libloading = "0.7"
 xxhash-rust = { version = "0.8.6", features = ["const_xxh3"] }
 
 [build-dependencies]
-pathdiff = "0.2"
 serde_json = "1.0"
 whoami = "1.4.0"
-lazy_static = "1.4.0"
 chrono = "0.4"
