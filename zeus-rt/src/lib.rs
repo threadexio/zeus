@@ -6,4 +6,6 @@ pub use loader::_private;
 
 pub use loader::Runtime;
 
-pub(crate) const RUSTC_VERSION: &str = env!("RUSTC_VERSION");
+pub(crate) mod generated {
+	include!(env!("GENERATED_OUT"));
+}

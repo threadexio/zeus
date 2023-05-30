@@ -48,10 +48,7 @@ impl Runtime {
 					.context("failed to find runtime data symbol")?;
 
 			if runtime_meta.abi_version != _private::abi_version() {
-				bail!(
-					"incompatible abi: required {}",
-					crate::RUSTC_VERSION,
-				)
+				bail!("incompatible abi")
 			}
 
 			if runtime_meta.version != _private::RUNTIME_VERSION {
@@ -97,9 +94,7 @@ pub mod _private {
 	pub const RUNTIME_VERSION: u32 = 0;
 
 	pub const fn abi_version() -> u64 {
-		use xxhash_rust::const_xxh3::xxh3_64_with_seed;
-
-		xxh3_64_with_seed(crate::RUSTC_VERSION.as_bytes(), 42)
+		crate::generated::VERSION
 	}
 
 	#[repr(C)]

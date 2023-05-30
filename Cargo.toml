@@ -34,7 +34,6 @@ reqwest = { version = "0.11", features = ["json", "blocking"] }
 
 nix = { version = "0.26", features = ["fs"] }
 libloading = "0.7"
-xxhash-rust = { version = "0.8.6", features = ["const_xxh3"] }
 
 zeus-aur = { path = "./zeus-aur" }
 zeus-db = { path = "./zeus-db" }

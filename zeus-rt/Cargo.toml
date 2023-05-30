@@ -9,7 +9,9 @@ build = "build.rs"
 anyhow = { workspace = true }
 libloading = { workspace = true }
 thiserror = { workspace = true }
-xxhash-rust = { workspace = true }
 
 zeus-types = { workspace = true }
 zeus-term = { workspace = true }
+
+[build-dependencies]
+xxhash-rust = { version = "0.8.6", features = ["xxh3"] }
