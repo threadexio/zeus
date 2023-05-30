@@ -1,6 +1,5 @@
 use std::env;
 use std::fs;
-use std::io;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -134,7 +133,9 @@ fn install(
 }
 
 fn package(package_type: &str, profile: &str) -> Result<()> {
-	fn package_tar(out: &Path, profile: &str) -> Result<()> {
+	// there is a bug with containers and fakeroot that
+	// gets the spawned process stuck waiting forever
+	/*fn package_tar(out: &Path, profile: &str) -> Result<()> {
 		if !Fakeroot::exists() {
 			bail!("fakeroot was not found: tar packages can only be built with fakeroot");
 		}
@@ -185,7 +186,7 @@ fn package(package_type: &str, profile: &str) -> Result<()> {
 		}
 
 		Ok(())
-	}
+	}*/
 
 	fn package_arch(out: &Path, profile: &str) -> Result<()> {
 		if !Makepkg::exists() {
@@ -264,7 +265,7 @@ fn package(package_type: &str, profile: &str) -> Result<()> {
 
 	package_select!(
 		package_type => (&out_path, profile) {
-			"tar" => package_tar
+			//"tar" => package_tar
 			"arch" => package_arch
 		}
 	)
@@ -347,7 +348,7 @@ Targets:
   install [destdir] [profile]         - Install the package
                                           [destdir]: install root (path)
   package [type] [profile]            - Create a package
-                                          [type]: one of: arch, tar
+                                          [type]: one of: arch
   ci                                  - Run the CI flow
 
 Arguments:

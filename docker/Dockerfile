@@ -12,10 +12,10 @@ RUN set -eu; \
 	chown -R builduser:builduser /app;
 
 USER builduser
-ENV CARGO_TARGET_DIR /app/target
 RUN set -eu; \
 	rustup default stable;
 
 WORKDIR /app/src
+ENV CARGO_TARGET_DIR /app/target
 
 CMD ["cargo", "xtask", "ci"]
