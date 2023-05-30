@@ -136,9 +136,9 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
 name = "channels"
-version = "0.6.8"
+version = "0.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec6136f06a3b2285d679b5bf1e598eac173c647288b73f77329cdb407393de90"
+checksum = "ac9a19a97e6c5abefe67f990bcb4d2f5fe2ef508bd4364f9c9fc19c7049d9d1e"
 dependencies = [
  "bincode",
  "crc",

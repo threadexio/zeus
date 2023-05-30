@@ -19,7 +19,7 @@ default-members = ["zeus-cli", "zeus-builder"]
 [workspace.dependencies]
 anyhow = "1.0"
 atty = "0.2"
-channels = { version = "0.6.7" }
+channels = { version = "0.7.0" }
 chrono = { version = "0.4" }
 clap = { version = "4.1.6" }
 clap_complete = { version = "4.1.2" }
