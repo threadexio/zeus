@@ -41,7 +41,10 @@ impl Aur {
 	/// Create a new [`Aur`] that will communicate with the
 	/// server at `url`. This instance will be presented at
 	/// the server as [`crate::constants::AUR_IDENTITY`].
-	pub fn new(url: impl AsRef<str>, id: impl Into<String>) -> Result<Self> {
+	pub fn new(
+		url: impl AsRef<str>,
+		id: impl Into<String>,
+	) -> Result<Self> {
 		let url = url.as_ref().trim().trim_end_matches('/');
 
 		Ok(Self {
