@@ -4,7 +4,6 @@ use anyhow::{Context, Result};
 use toml::Value;
 
 pub mod constants;
-mod macros;
 
 mod traits;
 pub use traits::*;
@@ -23,32 +22,6 @@ pub enum Operation {
 	Query(QueryConfig),
 	Runtime(RuntimeConfig),
 	Completion(CompletionsConfig),
-}
-
-pub fn command() -> clap::Command {
-	GlobalConfig::command()
-		.name(constants::NAME)
-		.version(constants::VERSION)
-		.long_version(constants::LONG_VERSION)
-		.author(constants::AUTHORS)
-		.subcommand_required(true)
-		.disable_help_subcommand(true)
-		.arg_required_else_help(true)
-		.arg(
-			clap::Arg::new("config_file")
-				.long("config")
-				.help("Set an alternate configuration file")
-				.default_value(constants::CONFIG_FILE)
-				.value_name("path")
-				.value_hint(clap::ValueHint::FilePath)
-				.value_parser(clap::value_parser!(PathBuf)),
-		)
-		.subcommand(SyncConfig::command())
-		.subcommand(RemoveConfig::command())
-		.subcommand(BuildConfig::command())
-		.subcommand(QueryConfig::command())
-		.subcommand(RuntimeConfig::command())
-		.subcommand(CompletionsConfig::command())
 }
 
 #[derive(Debug)]
@@ -112,6 +85,32 @@ pub fn load() -> Result<AppConfig> {
 			_ => panic!("Invalid subcommand. This is a bug!"),
 		},
 	})
+}
+
+pub fn command() -> clap::Command {
+	GlobalConfig::command()
+		.name(constants::NAME)
+		.version(constants::VERSION)
+		.long_version(constants::LONG_VERSION)
+		.author(constants::AUTHORS)
+		.subcommand_required(true)
+		.disable_help_subcommand(true)
+		.arg_required_else_help(true)
+		.arg(
+			clap::Arg::new("config_file")
+				.long("config")
+				.help("Set an alternate configuration file")
+				.default_value(constants::CONFIG_FILE)
+				.value_name("path")
+				.value_hint(clap::ValueHint::FilePath)
+				.value_parser(clap::value_parser!(PathBuf)),
+		)
+		.subcommand(SyncConfig::command())
+		.subcommand(RemoveConfig::command())
+		.subcommand(BuildConfig::command())
+		.subcommand(QueryConfig::command())
+		.subcommand(RuntimeConfig::command())
+		.subcommand(CompletionsConfig::command())
 }
 
 #[cfg(test)]

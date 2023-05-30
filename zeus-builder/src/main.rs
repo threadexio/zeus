@@ -7,13 +7,13 @@
 	clippy::unwrap_used
 )]
 
+use anyhow::{anyhow, Context, Result};
+
 use zeus_db::Db;
 use zeus_ipc::Response;
 use zeus_ipc::{Client, Message};
 use zeus_term::Terminal;
 use zeus_types::{Color, GlobalConfig, RemoveConfig, SyncConfig};
-
-use anyhow::{anyhow, Context, Result};
 
 fn main() {
 	{

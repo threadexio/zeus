@@ -1,7 +1,8 @@
-use ::std::{fmt, time::Duration};
+use std::fmt::Display;
+use std::time::Duration;
 
-use ::reqwest::blocking::Client;
-use ::serde::{Deserialize, Serialize};
+use reqwest::blocking::Client;
+use serde::{Deserialize, Serialize};
 
 use super::cache::Cache;
 use super::error::*;
@@ -78,7 +79,10 @@ impl Aur {
 	///
 	/// assert_eq!(aur.get_url(), "https://aur.archlinux.org");
 	/// ```
-	pub fn url<U: fmt::Display>(&mut self, url: U) {
+	pub fn url<U>(&mut self, url: U)
+	where
+		U: Display,
+	{
 		self.url = url.to_string();
 	}
 

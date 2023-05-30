@@ -1,9 +1,9 @@
-use super::prelude::*;
+use std::io::Write;
 
 use zeus_aur::Package;
 use zeus_types::Output;
 
-use std::io::Write;
+use super::prelude::*;
 
 macro_rules! print_info {
 	($term:expr, $a:expr, $b:expr) => {
@@ -66,7 +66,7 @@ fn format_timestamp(timestamp: u64) -> Option<String> {
 	Some(d.format("%c").to_string())
 }
 
-pub(crate) fn query(
+pub fn query(
 	_: GlobalConfig,
 	config: QueryConfig,
 	term: &mut Terminal,
@@ -80,11 +80,7 @@ pub(crate) fn query(
 		match config.output {
 			Output::Pretty => {
 				for x in pkgs {
-					writeln!(
-						unsafe { term.raw_out() },
-						"{}",
-						x.name()
-					)?;
+					writeln!(term.raw_out(), "{}", x.name())?;
 				}
 			},
 			Output::Json => serde_json::to_writer(
@@ -106,11 +102,10 @@ pub(crate) fn query(
 	.context("Unable to request packages from AUR")?;
 
 	match config.output {
-		Output::Json => serde_json::to_writer(
-			unsafe { term.raw_out() },
-			&packages,
-		)
-		.context("Unable to serialize JSON")?,
+		Output::Json => {
+			serde_json::to_writer(term.raw_out(), &packages)
+				.context("Unable to serialize JSON")?
+		},
 		Output::Pretty => {
 			if config.info {
 				for package in &packages {

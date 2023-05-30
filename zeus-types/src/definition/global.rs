@@ -2,11 +2,11 @@ use std::collections::HashMap;
 
 use anyhow::Context;
 
+use zeus_term::Level;
+
 use super::prelude::*;
 
 pub type RuntimeOpts = HashMap<String, String>;
-
-use zeus_term::Level;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GlobalConfig {

@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-pub(crate) fn build(
+pub fn build(
 	global_config: GlobalConfig,
 	_: BuildConfig,
 	term: &mut Terminal,

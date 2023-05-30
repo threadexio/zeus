@@ -7,9 +7,9 @@
 	clippy::unwrap_used
 )]
 
-mod cli;
-
 use zeus_term::Terminal;
+
+mod cli;
 
 fn main() {
 	{

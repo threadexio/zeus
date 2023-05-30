@@ -1,7 +1,8 @@
-use super::prelude::*;
 use zeus_ipc::Message;
 
-pub(crate) fn remove(
+use super::prelude::*;
+
+pub fn remove(
 	global_config: GlobalConfig,
 	config: RemoveConfig,
 	term: &mut Terminal,

@@ -1,10 +1,7 @@
-#![allow(dead_code)]
-
 use const_format::formatcp;
 
 macro_rules! from_env {
 	($var:ident) => {
-		//from_env!($var, concat!("ZEUS_", stringify!($var)));
 		from_env!($var, stringify!($var));
 	};
 	($var:ident, $env:expr) => {

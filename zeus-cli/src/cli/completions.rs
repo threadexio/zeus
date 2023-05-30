@@ -1,6 +1,6 @@
 use super::prelude::*;
 
-pub(crate) fn completions(
+pub fn completions(
 	_: GlobalConfig,
 	config: CompletionsConfig,
 	term: &mut Terminal,
@@ -9,7 +9,7 @@ pub(crate) fn completions(
 		clap_complete::Shell::from(config.shell),
 		&mut zeus_types::command(),
 		constants::NAME.to_string(),
-		unsafe { term.raw_out() },
+		term.raw_out(),
 	);
 
 	Ok(())

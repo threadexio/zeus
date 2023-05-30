@@ -1,9 +1,9 @@
-use std::fmt;
-use std::io;
-use std::io::prelude::*;
+use std::fmt::Display;
+use std::io::{self, prelude::*, Stderr, Stdin, Stdout};
 use std::str;
 
 use colored::Colorize;
+use serde::{Deserialize, Serialize};
 
 #[derive(
 	Debug,
@@ -13,8 +13,8 @@ use colored::Colorize;
 	Eq,
 	PartialOrd,
 	Ord,
-	serde::Serialize,
-	serde::Deserialize,
+	Serialize,
+	Deserialize,
 )]
 pub enum Level {
 	Fatal,
@@ -27,11 +27,10 @@ pub enum Level {
 
 #[derive(Debug)]
 pub struct Terminal {
-	t_in: io::Stdin,
-	t_out: io::Stdout,
-	t_err: io::Stderr,
+	t_in: Stdin,
+	t_out: Stdout,
+	t_err: Stderr,
 
-	read_buf: Vec<u8>,
 	max_level: Level,
 
 	terminal: bool,
@@ -48,7 +47,6 @@ impl Terminal {
 			t_in: io::stdin(),
 			t_out: io::stdout(),
 			t_err: io::stderr(),
-			read_buf: Vec::with_capacity(2048),
 			max_level: Level::Info,
 			terminal,
 			interactive,
@@ -77,18 +75,15 @@ impl Terminal {
 		colored::control::set_override(enabled)
 	}
 
-	#[allow(clippy::missing_safety_doc)]
-	pub unsafe fn raw_in(&mut self) -> &mut io::Stdin {
+	pub fn raw_in(&mut self) -> &mut Stdin {
 		&mut self.t_in
 	}
 
-	#[allow(clippy::missing_safety_doc)]
-	pub unsafe fn raw_out(&mut self) -> &mut io::Stdout {
+	pub fn raw_out(&mut self) -> &mut Stdout {
 		&mut self.t_out
 	}
 
-	#[allow(clippy::missing_safety_doc)]
-	pub unsafe fn raw_err(&mut self) -> &mut io::Stderr {
+	pub fn raw_err(&mut self) -> &mut Stderr {
 		&mut self.t_err
 	}
 }
@@ -108,7 +103,7 @@ impl Terminal {
 
 	pub fn write<M>(&mut self, m: M)
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		let _ = self.t_err.write_all(format!("{m}").as_bytes());
 		let _ = self.t_err.flush();
@@ -116,7 +111,7 @@ impl Terminal {
 
 	pub fn writeln<M>(&mut self, m: M)
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		let _ = self.t_err.write_all(format!("{m}\n").as_bytes());
 	}
@@ -125,7 +120,7 @@ impl Terminal {
 impl Terminal {
 	pub fn confirm<M>(&mut self, message: M, default: bool) -> bool
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		self.write(format!(
 			"{} [{}] ",
@@ -156,7 +151,7 @@ impl Terminal {
 impl Terminal {
 	fn log_fmt<M>(level: Level, message: M) -> String
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		format!(
 			" {} {message}",
@@ -173,7 +168,7 @@ impl Terminal {
 
 	fn imp_log<M>(&mut self, level: Level, message: M)
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		if level <= self.max_level {
 			self.writeln(Self::log_fmt(level, message));
@@ -187,7 +182,7 @@ impl Terminal {
 	#[inline]
 	pub fn trace<M>(&mut self, message: M)
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		self.imp_log(Level::Trace, message)
 	}
@@ -195,7 +190,7 @@ impl Terminal {
 	#[inline]
 	pub fn debug<M>(&mut self, message: M)
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		self.imp_log(Level::Debug, message)
 	}
@@ -203,7 +198,7 @@ impl Terminal {
 	#[inline]
 	pub fn info<M>(&mut self, message: M)
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		self.imp_log(Level::Info, message)
 	}
@@ -211,7 +206,7 @@ impl Terminal {
 	#[inline]
 	pub fn warn<M>(&mut self, message: M)
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		self.imp_log(Level::Warn, message)
 	}
@@ -219,7 +214,7 @@ impl Terminal {
 	#[inline]
 	pub fn error<M>(&mut self, message: M)
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		self.imp_log(Level::Error, message)
 	}
@@ -227,7 +222,7 @@ impl Terminal {
 	#[inline]
 	pub fn fatal<M>(&mut self, message: M)
 	where
-		M: fmt::Display,
+		M: Display,
 	{
 		self.imp_log(Level::Fatal, message)
 	}

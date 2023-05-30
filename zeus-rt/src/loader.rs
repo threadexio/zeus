@@ -1,3 +1,4 @@
+use std::ops::{Deref, DerefMut};
 use std::path::Path;
 
 use anyhow::{bail, Context, Result};
@@ -7,10 +8,10 @@ use super::interface::IRuntime;
 
 pub struct Runtime {
 	runtime: Box<dyn IRuntime>,
-	library: Library,
+	_library: Library,
 }
 
-impl std::ops::Deref for Runtime {
+impl Deref for Runtime {
 	type Target = dyn IRuntime;
 
 	fn deref(&self) -> &Self::Target {
@@ -18,7 +19,7 @@ impl std::ops::Deref for Runtime {
 	}
 }
 
-impl std::ops::DerefMut for Runtime {
+impl DerefMut for Runtime {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.runtime.as_mut()
 	}
@@ -59,7 +60,7 @@ impl Runtime {
 
 			let runtime = (runtime_meta.constructor)();
 
-			Ok(Self { library, runtime })
+			Ok(Self { _library: library, runtime })
 		}
 	}
 }
@@ -86,7 +87,6 @@ macro_rules! runtime {
 		};
 	};
 }
-pub use runtime;
 
 #[doc(hidden)]
 pub mod _private {

@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::io::{Error, ErrorKind, Result};
 use std::path::{Path, PathBuf};
 

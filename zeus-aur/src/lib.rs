@@ -11,7 +11,6 @@
 //!         aur.search(By::Name, ["pacman"].iter()).unwrap()
 //! );
 //! ```
-#![allow(dead_code)]
 
 mod cache;
 mod client;

@@ -1,6 +1,6 @@
 use std::fs::{self, File};
-use std::io::{self, Error, ErrorKind, Result};
-use std::path::{Path, PathBuf};
+use std::io::{Error, ErrorKind, Read, Result, Write};
+use std::path::PathBuf;
 
 #[derive(Debug)]
 pub struct Lock {
@@ -17,10 +17,6 @@ impl Lock {
 		Self { handle: None, owner: false, path: path.into() }
 	}
 
-	pub fn path(&self) -> &Path {
-		&self.path
-	}
-
 	pub fn locked(&self) -> bool {
 		self.handle.is_some()
 	}
@@ -29,8 +25,6 @@ impl Lock {
 		if self.locked() {
 			return Ok(());
 		}
-
-		use io::{Read, Write};
 
 		let mut handle = File::options()
 			.read(true)

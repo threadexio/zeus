@@ -1,7 +1,8 @@
-use super::prelude::*;
 use zeus_ipc::Message;
 
-pub(crate) fn sync(
+use super::prelude::*;
+
+pub fn sync(
 	global_config: GlobalConfig,
 	mut config: SyncConfig,
 	term: &mut Terminal,

@@ -1,9 +1,15 @@
-use ::std::{env, path::Path};
-use std::path::PathBuf;
+use std::env;
+use std::path::{Path, PathBuf};
+
+mod build;
+mod completions;
+mod query;
+mod remove;
+mod runtime;
+mod sync;
 
 mod prelude {
 	pub use anyhow::{anyhow, bail, Context, Result};
-
 	pub use colored::Colorize;
 
 	pub use zeus_aur::Aur;
@@ -16,14 +22,8 @@ mod prelude {
 		RuntimeConfig, SyncConfig,
 	};
 }
-use prelude::*;
 
-mod build;
-mod completions;
-mod query;
-mod remove;
-mod runtime;
-mod sync;
+use prelude::*;
 
 pub fn init(term: &mut Terminal) -> Result<()> {
 	let AppConfig { global: mut global_config, operation } =

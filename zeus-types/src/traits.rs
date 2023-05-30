@@ -22,59 +22,6 @@ pub trait ConfigEnum {
 	}
 }
 
-impl ConfigEnum for super::types::Color {
-	fn possible_values() -> &'static [&'static str] {
-		&["never", "always", "auto"]
-	}
-
-	fn from_value(s: &str) -> Option<Self>
-	where
-		Self: Sized,
-	{
-		match s {
-			"never" => Some(Self::Never),
-			"always" => Some(Self::Always),
-			"auto" => Some(Self::Auto),
-			_ => None,
-		}
-	}
-}
-
-impl ConfigEnum for super::types::Output {
-	fn possible_values() -> &'static [&'static str] {
-		&["pretty", "json"]
-	}
-
-	fn from_value(s: &str) -> Option<Self>
-	where
-		Self: Sized,
-	{
-		match s {
-			"pretty" => Some(Self::Pretty),
-			"json" => Some(Self::Json),
-			_ => None,
-		}
-	}
-}
-
-impl ConfigEnum for super::types::Shell {
-	fn possible_values() -> &'static [&'static str] {
-		&["bash", "fish", "zsh"]
-	}
-
-	fn from_value(s: &str) -> Option<Self>
-	where
-		Self: Sized,
-	{
-		match s {
-			"bash" => Some(Self::Bash),
-			"fish" => Some(Self::Fish),
-			"zsh" => Some(Self::Zsh),
-			_ => None,
-		}
-	}
-}
-
 impl ConfigEnum for zeus_term::Level {
 	fn possible_values() -> &'static [&'static str] {
 		&["fatal", "error", "warn", "info", "debug", "trace"]

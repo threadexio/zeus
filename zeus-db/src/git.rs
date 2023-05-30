@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(clippy::new_without_default)]
 
 use std::ffi::OsString;
 use std::io::{Error, ErrorKind, Result};

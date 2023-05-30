@@ -33,23 +33,6 @@ impl By {
 	}
 }
 
-impl ::std::str::FromStr for By {
-	type Err = ();
-
-	fn from_str(s: &str) -> Result<Self, Self::Err> {
-		match s {
-			"name" => Ok(Self::Name),
-			"name-desc" => Ok(Self::NameDesc),
-			"maintainer" => Ok(Self::Maintainer),
-			"depends" => Ok(Self::Depends),
-			"makedepends" => Ok(Self::MakeDepends),
-			"optdepends" => Ok(Self::OptDepends),
-			"checkdepends" => Ok(Self::CheckDepends),
-			_ => Err(()),
-		}
-	}
-}
-
 // schema from: https://aur.archlinux.org/rpc/swagger
 #[derive(
 	Debug,
@@ -124,11 +107,4 @@ pub struct Package {
 
 	#[serde(rename = "Keywords")]
 	pub keywords: Option<Vec<String>>,
-}
-
-use ::std::fmt;
-impl fmt::Display for Package {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		write!(f, "{}", &self.name)
-	}
 }

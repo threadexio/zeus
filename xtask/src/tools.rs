@@ -1,8 +1,6 @@
-#![allow(dead_code)]
-
 use std::ffi::OsString;
 use std::io;
-use std::ops;
+use std::ops::{Deref, DerefMut};
 use std::path::Path;
 use std::process::{Command, Output, Stdio};
 
@@ -58,13 +56,14 @@ macro_rules! impl_tool {
 	($tool_name:ident, $tool_path:expr, fn: [$($fn_name:ident),*]) => {
 		pub struct $tool_name(Command);
 
+		#[allow(dead_code)]
 		impl $tool_name {
 			$(
 				impl_tool!(@fn $tool_name, $tool_path, $fn_name);
 			)*
 		}
 
-		impl ops::Deref for $tool_name {
+		impl Deref for $tool_name {
 			type Target = Command;
 
 			fn deref(&self) -> &Self::Target {
@@ -72,7 +71,7 @@ macro_rules! impl_tool {
 			}
 		}
 
-		impl ops::DerefMut for $tool_name {
+		impl DerefMut for $tool_name {
 			fn deref_mut(&mut self) -> &mut Self::Target {
 				&mut self.0
 			}

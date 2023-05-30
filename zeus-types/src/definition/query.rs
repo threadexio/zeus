@@ -1,5 +1,6 @@
-use super::prelude::*;
 use zeus_aur::By;
+
+use super::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryConfig {

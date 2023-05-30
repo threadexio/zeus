@@ -1,14 +1,14 @@
-use ::std::path::PathBuf;
+use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
+
+use zeus_types::{GlobalConfig, RemoveConfig, SyncConfig};
 
 mod client;
 pub use client::Client;
 
 mod listener;
 pub use listener::Listener;
-
-use zeus_types::{GlobalConfig, RemoveConfig, SyncConfig};
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum Message {

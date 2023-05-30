@@ -1,10 +1,11 @@
-use super::git;
-use super::makepkg;
 use std::ffi::OsStr;
 use std::fs;
 use std::io::{Error, ErrorKind, Result};
 use std::marker::PhantomData;
 use std::path::{Path, PathBuf};
+
+use super::git;
+use super::makepkg;
 
 #[derive(Debug)]
 pub struct Package<'a> {

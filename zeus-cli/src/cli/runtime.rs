@@ -1,8 +1,8 @@
-use ::std::path::Path;
+use std::path::Path;
 
 use super::prelude::*;
 
-pub(crate) fn runtime(
+pub fn runtime(
 	_: GlobalConfig,
 	config: RuntimeConfig,
 	term: &mut Terminal,

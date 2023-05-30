@@ -1,10 +1,8 @@
-use ::std::{
-	borrow::Borrow,
-	cmp::Eq,
-	collections::HashMap,
-	hash::Hash,
-	time::{Duration, Instant},
-};
+use std::borrow::Borrow;
+use std::cmp::Eq;
+use std::collections::HashMap;
+use std::hash::Hash;
+use std::time::{Duration, Instant};
 
 #[derive(Debug, Clone)]
 struct CacheItem<T> {
@@ -44,15 +42,16 @@ impl<T> CacheItem<T> {
 #[derive(Debug, Clone)]
 pub struct Cache<K, V>
 where
-	K: std::cmp::Eq + std::hash::Hash,
+	K: Eq + Hash,
 {
 	ttl: Duration,
 	inner: HashMap<K, CacheItem<V>>,
 }
 
+#[allow(dead_code)]
 impl<K, V> Cache<K, V>
 where
-	K: std::cmp::Eq + std::hash::Hash,
+	K: Eq + Hash,
 {
 	pub fn new(ttl: Duration) -> Self {
 		Self { ttl, inner: HashMap::new() }
