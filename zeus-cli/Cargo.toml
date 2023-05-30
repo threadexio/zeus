@@ -1,0 +1,30 @@
+[package]
+name = "zeus-cli"
+version = "0.1.0"
+edition = "2021"
+autobins = false
+default-run = "zeus"
+
+[[bin]]
+name = "zeus"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+atty = { workspace = true }
+chrono = { workspace = true }
+clap = { workspace = true }
+clap_complete = { workspace = true }
+colored = { workspace = true }
+nix = { workspace = true }
+rand = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+zeus-aur = { workspace = true }
+zeus-db = { workspace = true }
+zeus-ipc = { workspace = true }
+zeus-rt = { workspace = true }
+zeus-types = { workspace = true }
+zeus-term = { workspace = true }

@@ -1,0 +1,18 @@
+[package]
+name = "zeus-builder"
+version = "0.1.0"
+edition = "2021"
+autobins = false
+
+[[bin]]
+name = "builder"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = { workspace = true }
+nix = { workspace = true }
+
+zeus-db = { workspace = true }
+zeus-ipc = { workspace = true }
+zeus-term = { workspace = true }
+zeus-types = { workspace = true }

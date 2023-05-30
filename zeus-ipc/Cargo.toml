@@ -1,0 +1,11 @@
+[package]
+name = "zeus-ipc"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = { workspace = true }
+channels = { workspace = true }
+serde = { workspace = true }
+
+zeus-types = { workspace = true }

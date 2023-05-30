@@ -1,0 +1,9 @@
+[package]
+name = "zeus-term"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+atty = { workspace = true }
+colored = { workspace = true }
+serde = { workspace = true }
